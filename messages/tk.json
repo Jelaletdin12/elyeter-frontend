@@ -1,0 +1,24 @@
+{
+  "common": {
+    "search": "Search",
+    "addToCart": "Add to cart",
+    "outOfStock": "Out of stock",
+    "loading": "Loading...",
+    "viewDetails": "View details"
+  },
+  "products": {
+    "title": "Products",
+    "filters": "Filters",
+    "sortBy": "Sort by"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "priceChanged": "The price of this item has changed since you added it."
+  },
+  "checkout": {
+    "shipping": "Shipping",
+    "payment": "Payment",
+    "review": "Review"
+  }
+}
