@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { bannerListOptions } from '@/features/banners/api/queries';
@@ -65,8 +65,8 @@ export default function AdminBannersPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl italic text-ink">Banners</h1>
-          <p className="mt-1 text-sm text-ink-muted">{banners?.length ?? 0} banners</p>
+          <h1 className="text-foreground font-serif text-2xl italic">Banners</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{banners?.length ?? 0} banners</p>
         </div>
         {can('banner.manage') && (
           <Button onClick={openCreate}>
@@ -79,7 +79,7 @@ export default function AdminBannersPage() {
         {isLoading ? (
           <div className="grid animate-pulse grid-cols-2 gap-4 sm:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[16/9] rounded-card bg-paper" />
+              <div key={i} className="bg-background aspect-[16/9] rounded-md" />
             ))}
           </div>
         ) : !banners || banners.length === 0 ? (
@@ -93,21 +93,29 @@ export default function AdminBannersPage() {
             {[...banners]
               .sort((a, b) => a.order - b.order)
               .map((banner) => (
-                <div key={banner.id} className="overflow-hidden rounded-card border border-line bg-surface">
+                <div
+                  key={banner.id}
+                  className="border-border bg-card overflow-hidden rounded-md border"
+                >
                   <div className="relative aspect-[16/9]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={banner.desktopUrl} alt="" className="h-full w-full object-cover" />
-                    <div className="absolute left-2 top-2">
+                    <div className="absolute top-2 left-2">
                       <StatusBadge tone={banner.isActive ? 'success' : 'neutral'}>
                         {banner.isActive ? 'Active' : 'Disabled'}
                       </StatusBadge>
                     </div>
                   </div>
                   <div className="flex items-center justify-between p-3">
-                    <p className="truncate text-xs text-ink-muted">Order {banner.order}</p>
+                    <p className="text-muted-foreground truncate text-xs">Order {banner.order}</p>
                     {can('banner.manage') && (
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(banner)} aria-label="Edit">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(banner)}
+                          aria-label="Edit"
+                        >
                           <Pencil size={14} />
                         </Button>
                         <Button
@@ -115,7 +123,7 @@ export default function AdminBannersPage() {
                           size="icon"
                           onClick={() => setPendingDeleteBanner(banner)}
                           aria-label="Delete"
-                          className="text-danger hover:bg-danger/10"
+                          className="text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 size={14} />
                         </Button>

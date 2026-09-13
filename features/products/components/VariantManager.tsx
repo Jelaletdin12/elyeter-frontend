@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, History } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   useAddVariantMutation,
@@ -29,20 +29,27 @@ function StockMovementHistory({ productId, variantId }: { productId: string; var
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { data, isLoading } = useQuery(stockMovementsOptions(storeId, productId, variantId));
 
-  if (isLoading) return <p className="p-3 text-xs text-ink-muted">Loading…</p>;
-  if (!data || data.items.length === 0) return <p className="p-3 text-xs text-ink-muted">No movements yet.</p>;
+  if (isLoading) return <p className="text-muted-foreground p-3 text-xs">Loading…</p>;
+  if (!data || data.items.length === 0)
+    return <p className="text-muted-foreground p-3 text-xs">No movements yet.</p>;
 
   return (
-    <ul className="divide-y divide-line">
+    <ul className="divide-border divide-y">
       {data.items.map((m) => (
         <li key={m.id} className="flex items-center justify-between px-3 py-2 text-xs">
           <div>
-            <span className="font-medium text-ink">{MOVEMENT_LABEL[m.type] ?? m.type}</span>
-            <span className="ml-2 text-ink-muted">{m.reason ?? '—'}</span>
+            <span className="text-foreground font-medium">{MOVEMENT_LABEL[m.type] ?? m.type}</span>
+            <span className="text-muted-foreground ml-2">{m.reason ?? '—'}</span>
           </div>
-          <div className="flex items-center gap-3 text-ink-muted">
+          <div className="text-muted-foreground flex items-center gap-3">
             <span>{new Date(m.createdAt).toLocaleString()}</span>
-            <span className={m.type === 'OUT' ? 'font-medium text-danger' : 'font-medium text-teal'}>
+            <span
+              className={
+                m.type === 'OUT'
+                  ? 'text-destructive font-medium'
+                  : 'text-sidebar-primary font-medium'
+              }
+            >
               {m.type === 'OUT' ? '-' : '+'}
               {m.quantity}
             </span>
@@ -69,15 +76,15 @@ export function VariantManager({
   const adjustStock = useStockAdjustmentMutation(storeId);
 
   return (
-    <div className="rounded-card border border-line">
-      <div className="flex items-center justify-between border-b border-line p-4">
-        <p className="text-sm font-medium text-ink">Variants</p>
+    <div className="border-border rounded-md border">
+      <div className="border-border flex items-center justify-between border-b p-4">
+        <p className="text-foreground text-sm font-medium">Variants</p>
         <Button size="sm" variant="outline" onClick={() => setIsAddOpen(true)}>
           <Plus size={14} /> Add variant
         </Button>
       </div>
 
-      <ul className="divide-y divide-line">
+      <ul className="divide-border divide-y">
         {variants.map((variant) => {
           const available = availableQuantity(variant);
           const isExpanded = expandedVariantId === variant.id;
@@ -86,8 +93,8 @@ export function VariantManager({
             <li key={variant.id}>
               <div className="flex items-center justify-between p-4">
                 <div>
-                  <p className="text-sm font-medium text-ink">{variant.sku}</p>
-                  <p className="text-xs text-ink-muted">
+                  <p className="text-foreground text-sm font-medium">{variant.sku}</p>
+                  <p className="text-muted-foreground text-xs">
                     {Object.entries(variant.attributes)
                       .map(([k, v]) => `${k}: ${v}`)
                       .join(' · ') || 'No attributes'}
@@ -95,7 +102,7 @@ export function VariantManager({
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <span className="font-display text-sm italic text-ink">{variant.price}</span>
+                  <span className="text-foreground font-serif text-sm italic">{variant.price}</span>
                   <StatusBadge tone={available > 0 ? 'success' : 'destructive'}>
                     {available} in stock
                   </StatusBadge>
@@ -114,7 +121,7 @@ export function VariantManager({
               </div>
 
               {isExpanded && (
-                <div className="border-t border-line bg-paper">
+                <div className="border-border bg-background border-t">
                   <StockMovementHistory productId={productId} variantId={variant.id} />
                 </div>
               )}

@@ -12,6 +12,7 @@ export type ProductFilters = {
   categoryId?: string;
   search?: string;
   page?: number;
+  perPage?: number;
   minPrice?: number;
   maxPrice?: number;
 };
@@ -47,8 +48,12 @@ export const queryKeys = {
   orders: {
     all: (storeId: string) => ['orders', storeId] as const,
     list: (storeId: string, page: number) => ['orders', storeId, 'list', page] as const,
-    detail: (storeId: string, orderId: string) =>
-      ['orders', storeId, 'detail', orderId] as const,
+    detail: (storeId: string, orderId: string) => ['orders', storeId, 'detail', orderId] as const,
+  },
+
+  profile: {
+    all: (storeId: string) => ['profile', storeId] as const,
+    current: (storeId: string) => ['profile', storeId, 'current'] as const,
   },
 
   search: {
@@ -73,12 +78,41 @@ export const queryKeys = {
   adminOrders: {
     all: (storeId: string) => ['admin-orders', storeId] as const,
     list: (storeId: string, page: number) => ['admin-orders', storeId, 'list', page] as const,
+    detail: (storeId: string, orderId: string) =>
+      ['admin-orders', storeId, 'detail', orderId] as const,
   },
   adminUsers: {
     all: (storeId: string) => ['admin-users', storeId] as const,
     list: (storeId: string, page: number) => ['admin-users', storeId, 'list', page] as const,
     detail: (storeId: string, userId: string) =>
       ['admin-users', storeId, 'detail', userId] as const,
+  },
+  adminCoupons: {
+    all: (storeId: string) => ['admin-coupons', storeId] as const,
+    list: (storeId: string, page: number) => ['admin-coupons', storeId, 'list', page] as const,
+    usages: (storeId: string, couponId: string) =>
+      ['admin-coupons', storeId, 'usages', couponId] as const,
+    // Scope dialog'unun ürün/kategori isim eşleştirmesi için büyük listeler.
+    productScope: (storeId: string) => ['admin-coupons', storeId, 'product-scope'] as const,
+    categoryScope: (storeId: string) => ['admin-coupons', storeId, 'category-scope'] as const,
+  },
+  adminStats: {
+    all: (storeId: string) => ['admin-stats', storeId] as const,
+    overview: (storeId: string) => ['admin-stats', storeId, 'overview'] as const,
+    productsByOperator: (storeId: string) =>
+      ['admin-stats', storeId, 'products-by-operator'] as const,
+    mostViewed: (storeId: string, locale: string) =>
+      ['admin-stats', storeId, 'most-viewed', locale] as const,
+    mostSearched: (storeId: string, limit: number) =>
+      ['admin-stats', storeId, 'most-searched', limit] as const,
+  },
+  adminAuditLog: {
+    all: (storeId: string) => ['admin-audit-log', storeId] as const,
+    list: (
+      storeId: string,
+      page: number,
+      filters: { entity?: string; action?: string; actorId?: string },
+    ) => ['admin-audit-log', storeId, 'list', page, filters] as const,
   },
 
   auth: {

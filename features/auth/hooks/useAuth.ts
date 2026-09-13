@@ -23,6 +23,7 @@ export type Action =
   | 'category.update'
   | 'category.delete'
   | 'banner.manage'
+  | 'coupon.manage'
   | 'order.updateStatus'
   | 'order.viewAll'
   | 'user.manage'
@@ -39,6 +40,7 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'category.update',
     'category.delete',
     'banner.manage',
+    'coupon.manage',
     'order.updateStatus',
     'order.viewAll',
     'user.manage',
@@ -53,6 +55,7 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'category.update',
     'category.delete',
     'banner.manage',
+    'coupon.manage',
     'order.updateStatus',
     'order.viewAll',
     'admin.access',

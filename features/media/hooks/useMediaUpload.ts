@@ -38,6 +38,7 @@ type UploadState = {
   isUploading: boolean;
   error: string | null;
   pendingMedia: PendingMedia | null;
+  pendingMediaList: PendingMedia[];
 };
 
 export function useMediaUpload(context: MediaContext) {
@@ -45,10 +46,11 @@ export function useMediaUpload(context: MediaContext) {
     isUploading: false,
     error: null,
     pendingMedia: null,
+    pendingMediaList: [],
   });
 
   async function upload(file: File) {
-    setState({ isUploading: true, error: null, pendingMedia: null });
+    setState((s) => ({ ...s, isUploading: true, error: null }));
 
     try {
       const formData = new FormData();
@@ -59,32 +61,43 @@ export function useMediaUpload(context: MediaContext) {
         { method: 'POST', body: formData, headers: {} }, // Content-Type multipart — tarayıcı otomatik set eder
       );
 
-      setState({ isUploading: false, error: null, pendingMedia: result });
+      setState((s) => ({
+        isUploading: false,
+        error: null,
+        pendingMedia: result,
+        pendingMediaList: [...s.pendingMediaList, result],
+      }));
       return result;
     } catch (err) {
-      setState({
+      setState((s) => ({
+        ...s,
         isUploading: false,
         error: err instanceof Error ? err.message : 'errors.upload_failed',
-        pendingMedia: null,
-      });
+      }));
       throw err;
     }
   }
 
   /** Kullanıcı formu iptal ederse yüklenen ama hiçbir entity'ye bağlanmayan görseli hemen sil. */
-  async function discard() {
-    if (!state.pendingMedia) return;
+  async function discard(id?: string) {
+    const targetId = id || state.pendingMedia?.id;
+    if (!targetId) return;
     try {
-      await adminAuthorizedFetch<void>(`/media/uploads/${state.pendingMedia.id}`, {
+      await adminAuthorizedFetch<void>(`/media/uploads/${targetId}`, {
         method: 'DELETE',
       });
-    } finally {
-      reset();
+      setState((s) => ({
+        ...s,
+        pendingMediaList: s.pendingMediaList.filter((m) => m.id !== targetId),
+        pendingMedia: s.pendingMedia?.id === targetId ? null : s.pendingMedia,
+      }));
+    } catch (err) {
+      console.error('Failed to discard media:', err);
     }
   }
 
   function reset() {
-    setState({ isUploading: false, error: null, pendingMedia: null });
+    setState({ isUploading: false, error: null, pendingMedia: null, pendingMediaList: [] });
   }
 
   return { ...state, upload, discard, reset };

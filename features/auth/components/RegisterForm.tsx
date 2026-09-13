@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,24 +6,41 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterMutation } from '../api/mutations';
+import { useUiStore } from '@/stores/ui-store';
 
 export function RegisterForm({ locale }: { locale: string }) {
   const router = useRouter();
   const register = useRegisterMutation();
+  const authRedirect = useUiStore((s) => s.authRedirect);
+  const setAuthRedirect = useUiStore((s) => s.setAuthRedirect);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    register.mutate({ fullName, email, password }, { onSuccess: () => router.push(`/${locale}`) });
+    register.mutate(
+      { fullName, email, password },
+      {
+        onSuccess: () => {
+          const target = authRedirect ?? `/${locale}`;
+          setAuthRedirect(null);
+          router.push(target);
+        },
+      },
+    );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="fullName">Full name</Label>
-        <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Input
+          id="fullName"
+          required
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -47,11 +64,11 @@ export function RegisterForm({ locale }: { locale: string }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="text-xs text-ink-muted">At least 8 characters.</p>
+        <p className="text-muted-foreground text-xs">At least 8 characters.</p>
       </div>
 
       {register.isError && (
-        <p className="text-sm text-danger">
+        <p className="text-destructive text-sm">
           {register.error instanceof Error ? register.error.message : 'Something went wrong.'}
         </p>
       )}

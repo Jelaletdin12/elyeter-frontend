@@ -84,7 +84,7 @@ frontend/
 ├── types/
 │   └── generated/                         # openapi-typescript çıktısı — ELLE DÜZENLENMEZ
 │
-├── middleware.ts                          # UX-only route guard (bkz. bölüm 6)
+├── proxy.ts                                # UX-only route guard (bkz. bölüm 6)
 └── next.config.ts
 ```
 

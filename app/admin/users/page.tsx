@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Users as UsersIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { userListOptions } from '@/features/users/api/queries';
@@ -87,8 +87,10 @@ export default function AdminUsersPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl italic text-ink">Staff & customers</h1>
-          <p className="mt-1 text-sm text-ink-muted">{data?.meta.total ?? 0} accounts total</p>
+          <h1 className="text-foreground font-serif text-2xl italic">Staff & customers</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {data?.meta.total ?? 0} accounts total
+          </p>
         </div>
         {can('user.create') && (
           <Button onClick={openCreate}>
@@ -110,12 +112,12 @@ export default function AdminUsersPage() {
               header: 'Name',
               cell: (row) => (
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal/10 text-xs font-semibold text-teal">
+                  <div className="bg-sidebar-primary/10 text-sidebar-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
                     {initials(row.fullName)}
                   </div>
                   <div>
-                    <p className="font-medium text-ink">{row.fullName}</p>
-                    <p className="text-xs text-ink-muted">{row.email}</p>
+                    <p className="text-foreground font-medium">{row.fullName}</p>
+                    <p className="text-muted-foreground text-xs">{row.email}</p>
                   </div>
                 </div>
               ),
@@ -138,7 +140,12 @@ export default function AdminUsersPage() {
               cell: (row) =>
                 canManage ? (
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(row)}
+                      aria-label="Edit"
+                    >
                       <Pencil size={15} />
                     </Button>
                     <Button
@@ -146,7 +153,7 @@ export default function AdminUsersPage() {
                       size="icon"
                       onClick={() => setPendingDeleteUser(row)}
                       aria-label="Delete"
-                      className="text-danger hover:bg-danger/10"
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 size={15} />
                     </Button>

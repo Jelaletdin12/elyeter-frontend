@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { categoryListOptions } from '@/features/categories/api/queries';
@@ -69,8 +69,8 @@ export default function AdminCategoriesPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl italic text-ink">Categories</h1>
-          <p className="mt-1 text-sm text-ink-muted">{data?.meta.total ?? 0} categories</p>
+          <h1 className="text-foreground font-serif text-2xl italic">Categories</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{data?.meta.total ?? 0} categories</p>
         </div>
         {can('category.create') && (
           <Button onClick={openCreate}>
@@ -92,8 +92,10 @@ export default function AdminCategoriesPage() {
               header: 'Name',
               cell: (row) => (
                 <div>
-                  <p className="font-medium text-ink">{categoryTranslation(row, 'en')?.name ?? '—'}</p>
-                  <p className="text-xs text-ink-muted">
+                  <p className="text-foreground font-medium">
+                    {categoryTranslation(row, 'en')?.name ?? '—'}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
                     {row.translations.map((t) => t.locale.toUpperCase()).join(' · ')}
                   </p>
                 </div>
@@ -102,7 +104,9 @@ export default function AdminCategoriesPage() {
             {
               header: 'Slug',
               cell: (row) => (
-                <span className="text-sm text-ink-muted">{categoryTranslation(row, 'en')?.slug}</span>
+                <span className="text-muted-foreground text-sm">
+                  {categoryTranslation(row, 'en')?.slug}
+                </span>
               ),
             },
             {
@@ -119,7 +123,12 @@ export default function AdminCategoriesPage() {
               cell: (row) => (
                 <div className="flex justify-end gap-1">
                   {can('category.update') && (
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(row)}
+                      aria-label="Edit"
+                    >
                       <Pencil size={15} />
                     </Button>
                   )}
@@ -129,7 +138,7 @@ export default function AdminCategoriesPage() {
                       size="icon"
                       onClick={() => setPendingDeleteCategory(row)}
                       aria-label="Delete"
-                      className="text-danger hover:bg-danger/10"
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 size={15} />
                     </Button>

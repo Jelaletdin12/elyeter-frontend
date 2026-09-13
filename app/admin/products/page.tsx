@@ -1,156 +1,249 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, Package } from 'lucide-react';
-import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { Plus, ImageOff, RefreshCw, PackageOpen, SearchX } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { adminAuthorizedFetch as authorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys } from '@/lib/api/query-keys';
 import { useDeleteProductMutation } from '@/features/products/api/mutations';
-import { DataTable } from '@/components/shared/DataTable';
+import { DataTable, type ColumnDef } from '@/components/shared/DataTable';
+import { DataTableToolbar } from '@/components/shared/DataTableToolbar';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { TableActions } from '@/components/shared/TableActions';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import type { Product, ProductListResponse } from '@/features/products/types';
 
 /**
- * Bu sayfa FRONTEND_AGENTS.md #7'deki dual invalidation akışını gösterir:
- * silme başarılı olduğunda useDeleteProductMutation (features/products/api/mutations.ts)
- * hem admin'in kendi listesini (invalidateQueries) hem de public tarafı
- * (POST /api/revalidate) günceller.
+ * FRONTEND_AGENTS.md #7'deki dual invalidation akışı: silme başarılı olduğunda
+ * useDeleteProductMutation hem admin listesini (invalidateQueries) hem de public
+ * tarafı (POST /api/revalidate) günceller.
  *
- * ⚠️ Admin'in TÜM ürünleri (pasif dahil) görebilmesi gerekiyor ama GET /products'ta
- * bunu ayırt eden bir query param docs-json.json'da YOK — backend'in JWT rolüne
- * göre kendi içinde davrandığı varsayılıyor, backend davranışına göre doğrula.
+ * ⚠️ Admin'in TÜM ürünleri (pasif dahil) görebilmesi gerekiyor — GET /products'ın
+ * `search`/`page`/`perPage` query paramlarını docs-json.json'a göre doğrula, isimler
+ * farklıysa aşağıdaki queryFn'i güncelle.
  */
+
+const PER_PAGE = 25;
+
 export default function AdminProductsPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { can } = useAuth();
-  const [pendingDeleteProduct, setPendingDeleteProduct] = useState<Product | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.adminProducts.list(storeId, {}),
-    queryFn: () => authorizedFetch<ProductListResponse>('/products'),
+  const [pendingDeleteProduct, setPendingDeleteProduct] = useState<Product | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [columnOrder, setColumnOrder] = useState<string[]>(['name', 'price', 'stock', 'actions']);
+
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: queryKeys.adminProducts.list(storeId, { search, page, perPage: PER_PAGE }),
+    queryFn: () =>
+      authorizedFetch<ProductListResponse>(
+        `/products?page=${page}&perPage=${PER_PAGE}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+      ),
     staleTime: 30_000, // STANDARDS.md #5: admin liste sayfaları
+    placeholderData: (prev) => prev, // sayfa/arama değişirken tablo boşalıp sıçramasın
   });
 
   const products = data?.items ?? [];
+  const total = data?.meta.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
   const deleteProduct = useDeleteProductMutation(storeId);
+
+  function totalAvailable(product: Product): number {
+    return product.variants.reduce(
+      (sum, v) => sum + (v.inventory ? v.inventory.quantity - v.inventory.reservedQuantity : 0),
+      0,
+    );
+  }
 
   async function confirmDelete() {
     if (!pendingDeleteProduct) return;
-    const name = pendingDeleteProduct.translations[0]?.name ?? 'Product';
-    await deleteProduct.mutateAsync(pendingDeleteProduct.id);
-    toast.success(`${name} was deleted.`);
-    setPendingDeleteProduct(null);
+    const name =
+      pendingDeleteProduct.translations[0]?.name ?? t('products.thisProduct', 'this product');
+    try {
+      await deleteProduct.mutateAsync(pendingDeleteProduct.id);
+      toast.success(t('products.deleted', '{{name}} was deleted.', { name }));
+      setPendingDeleteProduct(null);
+    } catch {
+      toast.error(
+        t('products.deleteFailed', 'Could not delete {{name}}. Please try again.', { name }),
+      );
+    }
   }
+
+  const columns: ColumnDef<Product>[] = useMemo(
+    () => [
+      {
+        id: 'name',
+        header: t('products.column.name', 'Name'),
+        sortValue: (row) => row.translations[0]?.name ?? '',
+        cell: (product) => {
+          const image = product.images.find((img) => img.isPrimary) ?? product.images[0];
+          return (
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="bg-background flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={image.cardUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageOff size={15} className="text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-foreground truncate font-medium">
+                  {product.translations[0]?.name ?? '—'}
+                </p>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'price',
+        header: t('products.column.price', 'Price'),
+        sortValue: (row) => Number(row.variants[0]?.price ?? 0),
+        cell: (product) => (
+          <span className="text-foreground font-serif italic">
+            {product.variants[0] ? product.variants[0].price : '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'stock',
+        header: t('products.column.stock', 'Stock'),
+        sortValue: (row) => totalAvailable(row),
+        cell: (product) => {
+          const totalAvailableCount = totalAvailable(product);
+          return (
+            <StatusBadge tone={totalAvailableCount > 0 ? 'success' : 'destructive'}>
+              {totalAvailableCount > 0
+                ? t('products.inStock', '{{count}} in stock', { count: totalAvailableCount })
+                : t('products.outOfStock', 'Out of stock')}
+            </StatusBadge>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: (product) => {
+          return (
+            <TableActions
+              onEdit={
+                can('product.update')
+                  ? () => router.push(`/admin/products/${product.id}`)
+                  : undefined
+              }
+              onDelete={can('product.delete') ? () => setPendingDeleteProduct(product) : undefined}
+              isDeleting={deleteProduct.isPending && pendingDeleteProduct?.id === product.id}
+            />
+          );
+        },
+      },
+    ],
+    [t, can, router, deleteProduct.isPending, pendingDeleteProduct, totalAvailable],
+  );
 
   return (
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl italic text-ink">Products</h1>
-          <p className="mt-1 text-sm text-ink-muted">{data?.meta.total ?? 0} products in catalog</p>
+          <h1 className="text-foreground font-serif text-2xl italic">
+            {t('products.title', 'Products')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {isLoading
+              ? t('common.loading', 'Loading…')
+              : t('products.countInCatalog', '{{count}} products in catalog', { count: total })}
+          </p>
         </div>
         {can('product.create') && (
           <Button asChild>
             <Link href="/admin/products/new">
-              <Plus size={16} /> New product
+              <Plus size={16} /> {t('products.new', 'New product')}
             </Link>
           </Button>
         )}
       </div>
 
       <div className="mt-6">
-        <DataTable<Product>
-          isLoading={isLoading}
-          rows={products}
-          getRowId={(row) => row.id}
-          emptyTitle="No products yet"
-          emptyDescription="Products you add to the catalog will show up here."
-          emptyIcon={Package}
+        <DataTableToolbar
+          searchValue={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder={t('products.searchPlaceholder', 'Search products…')}
           columns={[
-            {
-              header: 'Name',
-              cell: (row) => {
-                const image = row.images.find((img) => img.isPrimary) ?? row.images[0];
-                return (
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-card bg-paper">
-                      {image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={image.cardUrl} alt="" className="h-full w-full object-cover" />
-                      )}
-                    </div>
-                    <p className="font-medium text-ink">{row.translations[0]?.name ?? '—'}</p>
-                  </div>
-                );
-              },
-            },
-            {
-              header: 'Price',
-              cell: (row) => (
-                <span className="font-display italic text-ink">
-                  {row.variants[0] ? row.variants[0].price : '—'}
-                </span>
-              ),
-            },
-            {
-              header: 'Stock',
-              cell: (row) => {
-                const totalAvailable = row.variants.reduce(
-                  (sum, v) => sum + (v.inventory ? v.inventory.quantity - v.inventory.reservedQuantity : 0),
-                  0,
-                );
-                return (
-                  <StatusBadge tone={totalAvailable > 0 ? 'success' : 'destructive'}>
-                    {totalAvailable > 0 ? `${totalAvailable} in stock` : 'Out of stock'}
-                  </StatusBadge>
-                );
-              },
-            },
-            {
-              header: '',
-              className: 'text-right',
-              cell: (row) => (
-                <div className="flex justify-end gap-1">
-                  {can('product.update') && (
-                    <Button asChild variant="ghost" size="icon" aria-label="Edit">
-                      <Link href={`/admin/products/${row.id}`}>
-                        <Pencil size={15} />
-                      </Link>
-                    </Button>
-                  )}
-                  {can('product.delete') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDeleteProduct(row)}
-                      aria-label="Delete"
-                      className="text-danger hover:bg-danger/10"
-                    >
-                      <Trash2 size={15} />
-                    </Button>
-                  )}
-                </div>
-              ),
-            },
+            { id: 'name', label: t('products.column.name', 'Name') },
+            { id: 'price', label: t('products.column.price', 'Price') },
+            { id: 'stock', label: t('products.column.stock', 'Stock') },
           ]}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+          hideAction
         />
+
+        {isError ? (
+          <div className="border-border bg-background flex flex-col items-center justify-center gap-3 rounded-md border py-16 text-center">
+            <p className="text-muted-foreground text-sm">
+              {t('products.loadFailed', "Products couldn't be loaded.")}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw size={14} /> {t('common.retry', 'Try again')}
+            </Button>
+          </div>
+        ) : (
+          <DataTable<Product>
+            columns={columns}
+            rows={products}
+            isLoading={isLoading}
+            getRowId={(row) => row.id}
+            columnVisibility={columnVisibility}
+            columnOrder={columnOrder}
+            emptyTitle={
+              search
+                ? t('products.noSearchResults', 'No products match "{{search}}".', { search })
+                : t('products.empty', 'Products you add to the catalog will show up here.')
+            }
+            emptyIcon={search ? SearchX : PackageOpen}
+            currentPage={page}
+            totalPages={totalPages}
+            totalCount={total}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       <ConfirmDialog
         open={pendingDeleteProduct !== null}
-        title={`Delete ${pendingDeleteProduct?.translations[0]?.name ?? 'this product'}?`}
-        description="This will remove the product from the catalog immediately. The public product page will also be revalidated."
-        confirmLabel="Delete"
-        isDestructive
+        onOpenChange={(open) => !open && setPendingDeleteProduct(null)}
+        title={t('products.deleteTitle', 'Delete {{name}}?', {
+          name:
+            pendingDeleteProduct?.translations[0]?.name ??
+            t('products.thisProduct', 'this product'),
+        })}
+        description={t(
+          'products.deleteDescription',
+          'This will remove the product from the catalog immediately. The public product page will also be revalidated.',
+        )}
+        confirmLabel={t('common.delete', 'Delete')}
+        cancelLabel={t('common.cancel', 'Cancel')}
         isLoading={deleteProduct.isPending}
         onConfirm={confirmDelete}
-        onCancel={() => setPendingDeleteProduct(null)}
       />
     </div>
   );

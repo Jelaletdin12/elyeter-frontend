@@ -34,11 +34,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     getHomepageProducts(locale),
   ]);
 
-  const heroBanner = [...banners].filter((b) => b.isActive).sort((a, b) => a.order - b.order)[0];
-
   return (
     <div>
-      {heroBanner && <HeroBanner banner={heroBanner} locale={locale} />}
+      {banners.length > 0 && <HeroBanner banners={banners} locale={locale} />}
       <CategoryRail categories={categoryList.items} locale={locale} />
       <ProductGrid products={productList.items} locale={locale} />
     </div>

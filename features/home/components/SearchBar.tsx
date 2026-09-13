@@ -2,36 +2,68 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { ArrowRight, Search, X } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function SearchBar({ locale }: { locale: string }) {
   const router = useRouter();
+
   const [value, setValue] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!value.trim()) return;
-    router.push(`/${locale}/search?q=${encodeURIComponent(value.trim())}`);
+
+    const query = value.trim();
+
+    if (!query) {
+      return;
+    }
+
+    router.push(`/${locale}/search?q=${encodeURIComponent(query)}`);
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center gap-3 rounded-card bg-surface px-5 py-4 shadow-[0_12px_32px_rgba(23,22,20,0.16)]"
+      role="search"
+      className="group bg-background focus-within:border-foreground/20 flex h-14 w-full items-center rounded-2xl border px-3 shadow-sm transition focus-within:shadow-md"
     >
-      <Search size={20} className="shrink-0 text-ink-muted" strokeWidth={1.75} />
-      <input
+      <Search className="text-muted-foreground ml-1 size-5 shrink-0" strokeWidth={1.8} />
+
+      <Input
+        type="search"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Search for products…"
-        className="w-full bg-transparent text-sm text-ink placeholder:text-ink-muted focus:outline-none"
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Search products, categories and brands"
+        aria-label="Search products"
+        autoComplete="off"
+        className="h-full flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
       />
-      <button
+
+      {value && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => setValue('')}
+          aria-label="Clear search"
+          className="mr-1 size-8 rounded-full"
+        >
+          <X className="size-4" />
+        </Button>
+      )}
+
+      <Button
         type="submit"
-        className="shrink-0 rounded-card bg-ink px-4 py-2 text-sm font-medium text-white"
+        disabled={!value.trim()}
+        className="h-10 rounded-xl px-4 max-sm:size-10 max-sm:px-0"
       >
-        Search
-      </button>
+        <span className="max-sm:hidden">Search</span>
+
+        <ArrowRight className="size-4" />
+      </Button>
     </form>
   );
 }

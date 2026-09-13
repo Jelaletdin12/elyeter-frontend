@@ -9,16 +9,40 @@ import { queryKeys } from '@/lib/api/query-keys';
  * gösterilir — sipariş her zaman GÜNCEL fiyattan oluşur.
  */
 
+import type { ProductVariant, ProductTranslation } from '@/features/products/types';
+
+/**
+ * ⚠️ Swagger'da ProductVariantResponseDto'nun `product` alanı yok — ama cart
+ * include'u (cart.service.ts CART_ITEM_INCLUDE) her zaman `product`'ı
+ * translations ile birlikte getiriyor (curl doğrulandı, 2026-09-10).
+ * `images` gelmez — o yüzden Product değil bu hafif şekil kullanılır.
+ */
+export type CartItemProduct = {
+  id: string;
+  isActive: boolean;
+  categoryId: string;
+  translations: ProductTranslation[];
+};
+
 export type CartItemDto = {
   id: string;
   productVariantId: string;
+  productVariant: ProductVariant & { product: CartItemProduct };
   quantity: number;
   priceSnapshot: string;
   currentPrice: string;
+  priceChanged: boolean;
+  inStock: boolean;
   availableQuantity: number;
+  isWishlisted: boolean;
 };
 
-export type CartDto = { id: string; items: CartItemDto[] };
+export type CartDto = {
+  id: string;
+  items: CartItemDto[];
+  subtotal: string;
+  itemCount: number;
+};
 
 export function cartOptions(storeId: string) {
   return queryOptions({

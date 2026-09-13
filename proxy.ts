@@ -31,7 +31,7 @@ function isPrivateLocalePath(pathnameWithoutLocale: string): boolean {
   );
 }
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // /admin locale-prefix'li değil (route group dışında) — next-intl'e sokmadan
@@ -60,8 +60,11 @@ export default function middleware(request: NextRequest) {
 
   if (isPrivateLocalePath(pathWithoutLocale) && !request.cookies.has(REFRESH_COOKIE_NAME)) {
     const locale = segments[0] ?? defaultLocale;
+    // Giriş route'ları yok (AuthDialog'la değiştirildi) — ölü /login yerine
+    // anasayfaya ?auth=login&redirect=… at; client'taki AuthDialogTrigger
+    // bu parametreyi görüp dialog'u açar (bkz. ui-store.authDialogOpen).
     return NextResponse.redirect(
-      new URL(`/${locale}/login?redirect=${pathname}`, request.url),
+      new URL(`/${locale}?auth=login&redirect=${encodeURIComponent(pathname)}`, request.url),
     );
   }
 

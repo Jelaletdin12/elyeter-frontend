@@ -1,17 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, ShoppingBag, LogOut } from 'lucide-react';
+import Image from 'next/image';
+import { Heart, ShoppingBag, LogOut, User } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
+import { useUiStore } from '@/stores/ui-store';
 import { useLogoutMutation } from '@/features/auth/api/mutations';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { AuthDialog } from '@/features/auth/components/AuthDialog';
+import { MobileSearchSheet } from '@/features/home/components/MobileSearchSheet';
+import { SearchBar } from '@/features/home/components/SearchBar';
+import logo from '@/public/logo.png';
 
 /**
- * Nav bar — koyu çam yeşili zemin. Auth durumuna göre sağ üstte
- * Login/Register (misafir) ya da kullanıcı adı + Logout (giriş yapılmış)
- * gösterir. isHydrating true iken hiçbir şey göstermiyoruz — sayfa
- * yenilendiğinde AuthHydrator silent-refresh'i bitirmeden "Login" yazıp
- * sonra "Hoş geldin X" diye değişmesin diye (flash of wrong state).
+ * Nav bar — shadcn semantic token'ları kullanıyor (bg-primary vb.), custom
+ * @theme token'ları (bg-sidebar-primary, bg-saffron, text-foreground, rounded-md) kaldırıldı.
+ *
+ * Login/Register artık ayrı route değil — AuthDialog (Dialog + Tabs) ile
+ * modal olarak açılıyor; açık/kapalı durumu ui-store'da (account guard'ı da
+ * aynı dialog'u açabilir). Arama masaüstünde inline, mobilde Sheet ile.
+ *
+ * isHydrating true iken auth alanı boş — sayfa yenilendiğinde AuthHydrator
+ * silent-refresh'i bitirmeden "Sign in" yazıp sonra kullanıcı adına
+ * değişmesin diye (flash of wrong state).
  */
 export function SiteHeader({ locale }: { locale: string }) {
   const user = useAuthStore((s) => s.user);
@@ -19,49 +32,103 @@ export function SiteHeader({ locale }: { locale: string }) {
   const isHydrating = useAuthStore((s) => s.isHydrating);
   const logout = useLogoutMutation();
 
+  const authDialogOpen = useUiStore((s) => s.authDialogOpen);
+  const setAuthDialogOpen = useUiStore((s) => s.setAuthDialogOpen);
+  const openAuthDialog = useUiStore((s) => s.openAuthDialog);
+  const authDialogTab = useUiStore((s) => s.authDialogTab);
+
   return (
-    <header className="bg-teal text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href={`/${locale}`} className="font-display text-xl italic">
-          Bazaar
+    <header className="bg-sidebar-primary text-white">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4">
+        <Link href={`/${locale}`} className="shrink-0">
+          <Image src={logo} alt="Logo" width={140} height={40} className="h-9 w-auto" />
         </Link>
 
-        <nav className="flex items-center gap-5 text-sm">
-          <ThemeToggle variant="dark" />
-          <Link href={`/${locale}/wishlist`} aria-label="Wishlist">
-            <Heart size={20} strokeWidth={1.75} />
-          </Link>
-          <Link href={`/${locale}/cart`} aria-label="Cart">
-            <ShoppingBag size={20} strokeWidth={1.75} />
-          </Link>
+        {/* SEARCH — sadece masaüstü */}
+        <div className="hidden flex-1 md:block">
+          <SearchBar locale={locale} />
+        </div>
 
-          {isHydrating ? null : isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <span className="text-white/80">{user?.fullName}</span>
-              <button
+        <nav className="ml-auto flex items-center gap-1 text-sm sm:gap-2">
+          <ThemeToggle variant="dark" />
+
+          <MobileSearchSheet locale={locale} />
+
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Wishlist"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <Link href={`/${locale}/account/wishlist`}>
+              <Heart size={20} strokeWidth={1.75} />
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Cart"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <Link href={`/${locale}/cart`}>
+              <ShoppingBag size={20} strokeWidth={1.75} />
+            </Link>
+          </Button>
+
+          {isHydrating ? (
+            <div className="w-20" />
+          ) : isAuthenticated ? (
+            <div className="ml-1 flex items-center gap-2">
+              <Link
+                href={`/${locale}/account`}
+                className="hidden items-center gap-1.5 text-white/75 sm:flex"
+              >
+                <User size={16} strokeWidth={1.75} />
+                {user?.fullName}
+              </Link>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => logout.mutate()}
                 aria-label="Sign out"
-                className="text-white/80 hover:text-white"
+                className="text-white/75 hover:bg-white/10 hover:text-white"
               >
                 <LogOut size={18} strokeWidth={1.75} />
-              </button>
+              </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <Link href={`/${locale}/login`} className="text-white/80 hover:text-white">
+            <div className="ml-1 flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => openAuthDialog('login')}
+                className="text-white/80 hover:bg-white/10 hover:text-white"
+              >
                 Sign in
-              </Link>
-              <Link
-                href={`/${locale}/register`}
-                className="rounded-card bg-saffron px-3 py-1.5 font-medium text-ink"
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => openAuthDialog('register')}
+                className="rounded-full font-medium"
               >
                 Register
-              </Link>
+              </Button>
             </div>
           )}
         </nav>
       </div>
+
+      <AuthDialog
+        locale={locale}
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+        defaultTab={authDialogTab}
+      />
     </header>
   );
 }

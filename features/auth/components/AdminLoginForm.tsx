@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -68,7 +68,7 @@ export function AdminLoginForm() {
       </div>
 
       {(rejectedMessage || login.isError) && (
-        <p className="text-sm text-danger">
+        <p className="text-sm text-destructive">
           {rejectedMessage ??
             (login.error instanceof Error ? login.error.message : 'Something went wrong.')}
         </p>
@@ -77,7 +77,7 @@ export function AdminLoginForm() {
       <Button
         type="submit"
         disabled={login.isPending}
-        className="w-full bg-teal text-white hover:bg-teal-light"
+        className="w-full bg-sidebar-primary text-white hover:bg-sidebar-primary-light"
       >
         {login.isPending ? 'Signing in…' : 'Sign in'}
       </Button>

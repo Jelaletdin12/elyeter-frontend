@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -88,7 +88,7 @@ export function CategoryFormDialog({
           {LOCALES.map(({ code, label }) => (
             <div key={code} className="space-y-1.5">
               <Label htmlFor={`name-${code}`}>
-                Name <span className="text-ink-muted">({label})</span>
+                Name <span className="text-muted-foreground">({label})</span>
               </Label>
               <Input
                 id={`name-${code}`}
@@ -99,12 +99,12 @@ export function CategoryFormDialog({
             </div>
           ))}
 
-          <label className="flex items-center gap-2 text-sm text-ink">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-line"
+              className="h-4 w-4 rounded border-border"
             />
             Active
           </label>

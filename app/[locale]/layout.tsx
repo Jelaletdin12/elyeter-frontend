@@ -5,6 +5,7 @@ import { locales, isValidLocale } from '@/lib/i18n/config';
 import { SiteHeader } from '@/components/marketing/SiteHeader';
 import { SiteFooter } from '@/components/marketing/SiteFooter';
 import { AuthHydrator } from '@/providers/AuthHydrator';
+import { AuthDialogTrigger } from '@/components/auth/AuthDialogTrigger';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -34,6 +35,7 @@ export default async function LocaleLayout({
       <AuthHydrator>
         <div className="flex min-h-screen flex-col">
           <SiteHeader locale={locale} />
+          <AuthDialogTrigger />
           <main className="flex-1">{children}</main>
           <SiteFooter locale={locale} />
         </div>

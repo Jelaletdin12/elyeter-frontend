@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { Fraunces, Public_Sans } from 'next/font/google';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
@@ -21,7 +21,7 @@ import './globals.css';
  *
  * Fraunces (başlıklar) + Public Sans (UI/gövde metni) — DESIGN_NOTES.md'deki
  * tipografi kararı. CSS değişkenleri (--font-fraunces/--font-public-sans)
- * app/globals.css'teki @theme bloğunda font-display/font-sans'a bağlanıyor.
+ * app/globals.css'teki @theme bloğunda font-serif/font-sans'a bağlanıyor.
  *
  * suppressHydrationWarning <html>'de ZORUNLU: next-themes class'ı client'ta
  * (script ile, hydration'dan önce) <html>'e ekliyor — server'ın render ettiği

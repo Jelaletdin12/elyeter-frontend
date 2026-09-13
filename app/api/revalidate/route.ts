@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   for (const tag of body.tags) {
-    revalidateTag(tag);
+    revalidateTag(tag, 'max');
   }
 
   return NextResponse.json({ success: true, revalidated: body.tags });

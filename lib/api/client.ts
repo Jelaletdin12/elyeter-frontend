@@ -15,7 +15,7 @@
  * yayınlıyor (örn. POST /api/v1/auth/login) — bu prefix burada TEK yerde
  * tanımlanır, feature dosyaları '/auth/login' gibi kısa path yazmaya devam eder.
  */
-const API_PREFIX = '/api/v1';
+export const API_PREFIX = '/api/v1';
 
 type ApiSuccess<T> = { success: true; data: T; message?: string };
 type ApiError = { success: false; message: string; timestamp: string };
@@ -77,7 +77,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     // sorunun gerçek kaynağını (.env.local eksik) net şekilde gösterir.
     throw new Error(
       'API base URL tanımlı değil. .env.local dosyasında API_BASE_URL ve ' +
-        'NEXT_PUBLIC_API_BASE_URL ayarlandığından ve dev server\'ın yeniden ' +
+        "NEXT_PUBLIC_API_BASE_URL ayarlandığından ve dev server'ın yeniden " +
         'başlatıldığından emin ol (bkz. .env.example).',
     );
   }

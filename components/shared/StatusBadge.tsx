@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+﻿import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 /**
@@ -13,10 +13,10 @@ import { cn } from '@/lib/utils';
 type StatusTone = 'neutral' | 'success' | 'warning' | 'destructive';
 
 const TONE_CLASSES: Record<StatusTone, string> = {
-  neutral: 'border-transparent bg-paper text-ink-muted',
-  success: 'border-transparent bg-teal/10 text-teal',
+  neutral: 'border-transparent bg-background text-muted-foreground',
+  success: 'border-transparent bg-sidebar-primary/10 text-sidebar-primary',
   warning: 'border-transparent bg-saffron/20 text-saffron-dark',
-  destructive: 'border-transparent bg-danger/10 text-danger',
+  destructive: 'border-transparent bg-destructive/10 text-destructive',
 };
 
 export function StatusBadge({

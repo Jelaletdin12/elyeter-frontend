@@ -28,6 +28,7 @@ export function AddVariantDialog({
 }) {
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
+  const [compareAtPrice, setCompareAtPrice] = useState('');
   const [initialStock, setInitialStock] = useState('');
   const [attributePairs, setAttributePairs] = useState<{ key: string; value: string }[]>([
     { key: '', value: '' },
@@ -43,12 +44,16 @@ export function AddVariantDialog({
     onSubmit({
       sku,
       price: Number(price),
+      compareAtPrice: compareAtPrice !== '' ? Number(compareAtPrice) : undefined,
       initialStock: Number(initialStock),
+      lowStockThreshold: 5,
+      isActive: true,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
     });
 
     setSku('');
     setPrice('');
+    setCompareAtPrice('');
     setInitialStock('');
     setAttributePairs([{ key: '', value: '' }]);
   }
@@ -80,16 +85,29 @@ export function AddVariantDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="variant-stock">Initial stock</Label>
+              <Label htmlFor="variant-compare-price">Compare-at price <span className="text-muted-foreground">(optional)</span></Label>
               <Input
-                id="variant-stock"
+                id="variant-compare-price"
                 type="number"
+                step="0.01"
                 min="0"
-                required
-                value={initialStock}
-                onChange={(e) => setInitialStock(e.target.value)}
+                placeholder="e.g. 349.99"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="variant-stock">Initial stock</Label>
+            <Input
+              id="variant-stock"
+              type="number"
+              min="0"
+              required
+              value={initialStock}
+              onChange={(e) => setInitialStock(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">

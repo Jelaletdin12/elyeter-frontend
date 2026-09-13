@@ -47,7 +47,7 @@ pnpm dev
 - `features/orders` admin tarafı (status güncelleme — `OrderStatusHistory` yazan akış).
 - Gerçek görsel yükleme UI'ı (`MediaUploader` shared component) — `useMediaUpload` hook'u hazır,
   drag-drop UI'ı eklenmedi.
-- `next-intl` middleware'i mevcut `middleware.ts` içine gömülü; ileride locale-bazlı
+- `next-intl` middleware'i mevcut `proxy.ts` içine gömülü; ileride locale-bazlı
   yönlendirme kuralları büyürse ayrı bir dosyaya bölünebilir.
 
 ## B2B seam'leri (STANDARDS #9)

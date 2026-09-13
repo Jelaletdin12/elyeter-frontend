@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { ImagePlus, X } from 'lucide-react';
@@ -123,7 +123,7 @@ export function BannerFormDialog({
             />
 
             {previewUrl ? (
-              <div className="relative overflow-hidden rounded-card border border-line">
+              <div className="relative overflow-hidden rounded-md border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={previewUrl} alt="" className="aspect-[16/7] w-full object-cover" />
                 <button
@@ -143,14 +143,14 @@ export function BannerFormDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line text-ink-muted hover:border-ink/30 disabled:opacity-50"
+                className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border text-muted-foreground hover:border-ink/30 disabled:opacity-50"
               >
                 <ImagePlus size={20} strokeWidth={1.5} />
                 <span className="text-sm">{isUploading ? 'Uploading…' : 'Click to upload'}</span>
               </button>
             )}
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -173,15 +173,15 @@ export function BannerFormDialog({
               value={order}
               onChange={(e) => setOrder(Number(e.target.value))}
             />
-            <p className="text-xs text-ink-muted">Lower numbers show first.</p>
+            <p className="text-xs text-muted-foreground">Lower numbers show first.</p>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-ink">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-line"
+              className="h-4 w-4 rounded border-border"
             />
             Active
           </label>

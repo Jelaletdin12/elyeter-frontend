@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { ApiClientError } from '@/lib/api/client';
 import { resolveErrorMessage } from '@/lib/errors/error-messages';
 

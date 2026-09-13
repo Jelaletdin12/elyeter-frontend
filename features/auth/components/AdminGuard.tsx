@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -35,7 +35,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (isHydrating) {
-    return <div className="p-8 text-sm text-ink-muted">Loading…</div>;
+    return <div className="text-muted-foreground p-8 text-sm">Loading…</div>;
   }
 
   if (!isAuthenticated || !can('admin.access')) {
@@ -43,9 +43,11 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-paper">
+    <div className="bg-background text-foreground flex min-h-screen">
       <AdminSidebar />
-      <main className="flex-1 p-6">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="mx-auto w-full max-w-7xl flex-1 p-5 md:p-8">{children}</main>
+      </div>
     </div>
   );
 }

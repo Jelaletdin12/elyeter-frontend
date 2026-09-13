@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +42,7 @@ export function CategoryFilters({
         <input
           type="number"
           placeholder="Min"
-          className="w-24 rounded-md border border-line px-2 py-1 text-sm"
+          className="w-24 rounded-md border border-border px-2 py-1 text-sm"
           onChange={(e) => {
             setHasInteracted(true);
             setMinPrice(e.target.value ? Number(e.target.value) : undefined);
@@ -51,18 +51,18 @@ export function CategoryFilters({
         <input
           type="number"
           placeholder="Max"
-          className="w-24 rounded-md border border-line px-2 py-1 text-sm"
+          className="w-24 rounded-md border border-border px-2 py-1 text-sm"
           onChange={(e) => {
             setHasInteracted(true);
             setMaxPrice(e.target.value ? Number(e.target.value) : undefined);
           }}
         />
-        {isFetching && <span className="text-xs text-ink-muted">...</span>}
+        {isFetching && <span className="text-xs text-muted-foreground">...</span>}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {products.map((product) => (
-          <article key={product.id} className="rounded-lg border border-line p-3" />
+          <article key={product.id} className="rounded-lg border border-border p-3" />
         ))}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+﻿import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { apiFetch, ApiClientError } from '@/lib/api/client';
 import { dataCacheTags } from '@/lib/api/query-keys';
@@ -70,7 +70,7 @@ export default async function CategoryPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-display text-2xl italic text-ink">{translation?.name}</h1>
+      <h1 className="font-serif text-2xl italic text-foreground">{translation?.name}</h1>
       <CategoryFilters categoryId={category.id} initialProductList={initialProductList} />
     </div>
   );

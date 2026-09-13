@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authorizedFetch } from '@/lib/auth/authorized-fetch';
 import { queryKeys } from '@/lib/api/query-keys';
+import type { ProductVariant } from '@/features/products/types';
 
 /**
  * docs-json.json: POST /api/v1/cart/items, body: AddCartItemDto
@@ -64,12 +65,36 @@ export function useClearCartMutation(storeId: string) {
 export type CheckoutInput = {
   paymentMethod: 'CASH' | 'CARD';
   fulfillmentType: 'DELIVERY' | 'PICKUP';
+  couponCode?: string;
+  savedAddressId?: string;
   recipientName?: string;
   recipientPhone?: string;
   shippingAddress?: string;
 };
 
-export type OrderDto = { id: string; status: string; total: string };
+export type OrderItemDto = {
+  id: string;
+  orderId: string;
+  productVariantId: string;
+  quantity: number;
+  price: string;
+  productVariant: ProductVariant;
+};
+
+export type OrderDto = {
+  id: string;
+  clientId: string;
+  status: string;
+  total: string;
+  paymentMethod: string;
+  fulfillmentType: string;
+  recipientName: string;
+  recipientPhone: string;
+  shippingAddress: string;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItemDto[];
+};
 
 export function useCheckoutMutation(storeId: string) {
   const queryClient = useQueryClient();

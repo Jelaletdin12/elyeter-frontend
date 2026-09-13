@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { categoryTranslation, type Category } from '@/features/categories/types';
 
 /**
@@ -12,7 +12,7 @@ export function CategoryRail({ categories, locale }: { categories: Category[]; l
 
   return (
     <section className="mx-auto max-w-6xl px-4 pt-14">
-      <h2 className="font-display text-2xl italic">Browse categories</h2>
+      <h2 className="font-serif text-2xl italic">Browse categories</h2>
 
       <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
         {categories.map((category, i) => {
@@ -23,10 +23,10 @@ export function CategoryRail({ categories, locale }: { categories: Category[]; l
             <Link
               key={category.id}
               href={`/${locale}/${translation.slug}`}
-              className="flex shrink-0 items-center gap-2 rounded-card border border-line bg-surface px-4 py-3 text-sm font-medium transition-colors hover:border-ink/30"
+              className="flex shrink-0 items-center gap-2 rounded-md border border-border bg-card px-4 py-3 text-sm font-medium transition-colors hover:border-ink/30"
             >
               <span
-                className={i % 2 === 0 ? 'h-2 w-2 rounded-full bg-saffron' : 'h-2 w-2 rounded-full bg-teal'}
+                className={i % 2 === 0 ? 'h-2 w-2 rounded-full bg-saffron' : 'h-2 w-2 rounded-full bg-sidebar-primary'}
               />
               {translation.name}
             </Link>

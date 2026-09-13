@@ -180,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/discounted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProductsController_findDiscounted"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/slug/{locale}/{slug}": {
         parameters: {
             query?: never;
@@ -324,6 +340,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{id}/invoice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OrdersController_getInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{id}": {
         parameters: {
             query?: never;
@@ -354,6 +386,102 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["OrdersController_updateStatus"];
+        trace?: never;
+    };
+    "/api/v1/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CouponsController_findAll"];
+        put?: never;
+        post: operations["CouponsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CouponsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["CouponsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["CouponsController_update"];
+        trace?: never;
+    };
+    "/api/v1/coupons/{id}/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CouponsController_addProduct"];
+        delete: operations["CouponsController_removeProduct"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/{id}/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CouponsController_addCategory"];
+        delete: operations["CouponsController_removeCategory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/{id}/usages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CouponsController_getUsages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CouponsController_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/cart": {
@@ -805,6 +933,16 @@ export interface components {
             /** @example 299.99 */
             price: number;
             /**
+             * @description İndirimsiz orijinal/üstü çizili liste fiyatı
+             * @example 349.99
+             */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @description Yüzdelik indirim oranı (compareAtPrice > price ise)
+             * @example 14
+             */
+            discountPercent?: Record<string, never> | null;
+            /**
              * @example {
              *       "color": "Red",
              *       "size": "L"
@@ -895,6 +1033,11 @@ export interface components {
             sku: string;
             /** @example 299.99 */
             price: number;
+            /**
+             * @description İndirimsiz orijinal/üstü çizili liste fiyatı
+             * @example 349.99
+             */
+            compareAtPrice?: number;
             /**
              * @description Başlangıç stok miktarı (Inventory.quantity)
              * @example 50
@@ -1106,17 +1249,27 @@ export interface components {
              */
             fulfillmentType: "DELIVERY" | "PICKUP";
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description İndirim kuponu kodu (opsiyonel)
+             * @example SUMMER20
+             */
+            couponCode?: string;
+            /**
+             * @description Kayıtlı profil adresinin id'si. DELIVERY siparişte recipient alanları yerine (veya onları doldurmak için) kullanılır.
+             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
+             */
+            savedAddressId?: string;
+            /**
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example Ayşe Demir
              */
             recipientName?: string;
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example +993 12 345678
              */
             recipientPhone?: string;
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example Görogly köçesi 12, Aşgabat
              */
             shippingAddress?: string;
@@ -1141,6 +1294,102 @@ export interface components {
              * @example Customer requested cancellation
              */
             reason?: string;
+        };
+        CreateCouponDto: {
+            /**
+             * @description Büyük harf tekil kupon kodu
+             * @example SUMMER20
+             */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            type: "PERCENTAGE" | "FIXED";
+            /**
+             * @description Yüzdelik oran (%20) veya sabit indirim tutarı (20 TL)
+             * @example 20
+             */
+            value: number;
+            /**
+             * @description Geçerli olması için asgari sipariş tutarı
+             * @example 500
+             */
+            minOrderAmount?: number;
+            /**
+             * @description Yüzdelik kuponlarda uygulanabilecek tavan indirim tutarı
+             * @example 200
+             */
+            maxDiscount?: number;
+            /**
+             * @description Sistem genelinde toplam kullanım limiti
+             * @example 100
+             */
+            usageLimit?: number;
+            /**
+             * @description Kullanıcı başına azami kullanım hakkı
+             * @default 1
+             * @example 1
+             */
+            perUserLimit: number;
+            /** @example 2026-06-01T00:00:00.000Z */
+            startsAt?: string;
+            /** @example 2026-08-31T23:59:59.000Z */
+            expiresAt?: string;
+            /**
+             * @default true
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Sadece bu ürünlerde geçerli kılmak için
+             * @example [
+             *       "b3f1c2a0-1234-4abc-9def-1234567890ab"
+             *     ]
+             */
+            productIds?: string[];
+            /**
+             * @description Sadece bu kategorilerdeki ürünlerde geçerli kılmak için
+             * @example [
+             *       "a1b2c3d4-5678-4abc-9def-a1b2c3d45678"
+             *     ]
+             */
+            categoryIds?: string[];
+        };
+        UpdateCouponDto: {
+            /** @enum {string} */
+            type?: "PERCENTAGE" | "FIXED";
+            /** @example 25 */
+            value?: number;
+            /** @example 600 */
+            minOrderAmount?: number;
+            /** @example 250 */
+            maxDiscount?: number;
+            /** @example 200 */
+            usageLimit?: number;
+            /** @example 2 */
+            perUserLimit?: number;
+            /** @example 2026-06-01T00:00:00.000Z */
+            startsAt?: string;
+            /** @example 2026-09-30T23:59:59.000Z */
+            expiresAt?: string;
+            /** @example false */
+            isActive?: boolean;
+        };
+        ValidateCouponItemDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productVariantId: string;
+            /** @example 2 */
+            quantity: number;
+        };
+        ValidateCouponDto: {
+            /**
+             * @description Doğrulanmak istenen kupon kodu
+             * @example SUMMER20
+             */
+            code: string;
+            /** @description Siparişteki ürün kalemleri. Boş bırakılırsa kullanıcının güncel sepeti kullanılır. */
+            items?: components["schemas"]["ValidateCouponItemDto"][];
         };
         AddCartItemDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
@@ -1169,17 +1418,27 @@ export interface components {
              */
             fulfillmentType: "DELIVERY" | "PICKUP";
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description İndirim kuponu kodu (opsiyonel)
+             * @example SUMMER20
+             */
+            couponCode?: string;
+            /**
+             * @description Kayıtlı profil adresinin id'si. DELIVERY siparişte recipient alanları yerine (veya onları doldurmak için) kullanılır.
+             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
+             */
+            savedAddressId?: string;
+            /**
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example Ayşe Demir
              */
             recipientName?: string;
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example +993 12 345678
              */
             recipientPhone?: string;
             /**
-             * @description fulfillmentType=DELIVERY ise zorunlu
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
              * @example Görogly köçesi 12, Aşgabat
              */
             shippingAddress?: string;
@@ -1561,6 +1820,25 @@ export interface operations {
             };
         };
     };
+    ProductsController_findDiscounted: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductListResponseDto"];
+                };
+            };
+        };
+    };
     ProductsController_findBySlug: {
         parameters: {
             query?: never;
@@ -1872,6 +2150,25 @@ export interface operations {
             };
         };
     };
+    OrdersController_getInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     OrdersController_findOne: {
         parameters: {
             query?: never;
@@ -1907,6 +2204,225 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCouponDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCouponDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_addProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_removeProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_addCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_removeCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_getUsages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CouponsController_validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateCouponDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

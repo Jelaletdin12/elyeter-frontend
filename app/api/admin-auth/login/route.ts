@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *
  * Not: cookie path'i '/' — '/admin' ile sınırlamadık çünkü bu route'un
  * kendisi (/api/admin-auth/refresh) '/admin' altında DEĞİL (middleware'in
- * admin guard'ına takılmaması için bilerek dışarıda, bkz. middleware.ts).
+ * admin guard'ına takılmaması için bilerek dışarıda, bkz. proxy.ts).
  * İzolasyonu sağlayan şey path değil, FARKLI COOKIE ADI — customer
  * refresh route'u sadece REFRESH_COOKIE_NAME'i okur, bunu asla görmez.
  */

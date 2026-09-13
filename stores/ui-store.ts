@@ -13,6 +13,17 @@ type UiState = {
   isFilterPanelOpen: boolean;
   checkoutStep: CheckoutStep;
 
+  /** AuthDialog — header'da değil store'da yaşar; account/checkout guard'ı
+   *  (middleware ?auth=… yönlendirmesi) ve "Giriş yap" bağlantıları da açabilir. */
+  authDialogOpen: boolean;
+  authDialogTab: 'login' | 'register';
+  /** Giriş başarılı olunca gidilecek hedef (middleware'in ?redirect= param'ı). */
+  authRedirect: string | null;
+
+  openAuthDialog: (tab: 'login' | 'register') => void;
+  setAuthDialogOpen: (open: boolean) => void;
+  setAuthRedirect: (path: string | null) => void;
+
   openCartDrawer: () => void;
   closeCartDrawer: () => void;
   toggleFilterPanel: () => void;
@@ -24,6 +35,14 @@ export const useUiStore = create<UiState>((set) => ({
   isCartDrawerOpen: false,
   isFilterPanelOpen: false,
   checkoutStep: 'shipping',
+
+  authDialogOpen: false,
+  authDialogTab: 'login',
+  authRedirect: null,
+
+  openAuthDialog: (authDialogTab) => set({ authDialogOpen: true, authDialogTab }),
+  setAuthDialogOpen: (authDialogOpen) => set({ authDialogOpen }),
+  setAuthRedirect: (authRedirect) => set({ authRedirect }),
 
   openCartDrawer: () => set({ isCartDrawerOpen: true }),
   closeCartDrawer: () => set({ isCartDrawerOpen: false }),

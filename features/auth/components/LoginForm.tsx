@@ -1,21 +1,35 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useUiStore } from '@/stores/ui-store';
 import { useLoginMutation } from '../api/mutations';
 
 export function LoginForm({ locale }: { locale: string }) {
   const router = useRouter();
   const login = useLoginMutation();
+  const authRedirect = useUiStore((s) => s.authRedirect);
+  const setAuthRedirect = useUiStore((s) => s.setAuthRedirect);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    login.mutate({ email, password }, { onSuccess: () => router.push(`/${locale}`) });
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          // Giriş bekleyen hedef varsa (middleware ?redirect=), oraya gider;
+          // yoksa header davranışı korunur (restore edilen bilgiler, anasayfa).
+          const target = authRedirect ?? `/${locale}`;
+          setAuthRedirect(null);
+          router.push(target);
+        },
+      },
+    );
   }
 
   return (
@@ -43,7 +57,7 @@ export function LoginForm({ locale }: { locale: string }) {
       </div>
 
       {login.isError && (
-        <p className="text-sm text-danger">
+        <p className="text-destructive text-sm">
           {login.error instanceof Error ? login.error.message : 'Something went wrong.'}
         </p>
       )}
