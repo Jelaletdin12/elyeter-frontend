@@ -1,4 +1,5 @@
 ﻿import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { apiFetch, ApiClientError } from '@/lib/api/client';
 import { dataCacheTags } from '@/lib/api/query-keys';
@@ -13,9 +14,10 @@ import { CategoryFilters } from '@/features/products/components/CategoryFilters'
  * build süresi patlar; slug'lar `dynamicParams: true` ile ilk istekte
  * ISR'a girer (Next.js varsayılanı zaten budur, elle kapatılmaz).
  *
- * ✅ Category tipi artık features/categories/types.ts'te GERÇEK/doğrulanmış
- * response'a göre tanımlı (curl ile doğrulandı, 2026-09-07) — eski "tahmin"
- * tipi kaldırıldı.
+ * Alt kategori şeridi: findBySlug artık aktif children'ı döner
+ * (backend categories.service.ts, 2026-09-14) — tek istek, ayrı query yok.
+ * Filtre kategori ağacı için GET /categories/tree'den gelen tüm aktif
+ * kategorileri kullanır.
  */
 
 async function getCategory(locale: string, slug: string) {
@@ -70,8 +72,31 @@ export default async function CategoryPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-serif text-2xl italic text-foreground">{translation?.name}</h1>
-      <CategoryFilters categoryId={category.id} initialProductList={initialProductList} />
+      <h1 className="text-foreground font-serif text-2xl italic">{translation?.name}</h1>
+
+      {category.children && category.children.length > 0 && (
+        <nav className="mt-3 flex flex-wrap gap-2" aria-label="Subcategories">
+          {category.children.map((child) => {
+            const childTranslation = categoryTranslation(child, locale);
+            if (!childTranslation) return null;
+            return (
+              <Link
+                key={child.id}
+                href={`/${locale}/${childTranslation.slug}`}
+                className="border-input text-muted-foreground hover:border-ring hover:text-foreground rounded-full border px-3 py-1 text-sm transition-colors"
+              >
+                {childTranslation.name}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
+      <CategoryFilters
+        categoryId={category.id}
+        initialProductList={initialProductList}
+        locale={locale}
+      />
     </div>
   );
 }

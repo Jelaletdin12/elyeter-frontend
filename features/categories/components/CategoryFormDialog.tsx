@@ -11,7 +11,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Category, CategoryLocale, CreateCategoryInput, UpdateCategoryInput } from '../types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type {
+  Category,
+  CategoryLocale,
+  CategoryTreeNode,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from '../types';
+import { collectSubtreeIds, flattenCategoryTree } from '../types';
 
 const LOCALES: { code: CategoryLocale; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -19,9 +33,13 @@ const LOCALES: { code: CategoryLocale; label: string }[] = [
   { code: 'tk', label: 'Türkmençe' },
 ];
 
+const ROOT_SENTINEL = '__root__';
+
 type CategoryFormDialogProps = {
   open: boolean;
   mode: 'create' | 'edit';
+  /** Hiyerarşik parent selector için GET /categories/tree yanıtı. */
+  tree: CategoryTreeNode[];
   initialCategory?: Category;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -36,6 +54,7 @@ function emptyNames(): Record<CategoryLocale, string> {
 export function CategoryFormDialog({
   open,
   mode,
+  tree,
   initialCategory,
   isSubmitting,
   onCancel,
@@ -44,6 +63,7 @@ export function CategoryFormDialog({
 }: CategoryFormDialogProps) {
   const [names, setNames] = useState<Record<CategoryLocale, string>>(emptyNames());
   const [isActive, setIsActive] = useState(true);
+  const [parentId, setParentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'edit' && initialCategory) {
@@ -51,11 +71,23 @@ export function CategoryFormDialog({
       for (const t of initialCategory.translations) next[t.locale] = t.name;
       setNames(next);
       setIsActive(initialCategory.isActive);
+      setParentId(initialCategory.parentId);
     } else {
       setNames(emptyNames());
       setIsActive(true);
+      setParentId(null);
     }
   }, [mode, initialCategory, open]);
+
+  // Düzenleme modunda bu kategorinin kendisi + alt ağacı parent olarak
+  // seçilemez (derinlik döngüsü) — backend de reddeder ama UI erken engeller.
+  const parentOptions = flattenCategoryTree(
+    tree,
+    0,
+    mode === 'edit' && initialCategory
+      ? collectSubtreeIds(tree, initialCategory.id)
+      : new Set<string>(),
+  );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,9 +101,16 @@ export function CategoryFormDialog({
     }));
 
     if (mode === 'create') {
-      onSubmitCreate({ isActive, translations });
+      onSubmitCreate({ isActive, parentId, translations });
     } else {
-      onSubmitEdit({ isActive, translations });
+      // parentId yalnızca kullanıcı değiştirdiyse gönderilir — undefined
+      // "dokunma" anlamına gelir (backend update semantiği).
+      const parentChanged = parentId !== (initialCategory?.parentId ?? null);
+      onSubmitEdit({
+        isActive,
+        translations,
+        ...(parentChanged ? { parentId } : {}),
+      });
     }
   }
 
@@ -99,12 +138,32 @@ export function CategoryFormDialog({
             </div>
           ))}
 
-          <label className="flex items-center gap-2 text-sm text-foreground">
+          <div className="space-y-1.5">
+            <Label htmlFor="parent-category">Parent category</Label>
+            <Select
+              value={parentId ?? ROOT_SENTINEL}
+              onValueChange={(v) => setParentId(v === ROOT_SENTINEL ? null : v)}
+            >
+              <SelectTrigger id="parent-category" className="w-full">
+                <SelectValue placeholder="No parent (root category)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROOT_SENTINEL}>No parent (root category)</SelectItem>
+                {parentOptions.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <label className="text-foreground flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
+              className="border-border h-4 w-4 rounded"
             />
             Active
           </label>

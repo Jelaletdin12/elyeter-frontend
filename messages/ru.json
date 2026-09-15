@@ -9,7 +9,12 @@
   "products": {
     "title": "Products",
     "filters": "Filters",
-    "sortBy": "Sort by"
+    "sortBy": "Sort by",
+    "filterByCategory": "All categories",
+    "sameProducts": "Похожие товары",
+    "reindexVisualSearch": "Reindex visual search",
+    "reindexVisualSearching": "Reindexing...",
+    "reindexVisualSearchSuccess": "Visual search index rebuilt — {{indexed}} new, {{skipped}} already indexed."
   },
   "cart": {
     "title": "Your cart",
@@ -20,5 +25,17 @@
     "shipping": "Shipping",
     "payment": "Payment",
     "review": "Review"
+  },
+  "visualSearch": {
+    "title": "Search by image",
+    "description": "Upload a photo and we'll find visually similar products.",
+    "upload": "Upload an image",
+    "uploadAnother": "Choose another image",
+    "finding": "Finding similar products...",
+    "noMatchesTitle": "No visual matches",
+    "noMatchesDescription": "Try a different photo or a closer crop of the product.",
+    "tryAnother": "Try another image",
+    "similarityMatch": "{percent}% match",
+    "tooLarge": "This image is too large (max 10 MB)."
   }
 }

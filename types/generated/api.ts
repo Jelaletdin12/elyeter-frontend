@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/categories/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CategoriesController_findTree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/categories/{id}": {
         parameters: {
             query?: never;
@@ -226,6 +242,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["ProductsController_update"];
+        trace?: never;
+    };
+    "/api/v1/products/{id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProductsController_findRelated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/products/{id}/images/{imageId}": {
@@ -740,6 +772,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProfileController_getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["ProfileController_updateMe"];
+        trace?: never;
+    };
+    "/api/v1/profile/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ProfileController_addAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile/addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ProfileController_removeAddress"];
+        options?: never;
+        head?: never;
+        patch: operations["ProfileController_updateAddress"];
+        trace?: never;
+    };
+    "/api/v1/products/search-by-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Görsel ile ürün arama (self-hosted, pgvector) */
+        post: operations["VisualSearchController_searchByImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/visual-search/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Katalogdaki görselleri yeniden indexler
+         * @description Embedding'i olmayan tüm ProductImage kayıtları için MinIO'dan ham görsel indirilir, CLIP ile embedding üretilir ve saklanır. Idempotent — embedding'i olan görseller atlanır. Bireysel hatalar job'ı durdurmaz.
+         */
+        post: operations["AdminVisualSearchController_reindex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/product-images/{id}/generate-embedding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tek bir ProductImage için embedding üretir (idempotent)
+         * @description Embedding zaten varsa atlar (`indexed: false` döner).
+         */
+        post: operations["AdminVisualSearchController_generateEmbedding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -818,6 +955,8 @@ export interface components {
              * @example true
              */
             isActive: boolean;
+            /** @description null = kök kategori; ID = bu kategorinin altına yerleştir */
+            parentId?: Record<string, never>;
             /**
              * @example [
              *       {
@@ -842,6 +981,8 @@ export interface components {
              * @example true
              */
             isActive: boolean;
+            /** @description null = kök kategori; ID = bu kategorinin altına yerleştir */
+            parentId?: Record<string, never>;
             /**
              * @example [
              *       {
@@ -859,6 +1000,20 @@ export interface components {
              *     ]
              */
             translations?: components["schemas"]["CategoryTranslationDto"][];
+        };
+        CategoryBriefTranslationDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Electronics */
+            name: string;
+        };
+        CategoryBriefResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            translations: components["schemas"]["CategoryBriefTranslationDto"][];
         };
         ProductTranslationResponseDto: {
             /**
@@ -971,6 +1126,10 @@ export interface components {
             viewCount: number;
             /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
             categoryId: string;
+            /** @description Kategorinin tüm dillerdeki isim çevirileri dahil (categoryId ile aynı kategoriyi ifade eder) */
+            category: components["schemas"]["CategoryBriefResponseDto"];
+            /** @example Sony */
+            brand?: string | null;
             translations: components["schemas"]["ProductTranslationResponseDto"][];
             images: components["schemas"]["ProductImageResponseDto"][];
             /** @description Her ürünün en az bir varyantı vardır — SKU/fiyat/stok artık burada, ürün seviyesinde değil */
@@ -1077,6 +1236,8 @@ export interface components {
         CreateProductDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId: string;
+            /** @example Sony */
+            brand?: string;
             /**
              * @default true
              * @example true
@@ -1126,6 +1287,8 @@ export interface components {
         UpdateProductDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId?: string;
+            /** @example Sony */
+            brand?: string;
             /**
              * @default true
              * @example true
@@ -1282,6 +1445,175 @@ export interface components {
              *     ]
              */
             items: components["schemas"]["CreateOrderItemDto"][];
+        };
+        OrderCouponResponseDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example SUMMER20 */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            type: "PERCENTAGE" | "FIXED";
+            /** @example 20 */
+            value: number;
+        };
+        OrderProductTranslationResponseDto: {
+            /** @example t1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example en */
+            locale: string;
+            /** @example Wireless Headphones */
+            name: string;
+            /** @example wireless-headphones */
+            slug: string;
+            /** @example High quality headphones */
+            description?: Record<string, never> | null;
+            /** @example Wireless Headphones */
+            metaTitle?: Record<string, never> | null;
+            /** @example Shop wireless headphones */
+            metaDescription?: Record<string, never> | null;
+        };
+        OrderProductDto: {
+            /** @example p1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example true */
+            isActive: boolean;
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            categoryId: string;
+            translations: components["schemas"]["OrderProductTranslationResponseDto"][];
+        };
+        OrderProductVariantDto: {
+            /** @example v1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example WH-1000XM5-BLACK */
+            sku: string;
+            /** @example 299.99 */
+            price: number;
+            /** @example 349.99 */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @example {
+             *       "color": "Black"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /** @example true */
+            isActive: boolean;
+            product: components["schemas"]["OrderProductDto"];
+        };
+        OrderItemResponseDto: {
+            /** @example i1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example o1d2e3f4-5678-4abc-9def-1234567890ab */
+            orderId: string;
+            /** @example v1d2e3f4-5678-4abc-9def-1234567890ab */
+            productVariantId: string;
+            /** @example 2 */
+            quantity: number;
+            /**
+             * @description Sipariş anındaki snapshot fiyat
+             * @example 299.99
+             */
+            price: number;
+            productVariant: components["schemas"]["OrderProductVariantDto"];
+        };
+        OrderStatusHistoryResponseDto: {
+            /** @example h1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example o1d2e3f4-5678-4abc-9def-1234567890ab */
+            orderId: string;
+            /**
+             * @example null
+             * @enum {string|null}
+             */
+            fromStatus: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "RETURN_REQUESTED" | "RETURNED" | null;
+            /**
+             * @example PENDING
+             * @enum {string}
+             */
+            toStatus: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "RETURN_REQUESTED" | "RETURNED";
+            /** @example u1d2e3f4-5678-4abc-9def-1234567890ab */
+            changedById: string;
+            /** @example Order placed by client */
+            reason?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            createdAt: string;
+        };
+        OrderResponseDto: {
+            /** @example o1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example u1d2e3f4-5678-4abc-9def-1234567890ab */
+            clientId: string;
+            /**
+             * @example PENDING
+             * @enum {string}
+             */
+            status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "RETURN_REQUESTED" | "RETURNED";
+            /**
+             * @description İndirim öncesi ara toplam
+             * @example 599.98
+             */
+            subtotal?: Record<string, never> | null;
+            /**
+             * @description Kupon/kampanya indirim tutarı
+             * @example 50
+             */
+            discountAmount: number;
+            /**
+             * @description Nihai tahsil edilecek tutar
+             * @example 549.98
+             */
+            total: number;
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            couponId?: Record<string, never> | null;
+            coupon?: components["schemas"]["OrderCouponResponseDto"] | null;
+            /**
+             * @example CASH
+             * @enum {string}
+             */
+            paymentMethod: "CASH" | "CARD";
+            /**
+             * @example DELIVERY
+             * @enum {string}
+             */
+            fulfillmentType: "DELIVERY" | "PICKUP";
+            /** @example Ayşe Demir */
+            recipientName?: Record<string, never> | null;
+            /** @example +993 12 345678 */
+            recipientPhone?: Record<string, never> | null;
+            /** @example Görogly köçesi 12, Aşgabat */
+            shippingAddress?: Record<string, never> | null;
+            items: components["schemas"]["OrderItemResponseDto"][];
+            statusHistory: components["schemas"]["OrderStatusHistoryResponseDto"][];
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        OrderPaginationMetaDto: {
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            limit: number;
+            /** @example 45 */
+            total: number;
+            /** @example 3 */
+            totalPages: number;
+        };
+        OrderListResponseDto: {
+            items: components["schemas"]["OrderResponseDto"][];
+            meta: components["schemas"]["OrderPaginationMetaDto"];
         };
         UpdateOrderStatusDto: {
             /**
@@ -1449,6 +1781,139 @@ export interface components {
              * @description JPEG, PNG veya WebP — max 10MB
              */
             file: string;
+        };
+        AddressResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example Ev */
+            label?: Record<string, never> | null;
+            /** @example Ayşe Demir */
+            recipientName: string;
+            /** @example +993 12 345678 */
+            recipientPhone: string;
+            /** @example Görogly köçesi 12, Aşgabat */
+            addressLine: string;
+            /** @example true */
+            isDefault: boolean;
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        ProfileResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example client@example.com */
+            email: string;
+            /** @example Ayşe Demir */
+            fullName: string;
+            /** @example +993 12 345678 */
+            phone?: Record<string, never> | null;
+            /**
+             * @example CLIENT
+             * @enum {string}
+             */
+            role: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-09-10T12:00:00.000Z
+             */
+            updatedAt: string;
+            addresses: components["schemas"]["AddressResponseDto"][];
+        };
+        UpdateProfileDto: {
+            /** @example Ayşe Demir */
+            fullName?: string;
+            /** @example +993 12 345678 */
+            phone?: string;
+        };
+        UpsertAddressDto: {
+            /** @example Ev */
+            label?: string;
+            /** @example Ayşe Demir */
+            recipientName: string;
+            /** @example +993 12 345678 */
+            recipientPhone: string;
+            /** @example Görogly köçesi 12, Aşgabat */
+            addressLine: string;
+            /**
+             * @default false
+             * @example true
+             */
+            isDefault: boolean;
+        };
+        VisualSearchUploadDto: {
+            /**
+             * Format: binary
+             * @description JPEG, PNG veya WebP — max 10MB. Kalıcı saklanmaz, sadece arama anında embedding üretilir.
+             */
+            image: string;
+            /**
+             * @description Maksimum sonuç sayısı (1-50)
+             * @default 20
+             * @example 20
+             */
+            limit: number;
+        };
+        VisualSearchResultItemDto: {
+            /** @description Ürünün mevcut public response DTO şekli (çeviriler, görseller, varyantlar, kategori dahil) */
+            product: components["schemas"]["ProductResponseDto"];
+            /**
+             * @description Cosine benzerlik skoru (0-1). 1 = birebir aynı görsel. Aynı ürün en iyi görseliyle tek kez döner.
+             * @example 0.94
+             */
+            similarity: number;
+        };
+        VisualSearchResponseDto: {
+            items: components["schemas"]["VisualSearchResultItemDto"][];
+            /** @example 7 */
+            total: number;
+        };
+        ReindexFailedImageDto: {
+            id: string;
+            error?: string;
+        };
+        ReindexResultDto: {
+            /**
+             * @description Katalogdaki toplam ProductImage satırı
+             * @example 24
+             */
+            total: number;
+            /**
+             * @description Bu koşuda yeni üretilen embedding sayısı
+             * @example 10
+             */
+            indexed: number;
+            /**
+             * @description Zaten indexli olduğu için atlanan görsel sayısı
+             * @example 13
+             */
+            skipped: number;
+            /**
+             * @description Başarısız olan (MinIO okuma / inference / DB) görsel sayısı
+             * @example 1
+             */
+            failed: number;
+            failedImages: components["schemas"]["ReindexFailedImageDto"][];
+        };
+        GenerateEmbeddingResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productImageId: string;
+            /** @example 8c6d3a2b-5678-4def-8abc-1234567890cd */
+            productId: string;
+            /** @description true = embedding ilk kez üretildi; false = zaten indexlenmişti (idempotent skip). */
+            indexed: boolean;
         };
     };
     responses: never;
@@ -1717,6 +2182,23 @@ export interface operations {
             };
         };
     };
+    CategoriesController_findTree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CategoriesController_findOne: {
         parameters: {
             query?: never;
@@ -1926,6 +2408,29 @@ export interface operations {
             };
         };
     };
+    ProductsController_findRelated: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponseDto"][];
+                };
+            };
+        };
+    };
     ProductsController_removeImage: {
         parameters: {
             query?: never;
@@ -2125,7 +2630,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrderListResponseDto"];
+                };
             };
         };
     };
@@ -2146,7 +2653,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
             };
         };
     };
@@ -2184,7 +2693,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
             };
         };
     };
@@ -2207,7 +2718,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
             };
         };
     };
@@ -2544,7 +3057,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
             };
         };
     };
@@ -2809,6 +3324,187 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ProfileController_getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_addAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAddressDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressResponseDto"];
+                };
+            };
+        };
+    };
+    ProfileController_removeAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        deleted?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    ProfileController_updateAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAddressDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressResponseDto"];
+                };
+            };
+        };
+    };
+    VisualSearchController_searchByImage: {
+        parameters: {
+            query?: {
+                /** @description Döndürülecek maksimum ürün sayısı (1-50). */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["VisualSearchUploadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualSearchResponseDto"];
+                };
+            };
+        };
+    };
+    AdminVisualSearchController_reindex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReindexResultDto"];
+                };
+            };
+        };
+    };
+    AdminVisualSearchController_generateEmbedding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ProductImage id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateEmbeddingResponseDto"];
+                };
             };
         };
     };

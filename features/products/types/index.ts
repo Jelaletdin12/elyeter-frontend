@@ -16,7 +16,10 @@
  */
 import type { components } from '@/types/generated/api';
 
-export type ProductTranslation = Omit<components['schemas']['ProductTranslationResponseDto'], 'description'> & {
+export type ProductTranslation = Omit<
+  components['schemas']['ProductTranslationResponseDto'],
+  'description'
+> & {
   description?: string;
 };
 export type ProductImage = components['schemas']['ProductImageResponseDto'];
@@ -31,9 +34,14 @@ export type ProductVariant = Omit<
   discountPercent?: number | null;
 };
 
-export type Product = Omit<components['schemas']['ProductResponseDto'], 'translations' | 'variants'> & {
+export type Product = Omit<
+  components['schemas']['ProductResponseDto'],
+  'translations' | 'variants' | 'brand'
+> & {
   translations: ProductTranslation[];
   variants: ProductVariant[];
+  /** openapi-typescript nullable string'i bazen Record<string,never> olarak üretir — override */
+  brand?: string | null;
   /** API response'unda gelen populate edilmiş kategori — generated tipte sadece categoryId var */
   category?: {
     id: string;
@@ -79,7 +87,10 @@ export type StockMovementListResponse = {
   meta: { page: number; limit: number; total: number; totalPages: number };
 };
 
-export function productTranslation(product: Product, locale: string): ProductTranslation | undefined {
+export function productTranslation(
+  product: Product,
+  locale: string,
+): ProductTranslation | undefined {
   return product.translations.find((t) => t.locale === locale) ?? product.translations[0];
 }
 

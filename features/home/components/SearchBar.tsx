@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Search, X } from 'lucide-react';
+import { ArrowRight, Camera, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { VisualSearchDialog } from '@/features/search/components/VisualSearchDialog';
 
 export function SearchBar({ locale }: { locale: string }) {
   const router = useRouter();
 
   const [value, setValue] = useState('');
+  const [visualSearchOpen, setVisualSearchOpen] = useState(false);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,45 +27,64 @@ export function SearchBar({ locale }: { locale: string }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      role="search"
-      className="group bg-background focus-within:border-foreground/20 flex h-14 w-full items-center rounded-2xl border px-3 shadow-sm transition focus-within:shadow-md"
-    >
-      <Search className="text-muted-foreground ml-1 size-5 shrink-0" strokeWidth={1.8} />
+    <>
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        className="group bg-background focus-within:border-foreground/20 flex h-14 w-full items-center rounded-2xl border px-3 shadow-sm transition focus-within:shadow-md"
+      >
+        <Search className="text-muted-foreground ml-1 size-5 shrink-0" strokeWidth={1.8} />
 
-      <Input
-        type="search"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder="Search products, categories and brands"
-        aria-label="Search products"
-        autoComplete="off"
-        className="h-full flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
-      />
+        <Input
+          type="search"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="Search products, categories and brands"
+          aria-label="Search products"
+          autoComplete="off"
+          className="h-full flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
+        />
 
-      {value && (
+        {value && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => setValue('')}
+            aria-label="Clear search"
+            className="mr-1 size-8 rounded-full"
+          >
+            <X className="size-4" />
+          </Button>
+        )}
+
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          onClick={() => setValue('')}
-          aria-label="Clear search"
+          onClick={() => setVisualSearchOpen(true)}
+          aria-label="Search by image"
           className="mr-1 size-8 rounded-full"
         >
-          <X className="size-4" />
+          <Camera className="size-4" />
         </Button>
-      )}
 
-      <Button
-        type="submit"
-        disabled={!value.trim()}
-        className="h-10 rounded-xl px-4 max-sm:size-10 max-sm:px-0"
-      >
-        <span className="max-sm:hidden">Search</span>
+        <Button
+          type="submit"
+          disabled={!value.trim()}
+          className="h-10 rounded-xl px-4 max-sm:size-10 max-sm:px-0"
+        >
+          <span className="max-sm:hidden">Search</span>
 
-        <ArrowRight className="size-4" />
-      </Button>
-    </form>
+          <ArrowRight className="size-4" />
+        </Button>
+      </form>
+
+      <VisualSearchDialog
+        open={visualSearchOpen}
+        onOpenChange={setVisualSearchOpen}
+        locale={locale}
+      />
+    </>
   );
 }

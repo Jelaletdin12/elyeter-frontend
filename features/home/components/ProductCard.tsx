@@ -42,6 +42,7 @@ function formatPrice(value: string | number) {
 export function ProductCard({ product, locale, isWishlisted = false }: ProductCardProps) {
   const storeId = useAuthStore((state) => state.activeStoreId);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isHydrating = useAuthStore((state) => state.isHydrating);
 
   const [api, setApi] = useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -241,6 +242,7 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
           <h3 className="text-foreground hover:text-foreground/70 line-clamp-2 text-sm leading-5 font-medium transition-colors">
             {translation.name}
           </h3>
+          {product.brand && <p className="text-muted-foreground mt-0.5 text-xs">{product.brand}</p>}
         </Link>
 
         <div className="mt-1.5 flex items-center gap-2">
@@ -290,6 +292,10 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
               )}
             </Button>
           </div>
+        ) : isHydrating ? (
+          <Button disabled className="mt-3 h-10 w-full rounded-xl">
+            <Loader2 className="size-4 animate-spin" />
+          </Button>
         ) : (
           <Button
             type="button"

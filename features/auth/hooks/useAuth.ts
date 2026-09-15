@@ -28,6 +28,7 @@ export type Action =
   | 'order.viewAll'
   | 'user.manage'
   | 'user.create'
+  | 'visualSearch.reindex'
   | 'admin.access';
 
 // Backend'deki ROLE_MANAGEMENT_MAP'in frontend yansıması.
@@ -45,6 +46,7 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'order.viewAll',
     'user.manage',
     'user.create',
+    'visualSearch.reindex',
     'admin.access',
   ],
   ADMIN: [
@@ -58,6 +60,7 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'coupon.manage',
     'order.updateStatus',
     'order.viewAll',
+    'visualSearch.reindex',
     'admin.access',
   ],
   OPERATOR: ['product.update', 'order.updateStatus', 'order.viewAll', 'admin.access'],

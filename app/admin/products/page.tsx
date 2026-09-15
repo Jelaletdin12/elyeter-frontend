@@ -5,13 +5,23 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Plus, ImageOff, RefreshCw, PackageOpen, SearchX } from 'lucide-react';
+import { Plus, ImageOff, RefreshCw, PackageOpen, SearchX, ScanSearch } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { adminAuthorizedFetch as authorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys } from '@/lib/api/query-keys';
+import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
+import { flattenCategoryTree } from '@/features/categories/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useDeleteProductMutation } from '@/features/products/api/mutations';
+import { useVisualSearchReindexMutation } from '@/features/search/api/mutations';
 import { DataTable, type ColumnDef } from '@/components/shared/DataTable';
 import { DataTableToolbar } from '@/components/shared/DataTableToolbar';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -40,15 +50,26 @@ export default function AdminProductsPage() {
 
   const [pendingDeleteProduct, setPendingDeleteProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [page, setPage] = useState(1);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [columnOrder, setColumnOrder] = useState<string[]>(['name', 'price', 'stock', 'actions']);
 
+  const { data: categoryTree } = useQuery(adminCategoryTreeOptions(storeId));
+  const categoryOptions = flattenCategoryTree(categoryTree ?? []);
+
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: queryKeys.adminProducts.list(storeId, { search, page, perPage: PER_PAGE }),
+    queryKey: queryKeys.adminProducts.list(storeId, {
+      search,
+      categoryId: categoryFilter || undefined,
+      page,
+      perPage: PER_PAGE,
+    }),
     queryFn: () =>
       authorizedFetch<ProductListResponse>(
-        `/products?page=${page}&perPage=${PER_PAGE}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+        `/products?page=${page}&perPage=${PER_PAGE}${search ? `&search=${encodeURIComponent(search)}` : ''}${
+          categoryFilter ? `&categoryId=${encodeURIComponent(categoryFilter)}` : ''
+        }`,
       ),
     staleTime: 30_000, // STANDARDS.md #5: admin liste sayfaları
     placeholderData: (prev) => prev, // sayfa/arama değişirken tablo boşalıp sıçramasın
@@ -59,6 +80,22 @@ export default function AdminProductsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   const deleteProduct = useDeleteProductMutation(storeId);
+  const reindexVisualSearch = useVisualSearchReindexMutation();
+
+  async function handleReindexVisualSearch() {
+    try {
+      const result = await reindexVisualSearch.mutateAsync();
+      toast.success(
+        t(
+          'products.reindexVisualSearchSuccess',
+          'Visual search index rebuilt — {{indexed}} new, {{skipped}} already indexed.',
+          { indexed: result.indexed, skipped: result.skipped },
+        ),
+      );
+    } catch {
+      // Hata toast'ı global MutationCache onError yakalar (providers/QueryProvider.tsx).
+    }
+  }
 
   function totalAvailable(product: Product): number {
     return product.variants.reduce(
@@ -168,6 +205,18 @@ export default function AdminProductsPage() {
               : t('products.countInCatalog', '{{count}} products in catalog', { count: total })}
           </p>
         </div>
+        {can('visualSearch.reindex') && (
+          <Button
+            variant="outline"
+            onClick={handleReindexVisualSearch}
+            disabled={reindexVisualSearch.isPending}
+          >
+            <ScanSearch size={16} />
+            {reindexVisualSearch.isPending
+              ? t('products.reindexVisualSearching', 'Reindexing…')
+              : t('products.reindexVisualSearch', 'Reindex visual search')}
+          </Button>
+        )}
         {can('product.create') && (
           <Button asChild>
             <Link href="/admin/products/new">
@@ -178,24 +227,48 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="mt-6">
-        <DataTableToolbar
-          searchValue={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          searchPlaceholder={t('products.searchPlaceholder', 'Search products…')}
-          columns={[
-            { id: 'name', label: t('products.column.name', 'Name') },
-            { id: 'price', label: t('products.column.price', 'Price') },
-            { id: 'stock', label: t('products.column.stock', 'Stock') },
-          ]}
-          columnVisibility={columnVisibility}
-          onColumnVisibilityChange={setColumnVisibility}
-          columnOrder={columnOrder}
-          onColumnOrderChange={setColumnOrder}
-          hideAction
-        />
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <DataTableToolbar
+            searchValue={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            searchPlaceholder={t('products.searchPlaceholder', 'Search products…')}
+            columns={[
+              { id: 'name', label: t('products.column.name', 'Name') },
+              { id: 'price', label: t('products.column.price', 'Price') },
+              { id: 'stock', label: t('products.column.stock', 'Stock') },
+            ]}
+            columnVisibility={columnVisibility}
+            onColumnVisibilityChange={setColumnVisibility}
+            columnOrder={columnOrder}
+            onColumnOrderChange={setColumnOrder}
+            hideAction
+          />
+
+          <Select
+            value={categoryFilter || '__all__'}
+            onValueChange={(value) => {
+              setCategoryFilter(value === '__all__' ? '' : value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder={t('products.filterByCategory', 'All categories')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">
+                {t('products.filterByCategory', 'All categories')}
+              </SelectItem>
+              {categoryOptions.map((opt) => (
+                <SelectItem key={opt.id} value={opt.id}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {isError ? (
           <div className="border-border bg-background flex flex-col items-center justify-center gap-3 rounded-md border py-16 text-center">

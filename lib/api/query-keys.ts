@@ -59,6 +59,9 @@ export const queryKeys = {
   search: {
     results: (storeId: string, locale: string, term: string) =>
       ['search', storeId, locale, term] as const,
+    // Görsel arama mutation key'i — cache'lenen bir sorgu değil; convention'a
+    // uygun olarak key yine de bu factory'den üretilir.
+    image: (storeId: string) => ['search', storeId, 'image'] as const,
   },
 
   // --- Admin (CSR, private) ---

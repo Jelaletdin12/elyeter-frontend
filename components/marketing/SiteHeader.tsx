@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, LogOut, User } from 'lucide-react';
+import { Heart, ShoppingBag, LogOut, User, Globe } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -36,6 +37,21 @@ export function SiteHeader({ locale }: { locale: string }) {
   const setAuthDialogOpen = useUiStore((s) => s.setAuthDialogOpen);
   const openAuthDialog = useUiStore((s) => s.openAuthDialog);
   const authDialogTab = useUiStore((s) => s.authDialogTab);
+  
+  const pathname = usePathname();
+
+const languages = [
+  { value: 'en', label: 'EN' },
+  { value: 'ru', label: 'RU' },
+  { value: 'tk', label: 'TK' },
+] as const;
+
+const switchLocale = (nextLocale: string) => {
+  return pathname.replace(
+    /^\/(en|ru|tk)(?=\/|$)/,
+    `/${nextLocale}`,
+  );
+};
 
   return (
     <header className="bg-sidebar-primary text-white">
@@ -50,6 +66,32 @@ export function SiteHeader({ locale }: { locale: string }) {
         </div>
 
         <nav className="ml-auto flex items-center gap-1 text-sm sm:gap-2">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <Link href={`/${locale}/discounted`}>Sale</Link>
+          </Button>
+			<div className="hidden items-center sm:flex">
+  <div className="flex items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-0.5">
+    <Globe size={14} className="ml-2 mr-1 text-white/60" />
+
+    {languages.map((language) => (
+      <Link
+        key={language.value}
+        href={switchLocale(language.value)}
+        className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+          language.value === locale
+            ? 'bg-white text-black'
+            : 'text-white/60 hover:bg-white/10 hover:text-white'
+        }`}
+      >
+        {language.label}
+      </Link>
+    ))}
+  </div>
+</div>
           <ThemeToggle variant="dark" />
 
           <MobileSearchSheet locale={locale} />

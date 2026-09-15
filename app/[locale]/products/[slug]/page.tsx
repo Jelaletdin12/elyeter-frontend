@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { ApiClientError } from '@/lib/api/client';
-import { getProductBySlug } from '@/features/products/api/queries';
+import { getProductBySlug, getRelatedProducts } from '@/features/products/api/queries';
 import { WishlistButton } from '@/features/wishlist/components/WishlistButton';
 import { ProductVariantPicker } from '@/features/products/components/ProductVariantPicker';
 import { ProductGallery } from '@/features/products/components/ProductGallery';
+import { ProductGrid } from '@/features/home/components/ProductGrid';
 import { Separator } from '@/components/ui/separator';
 import type { Product } from '@/features/products/types';
 
@@ -61,6 +63,12 @@ export default async function ProductDetailPage({
 
   const translation = translationFor(product, locale);
 
+  // "Aynı ürünler" bölümü — detay aynı kategorideki popüler ürünleri döner.
+  // Başarısız olursa bölümü gizlemek için sessizce [] döner (sayfayı bozmaz).
+  const related = await getRelatedProducts(product.id, 8).catch(() => []);
+
+  const t = await getTranslations('products');
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="grid gap-10 md:grid-cols-2">
@@ -70,20 +78,20 @@ export default async function ProductDetailPage({
         {/* INFO */}
         <div className="flex flex-col">
           {product.category?.name && (
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            <p className="text-primary text-xs font-medium tracking-wide uppercase">
               {product.category.name}
             </p>
           )}
 
           <div className="mt-1 flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {translation?.name}
-            </h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{translation?.name}</h1>
             <WishlistButton productId={product.id} />
           </div>
 
+          {product.brand && <p className="text-muted-foreground mt-1 text-sm">{product.brand}</p>}
+
           {translation?.description && (
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
               {translation.description}
             </p>
           )}
@@ -96,6 +104,10 @@ export default async function ProductDetailPage({
           <ProductVariantPicker variants={product.variants} />
         </div>
       </div>
+
+      {related.length > 0 && (
+        <ProductGrid products={related} locale={locale} title={t('sameProducts')} />
+      )}
     </div>
   );
 }

@@ -14,8 +14,8 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { useAuthStore } from '@/stores/auth-store';
-import { categoryListOptions } from '@/features/categories/api/queries';
-import { categoryTranslation } from '@/features/categories/types';
+import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
+import { flattenCategoryTree } from '@/features/categories/types';
 import { useMediaUpload, type PendingMedia } from '@/features/media/hooks/useMediaUpload';
 import type { Product, CreateProductInput, UpdateProductInput } from '../types';
 
@@ -29,7 +29,11 @@ type TranslationDraft = { name: string; description: string };
 type TranslationDrafts = Record<'en' | 'ru' | 'tk', TranslationDraft>;
 
 function emptyTranslations(): TranslationDrafts {
-  return { en: { name: '', description: '' }, ru: { name: '', description: '' }, tk: { name: '', description: '' } };
+  return {
+    en: { name: '', description: '' },
+    ru: { name: '', description: '' },
+    tk: { name: '', description: '' },
+  };
 }
 
 type ProductFormProps = {
@@ -60,12 +64,19 @@ export function ProductForm({
   onSubmitEdit,
 }: ProductFormProps) {
   const storeId = useAuthStore((s) => s.activeStoreId);
-  const { data: categoryData } = useQuery(categoryListOptions(storeId));
+  const { data: categoryData } = useQuery(adminCategoryTreeOptions(storeId));
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { pendingMediaList, isUploading, error: uploadError, upload, discard } = useMediaUpload('PRODUCT_IMAGE');
+  const {
+    pendingMediaList,
+    isUploading,
+    error: uploadError,
+    upload,
+    discard,
+  } = useMediaUpload('PRODUCT_IMAGE');
 
   const [translations, setTranslations] = useState<TranslationDrafts>(emptyTranslations());
   const [categoryId, setCategoryId] = useState('');
+  const [brand, setBrand] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
@@ -73,7 +84,10 @@ export function ProductForm({
   const [primaryMediaId, setPrimaryMediaId] = useState<string | null>(null);
 
   const uploadedImages = useMemo(
-    () => pendingMediaList.filter((media): media is ProductPendingMedia => media.context === 'PRODUCT_IMAGE'),
+    () =>
+      pendingMediaList.filter(
+        (media): media is ProductPendingMedia => media.context === 'PRODUCT_IMAGE',
+      ),
     [pendingMediaList],
   );
 
@@ -92,6 +106,7 @@ export function ProductForm({
       }
       setTranslations(next);
       setCategoryId(initialProduct.categoryId);
+      setBrand(initialProduct.brand ?? '');
       setIsActive(initialProduct.isActive);
     }
   }, [mode, initialProduct]);
@@ -140,6 +155,7 @@ export function ProductForm({
       if (uploadedImages.length === 0) return;
       onSubmitCreate({
         categoryId,
+        brand: brand.trim() || undefined,
         isActive,
         translations: translationInputs,
         variants: [
@@ -157,14 +173,20 @@ export function ProductForm({
         })),
       });
     } else {
-      onSubmitEdit({ categoryId, isActive, translations: translationInputs });
+      onSubmitEdit({
+        categoryId,
+        brand: brand.trim() || undefined,
+        isActive,
+        translations: translationInputs,
+      });
     }
   }
 
   const canSubmit =
     translations.en.name.trim() !== '' &&
     categoryId !== '' &&
-    (mode === 'edit' || (sku.trim() !== '' && price !== '' && initialStock !== '' && uploadedImages.length > 0));
+    (mode === 'edit' ||
+      (sku.trim() !== '' && price !== '' && initialStock !== '' && uploadedImages.length > 0));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -175,17 +197,31 @@ export function ProductForm({
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {categoryData?.items.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {categoryTranslation(category, 'en')?.name}
+            {flattenCategoryTree(categoryData ?? []).map((opt) => (
+              <SelectItem key={opt.id} value={opt.id}>
+                {opt.label}
               </SelectItem>
             ))}
+            {(!categoryData || categoryData.length === 0) && (
+              <div className="text-muted-foreground px-2 py-1.5 text-sm">No categories yet</div>
+            )}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-4 rounded-md border border-border p-4">
-        <p className="text-sm font-medium text-foreground">Translations</p>
+      <div className="space-y-1.5">
+        <Label htmlFor="brand">Brand</Label>
+        <Input
+          id="brand"
+          placeholder="e.g. Sony"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          maxLength={120}
+        />
+      </div>
+
+      <div className="border-border space-y-4 rounded-md border p-4">
+        <p className="text-foreground text-sm font-medium">Translations</p>
         {LOCALES.map(({ code, label }) => (
           <div key={code} className="space-y-2">
             <Label htmlFor={`name-${code}`}>
@@ -203,18 +239,21 @@ export function ProductForm({
               placeholder={`Description (${label})`}
               value={translations[code].description}
               onChange={(e) =>
-                setTranslations((t) => ({ ...t, [code]: { ...t[code], description: e.target.value } }))
+                setTranslations((t) => ({
+                  ...t,
+                  [code]: { ...t[code], description: e.target.value },
+                }))
               }
               rows={2}
-              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
+              className="border-border bg-card text-foreground placeholder:text-muted-foreground focus:ring-ring/30 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
             />
           </div>
         ))}
       </div>
 
       {mode === 'create' && (
-        <div className="space-y-4 rounded-md border border-border p-4">
-          <p className="text-sm font-medium text-foreground">Initial variant</p>
+        <div className="border-border space-y-4 rounded-md border p-4">
+          <p className="text-foreground text-sm font-medium">Initial variant</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="sku">SKU</Label>
@@ -222,7 +261,14 @@ export function ProductForm({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="initialStock">Stock</Label>
@@ -252,18 +298,22 @@ export function ProductForm({
 
                 return (
                   <div key={media.id} className="space-y-2">
-                    <div className="group relative overflow-hidden rounded-md border border-border">
+                    <div className="group border-border relative overflow-hidden rounded-md border">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={media.urls.PRODUCT_CARD} alt="" className="aspect-square w-full object-cover" />
+                      <img
+                        src={media.urls.PRODUCT_CARD}
+                        alt=""
+                        className="aspect-square w-full object-cover"
+                      />
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(media.id)}
-                        className="absolute inset-0 flex items-center justify-center bg-ink/60 text-xs text-white opacity-0 hover:opacity-100 group-hover:opacity-100"
+                        className="bg-ink/60 absolute inset-0 flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 hover:opacity-100"
                       >
                         Remove
                       </button>
                       {isPrimaryImage && (
-                        <span className="absolute left-1.5 top-1.5 rounded-sm bg-ink/80 px-1.5 py-0.5 text-[10px] text-white">
+                        <span className="bg-ink/80 absolute top-1.5 left-1.5 rounded-sm px-1.5 py-0.5 text-[10px] text-white">
                           Primary
                         </span>
                       )}
@@ -285,24 +335,28 @@ export function ProductForm({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground hover:border-ink/30 disabled:opacity-50"
+                className="border-border text-muted-foreground hover:border-ink/30 flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed disabled:opacity-50"
               >
                 <ImagePlus size={18} strokeWidth={1.5} />
-                <span className="text-xs">{isUploading ? 'Uploading…' : uploadedImages.length > 0 ? 'Add more' : 'Upload'}</span>
+                <span className="text-xs">
+                  {isUploading ? 'Uploading…' : uploadedImages.length > 0 ? 'Add more' : 'Upload'}
+                </span>
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">You can upload multiple images and choose which one is primary.</p>
-            {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
+            <p className="text-muted-foreground text-xs">
+              You can upload multiple images and choose which one is primary.
+            </p>
+            {uploadError && <p className="text-destructive text-sm">{uploadError}</p>}
           </div>
         </div>
       )}
 
-      <label className="flex items-center gap-2 text-sm text-foreground">
+      <label className="text-foreground flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           checked={isActive}
           onChange={(e) => setIsActive(e.target.checked)}
-          className="h-4 w-4 rounded border-border"
+          className="border-border h-4 w-4 rounded"
         />
         Active
       </label>

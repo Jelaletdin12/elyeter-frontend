@@ -21,6 +21,20 @@ const KNOWN_ERROR_MESSAGES: Record<string, string> = {
   'errors.forbidden': "You don't have permission to do that.",
   'errors.insufficient_stock': 'Not enough stock available.',
   'errors.unexpected_response': 'Something went wrong. Please try again.',
+  'errors.image_too_large': 'This image is too large (max 10 MB).',
+  'errors.invalid_image_type': 'This image type is not supported.',
+  'errors.image_processing_failed': 'This image could not be processed. Try another one.',
+  'errors.no_visual_matches': 'No visually similar products were found.',
+  'errors.visual_search_unavailable':
+    'Visual search is temporarily unavailable. Please try again later.',
+  'errors.visual_search_no_embeddings_indexed': 'Visual search is not set up for this catalog yet.',
+  'errors.visual_search_model_init_failed':
+    'Visual search could not be initialized. Please try again later.',
+  'errors.category_parent_not_found': 'The parent category could not be found.',
+  'errors.category_has_children': 'This category has subcategories. Delete or move them first.',
+  'errors.category_depth_exceeded': 'Maximum category depth is 3 levels (parent > sub > sub).',
+  'errors.category_cannot_use_self_as_parent': 'A category cannot be its own parent.',
+  'errors.category_cannot_move_under_descendant': 'This would create a circular hierarchy.',
 };
 
 function humanizeKey(key: string): string {

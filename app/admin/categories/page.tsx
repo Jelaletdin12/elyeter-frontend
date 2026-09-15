@@ -6,7 +6,7 @@ import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { categoryListOptions } from '@/features/categories/api/queries';
+import { categoryListOptions, adminCategoryTreeOptions } from '@/features/categories/api/queries';
 import {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
@@ -17,13 +17,17 @@ import { DataTable } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { categoryTranslation, type Category } from '@/features/categories/types';
+import {
+  categoryTranslation,
+  type Category,
+  type CategoryTreeNode,
+} from '@/features/categories/types';
 
 /**
  * ✅ Şema doğrulandı (curl, 2026-09-07): POST/GET /categories,
- * GET/PATCH/DELETE /categories/{id}. Users/Products sayfalarıyla AYNI
- * pattern: DataTable + tek dialog (create/edit) + ConfirmDialog (delete) +
- * dual invalidation (bkz. features/categories/api/mutations.ts).
+ * GET/PATCH/DELETE /categories/{id}. 2026-09-14'te parent-child hiyerarşisi
+ * eklendi (max 3 seviye): tree query'si parent selector'ü besliyor, tabloya
+ * Parent kolonu geldi. Users/Products sayfalarıyla AYNI pattern.
  */
 export default function AdminCategoriesPage() {
   const storeId = useAuthStore((s) => s.activeStoreId);
@@ -41,6 +45,17 @@ export default function AdminCategoriesPage() {
   const deleteCategory = useDeleteCategoryMutation(storeId);
 
   const categories = data?.items ?? [];
+
+  // Parent selector için hiyerarşik ağaç (sadece aktif kategoriler).
+  const { data: treeData } = useQuery(adminCategoryTreeOptions(storeId));
+  const tree = treeData ?? [];
+
+  function flatten(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
+    return nodes.flatMap((n) => [n, ...flatten(n.children ?? [])]);
+  }
+  const parentNameById = new Map(
+    flatten(tree).map((n) => [n.id, categoryTranslation(n, 'en')?.name ?? '—']),
+  );
 
   function openCreate() {
     setEditingCategory(null);
@@ -110,6 +125,14 @@ export default function AdminCategoriesPage() {
               ),
             },
             {
+              header: 'Parent',
+              cell: (row) => (
+                <span className="text-muted-foreground text-sm">
+                  {row.parentId ? (parentNameById.get(row.parentId) ?? '—') : '—'}
+                </span>
+              ),
+            },
+            {
               header: 'Status',
               cell: (row) => (
                 <StatusBadge tone={row.isActive ? 'success' : 'neutral'}>
@@ -153,6 +176,7 @@ export default function AdminCategoriesPage() {
       <CategoryFormDialog
         open={dialogMode !== null}
         mode={dialogMode ?? 'create'}
+        tree={tree}
         initialCategory={editingCategory ?? undefined}
         isSubmitting={createCategory.isPending || updateCategory.isPending}
         onCancel={closeDialog}
@@ -185,7 +209,7 @@ export default function AdminCategoriesPage() {
             ? `Delete ${categoryTranslation(pendingDeleteCategory, 'en')?.name ?? 'this category'}?`
             : ''
         }
-        description="Products in this category will not be deleted, but they will lose this category association."
+        description="Subcategories must be moved or deleted before this category can be deleted. Products in this category will not be deleted, but they will lose this category association."
         confirmLabel="Delete"
         isDestructive
         isLoading={deleteCategory.isPending}

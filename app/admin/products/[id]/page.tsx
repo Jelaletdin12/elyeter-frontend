@@ -40,7 +40,7 @@ export default function EditProductPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto space-y-6">
         {BackLink}
         <div className="animate-pulse space-y-4">
           <div className="bg-background h-8 w-64 rounded-md" />
@@ -52,7 +52,7 @@ export default function EditProductPage() {
 
   if (isError) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto  space-y-6">
         {BackLink}
         <div className="border-border bg-background flex flex-col items-center justify-center gap-3 rounded-md border py-16 text-center">
           <p className="text-muted-foreground text-sm">
@@ -68,7 +68,7 @@ export default function EditProductPage() {
 
   if (!product) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto  space-y-6">
         {BackLink}
         <p className="text-muted-foreground text-sm">
           {t('products.notFound', 'Product not found.')}
@@ -78,7 +78,7 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
+    <div className="mx-auto  space-y-10">
       <div className="space-y-3">
         {BackLink}
         <div>

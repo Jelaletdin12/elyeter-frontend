@@ -26,21 +26,32 @@ export async function getProductBySlug(locale: string, slug: string): Promise<Pr
   });
 }
 
+/**
+ * "Aynı ürünler" bölümü — detay sayfasındaki ürünle aynı kategorideki
+ * popüler, aktif ürünler (kendisi hariç). GET /products/:id/related.
+ * ISR cache'li (600s), products tag'ine bağlı.
+ */
+export async function getRelatedProducts(productId: string, limit = 8): Promise<Product[]> {
+  return apiFetch<Product[]>(`/products/${productId}/related?limit=${limit}`, {
+    next: {
+      revalidate: 600,
+      tags: [dataCacheTags.products()],
+    },
+  });
+}
+
 export async function getProductList(
   locale: string,
   categorySlug: string,
 ): Promise<ProductListResponse> {
   // categorySlug'dan categoryId'ye çevirmek çağıran tarafın işi (bkz.
   // app/[locale]/[categorySlug]/page.tsx — önce getCategory ile id alınıyor).
-  return apiFetch<ProductListResponse>(
-    `/products?locale=${locale}&categoryId=${categorySlug}`,
-    {
-      next: {
-        revalidate: 300,
-        tags: [dataCacheTags.category(locale, categorySlug), dataCacheTags.products()],
-      },
+  return apiFetch<ProductListResponse>(`/products?locale=${locale}&categoryId=${categorySlug}`, {
+    next: {
+      revalidate: 300,
+      tags: [dataCacheTags.category(locale, categorySlug), dataCacheTags.products()],
     },
-  );
+  });
 }
 
 export function productDetailOptions(storeId: string, productId: string) {
@@ -88,7 +99,12 @@ export function stockMovementsOptions(
   page = 1,
 ) {
   return queryOptions({
-    queryKey: [...queryKeys.adminProducts.detail(storeId, productId), 'stock-movements', variantId, page] as const,
+    queryKey: [
+      ...queryKeys.adminProducts.detail(storeId, productId),
+      'stock-movements',
+      variantId,
+      page,
+    ] as const,
     queryFn: () =>
       adminAuthorizedFetch<StockMovementListResponse>(
         `/products/${productId}/variants/${variantId}/stock-movements?page=${page}`,
