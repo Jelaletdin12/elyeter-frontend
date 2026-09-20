@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +13,8 @@ import { adminAuthorizedFetch as authorizedFetch } from '@/lib/auth/admin-author
 import { queryKeys } from '@/lib/api/query-keys';
 import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
 import { flattenCategoryTree } from '@/features/categories/types';
+import { brandOptions } from '@/features/brands/api/queries';
+import { brandTranslation } from '@/features/brands/types';
 import {
   Select,
   SelectContent,
@@ -35,9 +37,9 @@ import type { Product, ProductListResponse } from '@/features/products/types';
  * useDeleteProductMutation hem admin listesini (invalidateQueries) hem de public
  * tarafı (POST /api/revalidate) günceller.
  *
- * ⚠️ Admin'in TÜM ürünleri (pasif dahil) görebilmesi gerekiyor — GET /products'ın
- * `search`/`page`/`perPage` query paramlarını docs-json.json'a göre doğrula, isimler
- * farklıysa aşağıdaki queryFn'i güncelle.
+ * ⚠️ Admin'in TÜM ürünleri (pasif dahil) görebilmesi gerekiyor — GET /products
+ * query parametreleri (page/limit/search/categoryId/brandId) brandId dahil
+ * backend'de class-validator DTO ile doğrulandı (curl, 2026-09-17).
  */
 
 const PER_PAGE = 25;
@@ -51,6 +53,7 @@ export default function AdminProductsPage() {
   const [pendingDeleteProduct, setPendingDeleteProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
   const [page, setPage] = useState(1);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [columnOrder, setColumnOrder] = useState<string[]>(['name', 'price', 'stock', 'actions']);
@@ -58,18 +61,21 @@ export default function AdminProductsPage() {
   const { data: categoryTree } = useQuery(adminCategoryTreeOptions(storeId));
   const categoryOptions = flattenCategoryTree(categoryTree ?? []);
 
+  const { data: brandOptionsData } = useQuery(brandOptions(storeId));
+
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: queryKeys.adminProducts.list(storeId, {
       search,
       categoryId: categoryFilter || undefined,
+      brandId: brandFilter || undefined,
       page,
       perPage: PER_PAGE,
     }),
     queryFn: () =>
       authorizedFetch<ProductListResponse>(
-        `/products?page=${page}&perPage=${PER_PAGE}${search ? `&search=${encodeURIComponent(search)}` : ''}${
+        `/products?page=${page}&limit=${PER_PAGE}${search ? `&search=${encodeURIComponent(search)}` : ''}${
           categoryFilter ? `&categoryId=${encodeURIComponent(categoryFilter)}` : ''
-        }`,
+        }${brandFilter ? `&brandId=${encodeURIComponent(brandFilter)}` : ''}`,
       ),
     staleTime: 30_000, // STANDARDS.md #5: admin liste sayfaları
     placeholderData: (prev) => prev, // sayfa/arama değişirken tablo boşalıp sıçramasın
@@ -264,6 +270,30 @@ export default function AdminProductsPage() {
               {categoryOptions.map((opt) => (
                 <SelectItem key={opt.id} value={opt.id}>
                   {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={brandFilter || '__all__'}
+            onValueChange={(value) => {
+              setBrandFilter(value === '__all__' ? '' : value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder={t('products.filterByBrand', 'All brands')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{t('products.filterByBrand', 'All brands')}</SelectItem>
+              {brandOptionsData?.map((opt) => (
+                <SelectItem
+                  key={opt.id}
+                  value={opt.id}
+                  disabled={!opt.isActive && brandFilter !== opt.id}
+                >
+                  {brandTranslation(opt, 'en')?.name ?? opt.translations[0]?.name ?? '—'}
                 </SelectItem>
               ))}
             </SelectContent>

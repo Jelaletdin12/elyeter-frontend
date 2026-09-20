@@ -23,14 +23,14 @@ const nextConfig: NextConfig = {
     // Backend/MinIO'nun döndürdüğü görsel URL'lerinin host'u.
     // FRONTEND_STANDARDS.md #10: frontend boyut/preset tanımlamaz, sadece
     // backend'in ürettiği cardUrl/detailUrl/originalUrl'leri next/image'e verir.
-     dangerouslyAllowLocalIP: true,
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: 'http',
         hostname: 'localhost',
       },
       {
-       protocol: 'http',
+        protocol: 'http',
         hostname: 'localhost',
         port: '9000',
         pathname: '/banners/**',
@@ -46,6 +46,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '127.0.0.1',
+      },
+      // Seed/ImageProcessor onaylı placeholder host'u (prisma/mock-data.ts) —
+      // gölgelerin yokluğunda banner/logo/ürün görselleri buradan gelir.
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
       },
       ...(mediaHost && mediaHost !== 'localhost' && mediaHost !== '127.0.0.1'
         ? [

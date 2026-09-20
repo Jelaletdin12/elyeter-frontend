@@ -22,6 +22,9 @@ export type Action =
   | 'category.create'
   | 'category.update'
   | 'category.delete'
+  | 'brand.create'
+  | 'brand.update'
+  | 'brand.delete'
   | 'banner.manage'
   | 'coupon.manage'
   | 'order.updateStatus'
@@ -29,7 +32,9 @@ export type Action =
   | 'user.manage'
   | 'user.create'
   | 'visualSearch.reindex'
-  | 'admin.access';
+  | 'admin.access'
+  | 'catalog.export'
+  | 'catalog.import';
 
 // Backend'deki ROLE_MANAGEMENT_MAP'in frontend yansıması.
 const ROLE_ACTION_MAP: Record<Role, Action[]> = {
@@ -40,6 +45,9 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'category.create',
     'category.update',
     'category.delete',
+    'brand.create',
+    'brand.update',
+    'brand.delete',
     'banner.manage',
     'coupon.manage',
     'order.updateStatus',
@@ -48,6 +56,8 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'user.create',
     'visualSearch.reindex',
     'admin.access',
+    'catalog.export',
+    'catalog.import',
   ],
   ADMIN: [
     'product.create',
@@ -56,14 +66,29 @@ const ROLE_ACTION_MAP: Record<Role, Action[]> = {
     'category.create',
     'category.update',
     'category.delete',
+    'brand.create',
+    'brand.update',
+    'brand.delete',
     'banner.manage',
     'coupon.manage',
     'order.updateStatus',
     'order.viewAll',
     'visualSearch.reindex',
     'admin.access',
+    'catalog.export',
+    'catalog.import',
   ],
-  OPERATOR: ['product.update', 'order.updateStatus', 'order.viewAll', 'admin.access'],
+  OPERATOR: [
+    'product.update',
+    'brand.create',
+    'brand.update',
+    'brand.delete',
+    'order.updateStatus',
+    'order.viewAll',
+    'admin.access',
+    'catalog.export',
+    'catalog.import',
+  ],
   CLIENT: [],
 };
 

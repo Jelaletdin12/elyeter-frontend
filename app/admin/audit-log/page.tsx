@@ -79,7 +79,7 @@ export default function AdminAuditLogPage() {
   return (
     <div>
       <div>
-        <h1 className="font-serif text-foreground text-2xl italic">Audit log</h1>
+        <h1 className="text-foreground font-serif text-2xl italic">Audit log</h1>
         <p className="text-muted-foreground mt-1 text-sm">{meta?.total ?? 0} recorded actions</p>
       </div>
 
@@ -158,19 +158,25 @@ export default function AdminAuditLogPage() {
             {
               header: 'Actor',
               cell: (row) => (
-                <span className="text-muted-foreground font-mono text-xs">{shortId(row.actorId)}</span>
+                <span className="text-muted-foreground font-mono text-xs">
+                  {shortId(row.actorId)}
+                </span>
               ),
             },
             {
               header: 'Action',
-              cell: (row) => <span className="text-foreground font-mono text-xs">{row.action}</span>,
+              cell: (row) => (
+                <span className="text-foreground font-mono text-xs">{row.action}</span>
+              ),
             },
             {
               header: 'Entity',
               cell: (row) => (
                 <div>
                   <p className="text-foreground text-sm font-medium">{row.entity}</p>
-                  <p className="text-muted-foreground font-mono text-xs">#{shortId(row.entityId)}</p>
+                  <p className="text-muted-foreground font-mono text-xs">
+                    #{shortId(row.entityId)}
+                  </p>
                 </div>
               ),
             },

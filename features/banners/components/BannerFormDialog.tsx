@@ -45,7 +45,8 @@ export function BannerFormDialog({
   onSubmitEdit,
 }: BannerFormDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { pendingMedia, isUploading, error, upload, discard, reset } = useMediaUpload('BANNER_IMAGE');
+  const { pendingMedia, isUploading, error, upload, discard, reset } =
+    useMediaUpload('BANNER_IMAGE');
 
   const [linkUrl, setLinkUrl] = useState('');
   const [order, setOrder] = useState(0);
@@ -123,7 +124,7 @@ export function BannerFormDialog({
             />
 
             {previewUrl ? (
-              <div className="relative overflow-hidden rounded-md border border-border">
+              <div className="border-border relative overflow-hidden rounded-md border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={previewUrl} alt="" className="aspect-[16/7] w-full object-cover" />
                 <button
@@ -132,7 +133,7 @@ export function BannerFormDialog({
                     if (pendingMedia) discard();
                     else fileInputRef.current?.click();
                   }}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-ink/70 text-white hover:bg-ink"
+                  className="bg-ink/70 hover:bg-ink absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full text-white"
                   aria-label={pendingMedia ? 'Remove uploaded image' : 'Replace image'}
                 >
                   {pendingMedia ? <X size={14} /> : <ImagePlus size={14} />}
@@ -143,14 +144,14 @@ export function BannerFormDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border text-muted-foreground hover:border-ink/30 disabled:opacity-50"
+                className="border-border text-muted-foreground hover:border-ink/30 flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed disabled:opacity-50"
               >
                 <ImagePlus size={20} strokeWidth={1.5} />
                 <span className="text-sm">{isUploading ? 'Uploading…' : 'Click to upload'}</span>
               </button>
             )}
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -173,15 +174,15 @@ export function BannerFormDialog({
               value={order}
               onChange={(e) => setOrder(Number(e.target.value))}
             />
-            <p className="text-xs text-muted-foreground">Lower numbers show first.</p>
+            <p className="text-muted-foreground text-xs">Lower numbers show first.</p>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-foreground">
+          <label className="text-foreground flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
+              className="border-border h-4 w-4 rounded"
             />
             Active
           </label>

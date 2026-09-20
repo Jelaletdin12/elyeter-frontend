@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { ApiClientError } from '@/lib/api/client';
 import { getProductBySlug, getRelatedProducts } from '@/features/products/api/queries';
+import { brandTranslation } from '@/features/brands/types';
 import { WishlistButton } from '@/features/wishlist/components/WishlistButton';
 import { ProductVariantPicker } from '@/features/products/components/ProductVariantPicker';
 import { ProductGallery } from '@/features/products/components/ProductGallery';
@@ -70,7 +71,7 @@ export default async function ProductDetailPage({
   const t = await getTranslations('products');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-10">
       <div className="grid gap-10 md:grid-cols-2">
         {/* GALLERY */}
         <ProductGallery images={product.images} alt={translation?.name ?? ''} />
@@ -88,7 +89,11 @@ export default async function ProductDetailPage({
             <WishlistButton productId={product.id} />
           </div>
 
-          {product.brand && <p className="text-muted-foreground mt-1 text-sm">{product.brand}</p>}
+          {product.brand && brandTranslation(product.brand, locale)?.name && (
+            <p className="text-muted-foreground mt-typo-mb text-xs">
+              {brandTranslation(product.brand, locale)?.name}
+            </p>
+          )}
 
           {translation?.description && (
             <p className="text-muted-foreground mt-3 text-sm leading-6">

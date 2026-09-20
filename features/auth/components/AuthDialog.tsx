@@ -21,12 +21,7 @@ interface AuthDialogProps {
   defaultTab?: 'login' | 'register';
 }
 
-export function AuthDialog({
-  locale,
-  open,
-  onOpenChange,
-  defaultTab = 'login',
-}: AuthDialogProps) {
+export function AuthDialog({ locale, open, onOpenChange, defaultTab = 'login' }: AuthDialogProps) {
   const [tab, setTab] = useState<'login' | 'register'>(defaultTab);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -47,13 +42,9 @@ export function AuthDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>
-            {tab === 'login' ? 'Sign in' : 'Create an account'}
-          </DialogTitle>
+          <DialogTitle>{tab === 'login' ? 'Sign in' : 'Create an account'}</DialogTitle>
           <DialogDescription>
-            {tab === 'login'
-              ? 'Welcome back.'
-              : 'Join to save your cart and track orders.'}
+            {tab === 'login' ? 'Welcome back.' : 'Join to save your cart and track orders.'}
           </DialogDescription>
         </DialogHeader>
 

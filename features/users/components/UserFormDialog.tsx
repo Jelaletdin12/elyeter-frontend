@@ -147,7 +147,10 @@ export function UserFormDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="role">Role</Label>
-            <Select value={form.role} onValueChange={(value) => setForm((f) => ({ ...f, role: value as UserRole }))}>
+            <Select
+              value={form.role}
+              onValueChange={(value) => setForm((f) => ({ ...f, role: value as UserRole }))}
+            >
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
@@ -162,12 +165,12 @@ export function UserFormDialog({
           </div>
 
           {mode === 'edit' && (
-            <label className="flex items-center gap-2 text-sm text-foreground">
+            <label className="text-foreground flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={form.isActive}
                 onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                className="h-4 w-4 rounded border-border"
+                className="border-border h-4 w-4 rounded"
               />
               Active
             </label>

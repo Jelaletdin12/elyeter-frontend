@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useMediaUpload } from '@/features/media/hooks/useMediaUpload';
+import { MediaUploadField } from '@/features/media/components/MediaUploadField';
 import type {
   Category,
   CategoryLocale,
@@ -61,9 +63,16 @@ export function CategoryFormDialog({
   onSubmitCreate,
   onSubmitEdit,
 }: CategoryFormDialogProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { pendingMedia, isUploading, error, upload, discard, reset } =
+    useMediaUpload('CATEGORY_IMAGE');
+
   const [names, setNames] = useState<Record<CategoryLocale, string>>(emptyNames());
   const [isActive, setIsActive] = useState(true);
   const [parentId, setParentId] = useState<string | null>(null);
+  // Dosyadan yüklenip henüz bağlanmamış görselin media id'si (submit'te imageMediaId olarak gider).
+  const [imageMediaId, setImageMediaId] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
 
   useEffect(() => {
     if (mode === 'edit' && initialCategory) {
@@ -72,11 +81,16 @@ export function CategoryFormDialog({
       setNames(next);
       setIsActive(initialCategory.isActive);
       setParentId(initialCategory.parentId);
+      setImageUrl(initialCategory.imageUrl ?? '');
     } else {
       setNames(emptyNames());
       setIsActive(true);
       setParentId(null);
+      setImageUrl('');
     }
+    setImageMediaId(null);
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, initialCategory, open]);
 
   // Düzenleme modunda bu kategorinin kendisi + alt ağacı parent olarak
@@ -89,6 +103,20 @@ export function CategoryFormDialog({
       : new Set<string>(),
   );
 
+  async function handleFileSelect(file: File) {
+    try {
+      const result = await upload(file);
+      setImageMediaId(result.id);
+    } catch {
+      // Hata zaten useMediaUpload'ın `error` state'inde.
+    }
+  }
+
+  async function handleCancel() {
+    if (pendingMedia) await discard();
+    onCancel();
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -99,25 +127,38 @@ export function CategoryFormDialog({
       locale: code,
       name: names[code].trim(),
     }));
+    const typedUrl = imageUrl.trim() || null;
 
     if (mode === 'create') {
-      onSubmitCreate({ isActive, parentId, translations });
+      onSubmitCreate({
+        isActive,
+        parentId,
+        ...(imageMediaId ? { imageMediaId } : {}),
+        ...(imageMediaId ? {} : typedUrl ? { imageUrl: typedUrl } : {}),
+        translations,
+      });
     } else {
       // parentId yalnızca kullanıcı değiştirdiyse gönderilir — undefined
       // "dokunma" anlamına gelir (backend update semantiği).
       const parentChanged = parentId !== (initialCategory?.parentId ?? null);
-      onSubmitEdit({
-        isActive,
-        translations,
-        ...(parentChanged ? { parentId } : {}),
-      });
+      const imageChanged = typedUrl !== (initialCategory?.imageUrl ?? null);
+
+      let patch: UpdateCategoryInput = { isActive, translations };
+      if (imageMediaId) {
+        // Yeni dosya yüklendi — backend eski MinIO object'ini siler (claim akışı).
+        patch = { ...patch, imageMediaId };
+      } else if (imageChanged) {
+        patch = { ...patch, imageUrl: typedUrl };
+      }
+      if (parentChanged) patch = { ...patch, parentId };
+      onSubmitEdit(patch);
     }
   }
 
   const hasAtLeastOneName = LOCALES.some(({ code }) => names[code].trim());
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
+    <Dialog open={open} onOpenChange={(next) => !next && handleCancel()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'New category' : 'Edit category'}</DialogTitle>
@@ -137,6 +178,36 @@ export function CategoryFormDialog({
               />
             </div>
           ))}
+
+          <MediaUploadField
+            label="Image"
+            hint="Upload a file — it's cropped to a category card and stored on MinIO."
+            initialUrl={initialCategory?.imageUrl ?? null}
+            pendingMedia={pendingMedia}
+            isUploading={isUploading}
+            error={error}
+            aspectClassName="aspect-[2/1]"
+            fileInputRef={fileInputRef}
+            onFileSelect={handleFileSelect}
+            onRemovePending={() => {
+              discard();
+              setImageMediaId(null);
+            }}
+          />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="category-image-url">Image URL (alternative)</Label>
+            <Input
+              id="category-image-url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/categories/electronics.webp"
+              disabled={!!imageMediaId}
+            />
+            <p className="text-muted-foreground text-xs">
+              Optional. Only if you don&apos;t upload a file above.
+            </p>
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="parent-category">Parent category</Label>
@@ -169,10 +240,13 @@ export function CategoryFormDialog({
           </label>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !hasAtLeastOneName}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isUploading || !hasAtLeastOneName}
+            >
               {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </DialogFooter>

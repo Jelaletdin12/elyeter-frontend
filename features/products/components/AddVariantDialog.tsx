@@ -85,7 +85,9 @@ export function AddVariantDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="variant-compare-price">Compare-at price <span className="text-muted-foreground">(optional)</span></Label>
+              <Label htmlFor="variant-compare-price">
+                Compare-at price <span className="text-muted-foreground">(optional)</span>
+              </Label>
               <Input
                 id="variant-compare-price"
                 type="number"

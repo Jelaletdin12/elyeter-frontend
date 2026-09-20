@@ -32,7 +32,7 @@ export function ProductGrid({ products, locale, title = 'New arrivals' }: Produc
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-12">
+    <section className="mx-auto w-full max-w-7xl px-4 py-12">
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
           <p className="text-muted-foreground mb-1 text-xs font-medium tracking-[0.18em] uppercase">

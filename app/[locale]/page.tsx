@@ -20,7 +20,7 @@ import type { ProductListResponse } from '@/features/products/types';
 async function getHomepageProducts(locale: string): Promise<ProductListResponse> {
   // ⚠️ "featured" gibi bir alan backend'de (schema.prisma) YOK — sadece
   // varsayılan sıralamayla ilk sayfayı çekiyoruz.
-  return apiFetch<ProductListResponse>(`/products?locale=${locale}&limit=8`, {
+  return apiFetch<ProductListResponse>(`/products?locale=${locale}&limit=100`, {
     next: { revalidate: 300, tags: [dataCacheTags.home(), dataCacheTags.products()] },
   });
 }

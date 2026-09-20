@@ -8,8 +8,10 @@ import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
  *
  * ✅ DOĞRULANDI (curl, 2026-09-08) — response context'e göre FARKLI `urls`
  * anahtarları döner:
- *   PRODUCT_IMAGE → { PRODUCT_CARD, PRODUCT_DETAIL, PRODUCT_ORIGINAL }
- *   BANNER_IMAGE  → { BANNER_DESKTOP, BANNER_MOBILE }
+ *   PRODUCT_IMAGE  → { PRODUCT_CARD, PRODUCT_DETAIL, PRODUCT_ORIGINAL }
+ *   BANNER_IMAGE   → { BANNER_DESKTOP, BANNER_MOBILE }
+ *   BRAND_IMAGE    → { BRAND_LOGO }
+ *   CATEGORY_IMAGE → { CATEGORY_CARD }
  * Önceki varsayım (düz cardUrl/detailUrl alanları) YANLIŞTI, düzeltildi.
  *
  * Akış:
@@ -25,14 +27,37 @@ import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
  * ile hemen silmek daha temiz (bkz. `discard`).
  */
 
-export type MediaContext = 'PRODUCT_IMAGE' | 'BANNER_IMAGE';
+export type MediaContext =
+  | 'PRODUCT_IMAGE'
+  | 'BANNER_IMAGE'
+  | 'BRAND_IMAGE'
+  | 'CATEGORY_IMAGE';
 
 type ProductImageUrls = { PRODUCT_CARD: string; PRODUCT_DETAIL: string; PRODUCT_ORIGINAL: string };
 type BannerImageUrls = { BANNER_DESKTOP: string; BANNER_MOBILE: string };
+type BrandImageUrls = { BRAND_LOGO: string };
+type CategoryImageUrls = { CATEGORY_CARD: string };
 
 export type PendingMedia =
   | { id: string; context: 'PRODUCT_IMAGE'; urls: ProductImageUrls }
-  | { id: string; context: 'BANNER_IMAGE'; urls: BannerImageUrls };
+  | { id: string; context: 'BANNER_IMAGE'; urls: BannerImageUrls }
+  | { id: string; context: 'BRAND_IMAGE'; urls: BrandImageUrls }
+  | { id: string; context: 'CATEGORY_IMAGE'; urls: CategoryImageUrls };
+
+/** Verilen context için upload'ın döndüreceği asıl görsel URL'si. */
+export function mediaPreviewUrl(context: MediaContext, media: PendingMedia): string | null {
+  if (media.context !== context) return null;
+  switch (media.context) {
+    case 'PRODUCT_IMAGE':
+      return media.urls.PRODUCT_CARD;
+    case 'BANNER_IMAGE':
+      return media.urls.BANNER_DESKTOP;
+    case 'BRAND_IMAGE':
+      return media.urls.BRAND_LOGO;
+    case 'CATEGORY_IMAGE':
+      return media.urls.CATEGORY_CARD;
+  }
+}
 
 type UploadState = {
   isUploading: boolean;

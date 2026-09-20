@@ -35,6 +35,15 @@ const KNOWN_ERROR_MESSAGES: Record<string, string> = {
   'errors.category_depth_exceeded': 'Maximum category depth is 3 levels (parent > sub > sub).',
   'errors.category_cannot_use_self_as_parent': 'A category cannot be its own parent.',
   'errors.category_cannot_move_under_descendant': 'This would create a circular hierarchy.',
+  'errors.catalog_import_file_required': 'Choose a file to import.',
+  'errors.catalog_import_file_invalid': 'Only .xlsx, .xls, or .csv files are supported.',
+  'errors.catalog_import_empty': 'The file contains no rows.',
+  'errors.catalog_import_too_many_rows': 'Too many rows (max 500).',
+  'errors.product_sku_exists': 'Duplicate SKU in the file.',
+  'errors.catalog_import_category_required': 'A categoryId is required for new products.',
+  'errors.catalog_import_missing_names': 'New products need names in all three languages.',
+  'errors.catalog_import_invalid_row': 'Invalid row (SKU and price are required).',
+  'errors.catalog_export_failed': 'Catalog export failed. Try again later.',
 };
 
 function humanizeKey(key: string): string {

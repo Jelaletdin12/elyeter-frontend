@@ -101,7 +101,9 @@ export function useAddVariantMutation(storeId: string) {
         body: JSON.stringify(input),
       }),
     onSuccess: async (_variant, { productId }) => {
-      const product = queryClient.getQueryData<Product>(queryKeys.adminProducts.detail(storeId, productId));
+      const product = queryClient.getQueryData<Product>(
+        queryKeys.adminProducts.detail(storeId, productId),
+      );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.adminProducts.detail(storeId, productId),
       });
@@ -134,13 +136,19 @@ export function useStockAdjustmentMutation(storeId: string) {
         body: JSON.stringify(input),
       }),
     onSuccess: async (_variant, { productId, variantId }) => {
-      const product = queryClient.getQueryData<Product>(queryKeys.adminProducts.detail(storeId, productId));
+      const product = queryClient.getQueryData<Product>(
+        queryKeys.adminProducts.detail(storeId, productId),
+      );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.adminProducts.detail(storeId, productId),
       });
       // Stok hareketi geçmişi de değişti — o query'yi de invalidate et.
       await queryClient.invalidateQueries({
-        queryKey: [...queryKeys.adminProducts.detail(storeId, productId), 'stock-movements', variantId],
+        queryKey: [
+          ...queryKeys.adminProducts.detail(storeId, productId),
+          'stock-movements',
+          variantId,
+        ],
       });
       await revalidatePublicTags(
         product ? [...productTags(product), dataCacheTags.products()] : [dataCacheTags.products()],
@@ -157,7 +165,9 @@ export function useDeleteProductImageMutation(storeId: string) {
     mutationFn: ({ productId, imageId }: { productId: string; imageId: string }) =>
       adminAuthorizedFetch<void>(`/products/${productId}/images/${imageId}`, { method: 'DELETE' }),
     onSuccess: async (_data, { productId }) => {
-      const product = queryClient.getQueryData<Product>(queryKeys.adminProducts.detail(storeId, productId));
+      const product = queryClient.getQueryData<Product>(
+        queryKeys.adminProducts.detail(storeId, productId),
+      );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.adminProducts.detail(storeId, productId),
       });

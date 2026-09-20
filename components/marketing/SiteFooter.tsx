@@ -8,33 +8,23 @@ export function SiteFooter({ locale }: { locale: string }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-6xl px-4">
+    <footer className="border-border bg-card border-t">
+      <div className="mx-auto max-w-7xl px-4">
         {/* Main footer */}
         <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-16">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link
-              href={`/${locale}`}
-              className="inline-block transition-opacity hover:opacity-80"
-            >
-              <Image
-                src={logo}
-                alt="Elýeter"
-                width={140}
-                height={40}
-                className="h-9 w-auto"
-              />
+            <Link href={`/${locale}`} className="inline-block transition-opacity hover:opacity-80">
+              <Image src={logo} alt="Elýeter" width={140} height={40} className="h-9 w-auto" />
             </Link>
 
-            <p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
-              Gündelik durmuşuňyz üçin gerek bolan zatlaryňyzy aňsatlyk bilen
-              tapyň we sargyt ediň.
+            <p className="text-muted-foreground mt-5 max-w-sm text-sm leading-6">
+              Gündelik durmuşuňyz üçin gerek bolan zatlaryňyzy aňsatlyk bilen tapyň we sargyt ediň.
             </p>
 
             <Link
               href={`/${locale}/search`}
-              className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary"
+              className="hover:text-primary mt-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
             >
               Söwda etmäge başla
               <ArrowUpRight size={15} />
@@ -45,11 +35,11 @@ export function SiteFooter({ locale }: { locale: string }) {
           <div>
             <h3 className="text-sm font-semibold">Shop</h3>
 
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+            <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
               <li>
                 <Link
                   href={`/${locale}/search`}
-                  className="transition-colors hover:text-foreground"
+                  className="hover:text-foreground transition-colors"
                 >
                   Search
                 </Link>
@@ -58,17 +48,14 @@ export function SiteFooter({ locale }: { locale: string }) {
               <li>
                 <Link
                   href={`/${locale}/discounted`}
-                  className="transition-colors hover:text-foreground"
+                  className="hover:text-foreground transition-colors"
                 >
                   Sale
                 </Link>
               </li>
 
               <li>
-                <Link
-                  href={`/${locale}/cart`}
-                  className="transition-colors hover:text-foreground"
-                >
+                <Link href={`/${locale}/cart`} className="hover:text-foreground transition-colors">
                   Cart
                 </Link>
               </li>
@@ -76,7 +63,7 @@ export function SiteFooter({ locale }: { locale: string }) {
               <li>
                 <Link
                   href={`/${locale}/account/wishlist`}
-                  className="transition-colors hover:text-foreground"
+                  className="hover:text-foreground transition-colors"
                 >
                   Wishlist
                 </Link>
@@ -88,11 +75,11 @@ export function SiteFooter({ locale }: { locale: string }) {
           <div>
             <h3 className="text-sm font-semibold">Account</h3>
 
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+            <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
               <li>
                 <Link
                   href={`/${locale}/account`}
-                  className="transition-colors hover:text-foreground"
+                  className="hover:text-foreground transition-colors"
                 >
                   My account
                 </Link>
@@ -101,28 +88,24 @@ export function SiteFooter({ locale }: { locale: string }) {
               <li>
                 <Link
                   href={`/${locale}/account/orders`}
-                  className="transition-colors hover:text-foreground"
+                  className="hover:text-foreground transition-colors"
                 >
                   Orders
                 </Link>
               </li>
 
               <li>
-                <span className="text-muted-foreground">
-                  Ashgabat, Turkmenistan
-                </span>
+                <span className="text-muted-foreground">Ashgabat, Turkmenistan</span>
               </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="flex flex-col gap-3 border-t border-border py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-border text-muted-foreground flex flex-col gap-3 border-t py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} Elýeter. All rights reserved.</p>
 
-          <p className="text-muted-foreground/70">
-            Gerek zat. Bir ýerde.
-          </p>
+          <p className="text-muted-foreground/70">Gerek zat. Bir ýerde.</p>
         </div>
       </div>
     </footer>

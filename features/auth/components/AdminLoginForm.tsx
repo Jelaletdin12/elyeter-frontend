@@ -68,7 +68,7 @@ export function AdminLoginForm() {
       </div>
 
       {(rejectedMessage || login.isError) && (
-        <p className="text-sm text-destructive">
+        <p className="text-destructive text-sm">
           {rejectedMessage ??
             (login.error instanceof Error ? login.error.message : 'Something went wrong.')}
         </p>
@@ -77,7 +77,7 @@ export function AdminLoginForm() {
       <Button
         type="submit"
         disabled={login.isPending}
-        className="w-full bg-sidebar-primary text-white hover:bg-sidebar-primary-light"
+        className="bg-sidebar-primary hover:bg-sidebar-primary-light w-full text-white"
       >
         {login.isPending ? 'Signing in…' : 'Sign in'}
       </Button>

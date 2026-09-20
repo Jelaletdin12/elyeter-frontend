@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, ImageOff } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -14,6 +14,7 @@ import {
 } from '@/features/categories/api/mutations';
 import { CategoryFormDialog } from '@/features/categories/components/CategoryFormDialog';
 import { DataTable } from '@/components/shared/DataTable';
+import { DataTableToolbar } from '@/components/shared/DataTableToolbar';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -27,14 +28,20 @@ import {
  * ✅ Şema doğrulandı (curl, 2026-09-07): POST/GET /categories,
  * GET/PATCH/DELETE /categories/{id}. 2026-09-14'te parent-child hiyerarşisi
  * eklendi (max 3 seviye): tree query'si parent selector'ü besliyor, tabloya
- * Parent kolonu geldi. Users/Products sayfalarıyla AYNI pattern.
+ * Parent kolonu geldi. 2026-09-18: backend `search` param'ı (translation adında
+ * case-insensitive substring) toolbar'a bağlandı; görsel (imageUrl) önizleme
+ * kolonu + sayfalama eklendi. Users/Products sayfalarıyla AYNI pattern.
  */
 export default function AdminCategoriesPage() {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { can } = useAuth();
 
-  const [page] = useState(1);
-  const { data, isLoading } = useQuery(categoryListOptions(storeId, page));
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [columnOrder, setColumnOrder] = useState<string[]>(['name', 'slug', 'parent', 'status']);
+
+  const { data, isLoading } = useQuery(categoryListOptions(storeId, page, search));
 
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -95,15 +102,59 @@ export default function AdminCategoriesPage() {
       </div>
 
       <div className="mt-6">
+        <DataTableToolbar
+          searchValue={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search categories…"
+          columns={[
+            { id: 'name', label: 'Name' },
+            { id: 'slug', label: 'Slug' },
+            { id: 'parent', label: 'Parent' },
+            { id: 'status', label: 'Status' },
+          ]}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+          hideAction
+        />
+
         <DataTable<Category>
           isLoading={isLoading}
           rows={categories}
           getRowId={(row) => row.id}
+          currentPage={data?.meta.page ?? 1}
+          totalPages={data?.meta.totalPages ?? 1}
+          totalCount={data?.meta.total}
+          onPageChange={setPage}
+          columnVisibility={columnVisibility}
+          columnOrder={columnOrder}
           emptyTitle="No categories yet"
           emptyDescription="Categories you create will show up here and organize your product catalog."
           emptyIcon={Tag}
           columns={[
             {
+              id: 'image',
+              header: '',
+              cell: (row) =>
+                row.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={row.imageUrl}
+                    alt=""
+                    className="bg-background h-10 w-16 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="bg-background text-muted-foreground flex h-10 w-16 items-center justify-center rounded-md">
+                    <ImageOff size={14} />
+                  </span>
+                ),
+            },
+            {
+              id: 'name',
               header: 'Name',
               cell: (row) => (
                 <div>
@@ -117,6 +168,7 @@ export default function AdminCategoriesPage() {
               ),
             },
             {
+              id: 'slug',
               header: 'Slug',
               cell: (row) => (
                 <span className="text-muted-foreground text-sm">
@@ -125,6 +177,7 @@ export default function AdminCategoriesPage() {
               ),
             },
             {
+              id: 'parent',
               header: 'Parent',
               cell: (row) => (
                 <span className="text-muted-foreground text-sm">
@@ -133,6 +186,7 @@ export default function AdminCategoriesPage() {
               ),
             },
             {
+              id: 'status',
               header: 'Status',
               cell: (row) => (
                 <StatusBadge tone={row.isActive ? 'success' : 'neutral'}>

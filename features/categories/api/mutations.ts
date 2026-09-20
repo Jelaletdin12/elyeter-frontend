@@ -48,7 +48,9 @@ export function useUpdateCategoryMutation(storeId: string) {
       // Kategorinin TÜM dillerdeki slug'ları revalidate edilir — hangi dilde
       // düzenlendiği önceden bilinmiyor (liste sayfasından herhangi bir satır
       // seçilebilir), response'taki translations array'inden türetiliyor.
-      const tags = updatedCategory.translations.map((t) => dataCacheTags.category(t.locale, t.slug));
+      const tags = updatedCategory.translations.map((t) =>
+        dataCacheTags.category(t.locale, t.slug),
+      );
       await revalidatePublicTags([...tags, dataCacheTags.categories(), dataCacheTags.products()]);
     },
   });

@@ -82,7 +82,9 @@ export function StockAdjustmentDialog({
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Always positive — direction comes from the type above.</p>
+            <p className="text-muted-foreground text-xs">
+              Always positive — direction comes from the type above.
+            </p>
           </div>
 
           <div className="space-y-1.5">

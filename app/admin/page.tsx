@@ -58,19 +58,19 @@ function StatBlock({
 }) {
   const card = (
     <Card className="group relative overflow-hidden p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-lg">
         <Icon size={19} strokeWidth={1.75} />
       </div>
-      <p className="mt-4 text-sm text-muted-foreground">{label}</p>
+      <p className="text-muted-foreground mt-4 text-sm">{label}</p>
       {value === undefined ? (
-        <p className="mt-1 text-lg font-medium text-muted-foreground/60">Coming soon</p>
+        <p className="text-muted-foreground/60 mt-1 text-lg font-medium">Coming soon</p>
       ) : (
         <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
       )}
       {href && (
         <ArrowUpRight
           size={16}
-          className="absolute top-4 right-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="text-muted-foreground absolute top-4 right-4 opacity-0 transition-opacity group-hover:opacity-100"
         />
       )}
     </Card>
@@ -131,7 +131,8 @@ export default function AdminDashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  const statsCardsLoading = productsLoading || (can('user.manage') && usersLoading) || (canViewStats && statsLoading);
+  const statsCardsLoading =
+    productsLoading || (can('user.manage') && usersLoading) || (canViewStats && statsLoading);
 
   const statusChartData = stats
     ? ORDER_STATUS_FLOW.map(({ status, label }) => ({
@@ -148,7 +149,9 @@ export default function AdminDashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           {greeting}, {user?.fullName?.split(' ')[0]}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening in your store.</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Here&apos;s what&apos;s happening in your store.
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -160,11 +163,26 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatBlock label="Products" icon={Package} value={productData?.meta.total} href="/admin/products" />
-          <StatBlock label="Orders" icon={ShoppingCart} value={stats?.totalOrders} href="/admin/orders" />
+          <StatBlock
+            label="Products"
+            icon={Package}
+            value={productData?.meta.total}
+            href="/admin/products"
+          />
+          <StatBlock
+            label="Orders"
+            icon={ShoppingCart}
+            value={stats?.totalOrders}
+            href="/admin/orders"
+          />
           <StatBlock label="Units sold" icon={TrendingUp} value={stats?.totalUnitsSold} />
           {can('user.manage') ? (
-            <StatBlock label="Staff & customers" icon={Users} value={userData?.meta.total} href="/admin/users" />
+            <StatBlock
+              label="Staff & customers"
+              icon={Users}
+              value={userData?.meta.total}
+              href="/admin/users"
+            />
           ) : (
             <StatBlock label="Staff & customers" icon={Users} />
           )}
@@ -241,7 +259,9 @@ export default function AdminDashboardPage() {
                 {topProducts.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{p.name}</span>
-                    <span className="shrink-0 text-muted-foreground tabular-nums">{p.viewCount} views</span>
+                    <span className="text-muted-foreground shrink-0 tabular-nums">
+                      {p.viewCount} views
+                    </span>
                   </div>
                 ))}
               </CardContent>
@@ -259,7 +279,9 @@ export default function AdminDashboardPage() {
                 {topSearches.map((t) => (
                   <div key={t.term} className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-mono text-xs">{t.term}</span>
-                    <span className="shrink-0 text-muted-foreground tabular-nums">{t.searchCount} searches</span>
+                    <span className="text-muted-foreground shrink-0 tabular-nums">
+                      {t.searchCount} searches
+                    </span>
                   </div>
                 ))}
               </CardContent>
@@ -286,7 +308,7 @@ export default function AdminDashboardPage() {
                   cell: (row) => (
                     <div>
                       <p className="text-sm font-medium">{row.operatorFullName}</p>
-                      <p className="text-xs text-muted-foreground">{row.operatorEmail}</p>
+                      <p className="text-muted-foreground text-xs">{row.operatorEmail}</p>
                     </div>
                   ),
                 },

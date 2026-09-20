@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { SearchableSelect } from './SearchableSelect';
 
 /**
  * Admin tablo araç çubuğu — tbbank-admin'in dataTableToolbar.tsx mantığı
@@ -25,7 +26,12 @@ export type ToolbarColumn = { id: string; label: string };
 export type ToolbarFilterField = {
   id: string;
   label: string;
-  type?: 'text' | 'select';
+  /**
+   * `select` → Radix Select; `combobox` → aramalı açılır liste
+   * (SearchableSelect — çok seçenekli listeler için, bkz. brand sayfası
+   * category filter). `text` → metin input.
+   */
+  type?: 'text' | 'select' | 'combobox';
   options?: { value: string; label: string }[];
 };
 
@@ -238,7 +244,29 @@ function FilterDropdown({
                       {field.label}
                     </label>
                     <div className="flex items-center gap-1">
-                      {field.type === 'select' ? (
+                      {field.type === 'combobox' ? (
+                        <>
+                          <SearchableSelect
+                            value={current}
+                            onValueChange={(val) => onFilterChange?.(field.id, val)}
+                            options={field.options?.map((o) => ({ value: o.value, label: o.label })) ?? []}
+                            placeholder="—"
+                            searchPlaceholder={`Search ${field.label.toLowerCase()}…`}
+                            emptyText="No results"
+                            className="flex-1"
+                          />
+                          {isFieldActive && (
+                            <button
+                              type="button"
+                              onClick={() => onFilterChange?.(field.id, '')}
+                              aria-label={`Clear ${field.label}`}
+                              className="text-muted-foreground hover:bg-background hover:text-foreground h-6 w-6 shrink-0 rounded transition-colors"
+                            >
+                              <X size={11} className="mx-auto" />
+                            </button>
+                          )}
+                        </>
+                      ) : field.type === 'select' ? (
                         <>
                           <Select
                             value={current || '__all__'}

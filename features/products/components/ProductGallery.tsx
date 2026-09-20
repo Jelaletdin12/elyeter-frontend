@@ -1,22 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  Carousel,
-  CarouselApi,
-  CarouselContent,
-  CarouselItem,
-} from '@/components/ui/carousel';
+import { Carousel, CarouselApi, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
 import type { ProductImage } from '../types';
 
-export function ProductGallery({
-  images,
-  alt,
-}: {
-  images: ProductImage[];
-  alt: string;
-}) {
+export function ProductGallery({ images, alt }: { images: ProductImage[]; alt: string }) {
   const [api, setApi] = useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -37,7 +26,7 @@ export function ProductGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-2xl border bg-muted text-sm text-muted-foreground">
+      <div className="bg-muted text-muted-foreground flex aspect-square w-full items-center justify-center rounded-2xl border text-sm">
         No image
       </div>
     );
@@ -45,17 +34,13 @@ export function ProductGallery({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border bg-muted">
+      <div className="bg-muted relative aspect-square w-full overflow-hidden rounded-2xl border">
         <Carousel setApi={setApi} opts={{ loop: images.length > 1 }} className="h-full w-full">
           <CarouselContent className="ml-0 h-full">
             {images.map((image) => (
               <CarouselItem key={image.id} className="h-full pl-0">
                 <div className="flex h-full items-center justify-center p-6">
-                  <img
-                    src={image.detailUrl}
-                    alt={alt}
-                    className="h-full w-full object-contain"
-                  />
+                  <img src={image.detailUrl} alt={alt} className="h-full w-full object-contain" />
                 </div>
               </CarouselItem>
             ))}
@@ -68,8 +53,8 @@ export function ProductGallery({
               <span
                 key={image.id}
                 className={cn(
-                  'h-1.5 rounded-full bg-foreground/30 transition-all',
-                  index === activeIndex ? 'w-4 bg-foreground' : 'w-1.5',
+                  'bg-foreground/30 h-1.5 rounded-full transition-all',
+                  index === activeIndex ? 'bg-foreground w-4' : 'w-1.5',
                 )}
               />
             ))}
@@ -85,9 +70,9 @@ export function ProductGallery({
               type="button"
               onClick={() => api?.scrollTo(index)}
               className={cn(
-                'relative size-16 shrink-0 overflow-hidden rounded-xl border bg-muted transition',
+                'bg-muted relative size-16 shrink-0 overflow-hidden rounded-xl border transition',
                 index === activeIndex
-                  ? 'border-primary ring-1 ring-primary'
+                  ? 'border-primary ring-primary ring-1'
                   : 'border-border hover:border-foreground/30',
               )}
             >

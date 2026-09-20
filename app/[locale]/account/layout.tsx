@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="text-foreground text-xl font-semibold">Hesabım</h1>
       <div className="mt-4">
         <AccountNav />

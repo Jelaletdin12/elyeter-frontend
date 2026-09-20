@@ -24,10 +24,7 @@ interface HeroBannerProps {
 
 export function HeroBanner({ banners, locale }: HeroBannerProps) {
   const activeBanners = React.useMemo(
-    () =>
-      banners
-        .filter((b) => b.isActive)
-        .sort((a, b) => a.order - b.order),
+    () => banners.filter((b) => b.isActive).sort((a, b) => a.order - b.order),
     [banners],
   );
 
@@ -39,11 +36,7 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
 
   return (
     <section className="relative">
-      <Carousel
-        opts={{ loop: true }}
-        plugins={[autoplay.current]}
-        className="group relative"
-      >
+      <Carousel opts={{ loop: true }} plugins={[autoplay.current]} className="group relative">
         <CarouselContent>
           {activeBanners.map((banner) => (
             <CarouselItem key={banner.id}>
@@ -88,8 +81,8 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
                       Discover something new
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-6 text-white/80 sm:text-base">
-                      Find pieces you&apos;ll love, from everyday essentials to
-                      something a little more special.
+                      Find pieces you&apos;ll love, from everyday essentials to something a little
+                      more special.
                     </p>
                     {banner.linkUrl && (
                       <Link
@@ -116,12 +109,8 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
         )}
 
         {/* DOTS */}
-        {activeBanners.length > 1 && (
-          <CarouselDots count={activeBanners.length} />
-        )}
+        {activeBanners.length > 1 && <CarouselDots count={activeBanners.length} />}
       </Carousel>
-
-      
     </section>
   );
 }

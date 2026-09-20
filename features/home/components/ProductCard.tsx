@@ -20,6 +20,7 @@ import { cartOptions } from '@/features/cart/api/queries';
 import { useToggleWishlistMutation } from '@/features/wishlist/api/mutations';
 
 import type { Product } from '@/features/products/types';
+import { brandTranslation } from '@/features/brands/types';
 
 interface ProductCardProps {
   product: Product;
@@ -242,7 +243,11 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
           <h3 className="text-foreground hover:text-foreground/70 line-clamp-2 text-sm leading-5 font-medium transition-colors">
             {translation.name}
           </h3>
-          {product.brand && <p className="text-muted-foreground mt-0.5 text-xs">{product.brand}</p>}
+          {product.brand && brandTranslation(product.brand, 'en')?.name && (
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {brandTranslation(product.brand, 'en')?.name}
+            </p>
+          )}
         </Link>
 
         <div className="mt-1.5 flex items-center gap-2">

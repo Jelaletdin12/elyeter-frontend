@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default function CartPage() {
   return (
-    <div className="mx-auto max-w-6l px-4 py-10">
+    <div className="max-w-6l mx-auto px-4 py-10">
       <CartView />
     </div>
   );

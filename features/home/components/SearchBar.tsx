@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Camera, Search, X } from 'lucide-react';
+import { ArrowUpRight, Camera, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +19,7 @@ export function SearchBar({ locale }: { locale: string }) {
 
     const query = value.trim();
 
-    if (!query) {
-      return;
-    }
+    if (!query) return;
 
     router.push(`/${locale}/search?q=${encodeURIComponent(query)}`);
   }
@@ -31,20 +29,20 @@ export function SearchBar({ locale }: { locale: string }) {
       <form
         onSubmit={handleSubmit}
         role="search"
-        className="group bg-background focus-within:border-foreground/20 flex h-14 w-full items-center rounded-2xl border px-3 shadow-sm transition focus-within:shadow-md"
+        className="group border-border/80 bg-card/90 hover:border-primary/25 focus-within:border-primary/45 dark:bg-card/80 dark:border-border/70 dark:hover:border-primary/30 dark:focus-within:border-primary/50 relative flex h-10 w-full items-center rounded-md border  shadow-[0_4px_20px_rgba(15,42,68,0.06)] transition-all duration-300 focus-within:shadow-[0_0_0_3px_rgba(20,184,166,0.08),0_8px_30px_rgba(15,42,68,0.10)] hover:shadow-[0_6px_28px_rgba(15,42,68,0.09)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.18)] dark:focus-within:shadow-[0_0_0_3px_rgba(20,184,166,0.10),0_10px_36px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
       >
-        <Search className="text-muted-foreground ml-1 size-5 shrink-0" strokeWidth={1.8} />
-
+        {/* Input */}
         <Input
           type="search"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="Search products, categories and brands"
+          placeholder="Search products, brands & categories..."
           aria-label="Search products"
           autoComplete="off"
-          className="h-full flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
+          className="text-foreground placeholder:text-muted-foreground/65 h-full min-w-0 flex-1 border-0 bg-transparent  text-[13px] font-medium tracking-[-0.01em] shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-search-cancel-button]:hidden"
         />
 
+        {/* Clear */}
         {value && (
           <Button
             type="button"
@@ -52,31 +50,35 @@ export function SearchBar({ locale }: { locale: string }) {
             variant="ghost"
             onClick={() => setValue('')}
             aria-label="Clear search"
-            className="mr-1 size-8 rounded-full"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground mr-0.5 size-8 shrink-0 rounded-xl transition-all"
           >
-            <X className="size-4" />
+            <X size={15} strokeWidth={2} />
           </Button>
         )}
 
+        {/* Divider */}
+        <div className="bg-border/80 mx-1 h-6 w-px shrink-0" />
+
+        {/* Visual search */}
         <Button
           type="button"
           size="icon"
           variant="ghost"
           onClick={() => setVisualSearchOpen(true)}
           aria-label="Search by image"
-          className="mr-1 size-8 rounded-full"
+          className="text-muted-foreground hover:bg-primary/10 hover:text-primary size-9 shrink-0 rounded-xl transition-all duration-200 active:scale-95"
         >
-          <Camera className="size-4" />
+          <Camera size={17} strokeWidth={1.8} />
         </Button>
 
+        {/* Submit */}
         <Button
           type="submit"
           disabled={!value.trim()}
-          className="h-10 rounded-xl px-4 max-sm:size-10 max-sm:px-0"
+          aria-label="Search"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 ml-0.5 size-9 shrink-0 rounded-md  shadow-[0_4px_14px_rgba(20,184,166,0.20)] transition-all duration-200 hover:shadow-[0_6px_20px_rgba(20,184,166,0.30)] active:scale-95 disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none sm:h-9 sm:w-auto sm:px-3.5"
         >
-          <span className="max-sm:hidden">Search</span>
-
-          <ArrowRight className="size-4" />
+         <Search/>
         </Button>
       </form>
 

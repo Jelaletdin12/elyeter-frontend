@@ -20,6 +20,7 @@ export type Category = {
   id: string;
   isActive: boolean;
   parentId: string | null;
+  imageUrl?: string | null;
   createdById: string | null;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +59,9 @@ export type CategoryTranslationInput = {
 export type CreateCategoryInput = {
   isActive?: boolean;
   parentId?: string | null;
+  imageUrl?: string | null;
+  /** POST /media/uploads?context=CATEGORY_IMAGE'den alınan media id — MinIO'ya yüklenen görsel. */
+  imageMediaId?: string;
   translations: CategoryTranslationInput[];
 };
 

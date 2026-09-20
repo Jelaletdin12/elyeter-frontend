@@ -180,6 +180,54 @@ export interface paths {
         patch: operations["CategoriesController_update"];
         trace?: never;
     };
+    "/api/v1/brands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BrandsController_findAll"];
+        put?: never;
+        post: operations["BrandsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/slug/{locale}/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BrandsController_findBySlug"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BrandsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["BrandsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["BrandsController_update"];
+        trace?: never;
+    };
     "/api/v1/products": {
         parameters: {
             query?: never;
@@ -958,6 +1006,11 @@ export interface components {
             /** @description null = kök kategori; ID = bu kategorinin altına yerleştir */
             parentId?: Record<string, never>;
             /**
+             * @description Vitrin görseli object key/URL — boş bırakılabilir
+             * @example categories/electronics.webp
+             */
+            imageUrl?: string;
+            /**
              * @example [
              *       {
              *         "locale": "en",
@@ -984,6 +1037,11 @@ export interface components {
             /** @description null = kök kategori; ID = bu kategorinin altına yerleştir */
             parentId?: Record<string, never>;
             /**
+             * @description Vitrin görseli object key/URL — boş bırakılabilir
+             * @example categories/electronics.webp
+             */
+            imageUrl?: string;
+            /**
              * @example [
              *       {
              *         "locale": "en",
@@ -1001,6 +1059,88 @@ export interface components {
              */
             translations?: components["schemas"]["CategoryTranslationDto"][];
         };
+        BrandTranslationDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Apple */
+            name: string;
+            /**
+             * @description Boş bırakılırsa name alanından otomatik üretilir
+             * @example apple
+             */
+            slug?: string;
+            /**
+             * @description Boş bırakılırsa name kullanılır
+             * @example Apple - Official Store
+             */
+            metaTitle?: string;
+            /**
+             * @description Boş bırakılırsa name alanından otomatik üretilir
+             * @example Discover Apple products: iPhone, MacBook, AirPods and more.
+             */
+            metaDescription?: string;
+        };
+        CreateBrandDto: {
+            /**
+             * @default true
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Marka logo görseli URL/object key — boş bırakılabilir
+             * @example brands/apple.webp
+             */
+            logoUrl?: string;
+            /**
+             * @example [
+             *       {
+             *         "locale": "en",
+             *         "name": "Apple"
+             *       },
+             *       {
+             *         "locale": "ru",
+             *         "name": "Apple"
+             *       },
+             *       {
+             *         "locale": "tk",
+             *         "name": "Apple"
+             *       }
+             *     ]
+             */
+            translations: components["schemas"]["BrandTranslationDto"][];
+        };
+        UpdateBrandDto: {
+            /**
+             * @default true
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Marka logo görseli URL/object key — boş bırakılabilir
+             * @example brands/apple.webp
+             */
+            logoUrl?: string;
+            /**
+             * @example [
+             *       {
+             *         "locale": "en",
+             *         "name": "Apple"
+             *       },
+             *       {
+             *         "locale": "ru",
+             *         "name": "Apple"
+             *       },
+             *       {
+             *         "locale": "tk",
+             *         "name": "Apple"
+             *       }
+             *     ]
+             */
+            translations?: components["schemas"]["BrandTranslationDto"][];
+        };
         CategoryBriefTranslationDto: {
             /**
              * @example en
@@ -1014,6 +1154,26 @@ export interface components {
             /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
             id: string;
             translations: components["schemas"]["CategoryBriefTranslationDto"][];
+        };
+        BrandBriefTranslationDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Apple */
+            name: string;
+            /** @example apple */
+            slug: string;
+        };
+        BrandBriefResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /** @example brands/apple.webp */
+            logoUrl?: Record<string, never> | null;
+            /** @example true */
+            isActive: boolean;
+            translations: components["schemas"]["BrandBriefTranslationDto"][];
         };
         ProductTranslationResponseDto: {
             /**
@@ -1128,8 +1288,13 @@ export interface components {
             categoryId: string;
             /** @description Kategorinin tüm dillerdeki isim çevirileri dahil (categoryId ile aynı kategoriyi ifade eder) */
             category: components["schemas"]["CategoryBriefResponseDto"];
-            /** @example Sony */
-            brand?: string | null;
+            /**
+             * @description Ürünün marka referansı (Brand tablosuna FK) — null ise ürünün markası yok
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: Record<string, never> | null;
+            /** @description Marka detayı (tüm dillerdeki çeviriler dahil) */
+            brand?: components["schemas"]["BrandBriefResponseDto"] | null;
             translations: components["schemas"]["ProductTranslationResponseDto"][];
             images: components["schemas"]["ProductImageResponseDto"][];
             /** @description Her ürünün en az bir varyantı vardır — SKU/fiyat/stok artık burada, ürün seviyesinde değil */
@@ -1236,8 +1401,11 @@ export interface components {
         CreateProductDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId: string;
-            /** @example Sony */
-            brand?: string;
+            /**
+             * @description Brand tablosundaki bir markanın UUID'si
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: string;
             /**
              * @default true
              * @example true
@@ -1287,8 +1455,11 @@ export interface components {
         UpdateProductDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId?: string;
-            /** @example Sony */
-            brand?: string;
+            /**
+             * @description Brand tablosundaki bir markanın UUID'si
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: string;
             /**
              * @default true
              * @example true
@@ -2249,6 +2420,125 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateCategoryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBrandDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_findBySlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrandsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBrandDto"];
             };
         };
         responses: {

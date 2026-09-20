@@ -59,14 +59,14 @@ export function CartView() {
   }
 
   return (
-    <div className="flex max-w-6xl px-4 mx-auto justify-between gap-4">
+    <div className="mx-auto flex max-w-7xl justify-between gap-4 px-4">
       <div className="w-2/3">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-foreground">Sepetiniz</h1>
+          <h1 className="text-foreground text-xl font-semibold">Sepetiniz</h1>
           <Badge variant="secondary">{cart.items.length} ürün</Badge>
         </div>
 
-        <div className="rounded-lg border border-border bg-card">
+        <div className="border-border bg-card rounded-lg border">
           {cart.items.map((item, i) => {
             const priceChanged = item.priceSnapshot !== item.currentPrice;
             const isOutOfStock = item.availableQuantity <= 0;
@@ -81,13 +81,11 @@ export function CartView() {
                 {i > 0 && <Separator />}
                 <div className="flex items-start justify-between gap-4 p-4">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
+                    <p className="text-foreground truncate text-sm font-medium">
                       {name}
-                      {attributes && (
-                        <span className="text-muted-foreground"> · {attributes}</span>
-                      )}
+                      {attributes && <span className="text-muted-foreground"> · {attributes}</span>}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{variant.sku}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">{variant.sku}</p>
 
                     {priceChanged && (
                       <Badge variant="destructive" className="mt-2">
@@ -103,21 +101,23 @@ export function CartView() {
                     <button
                       type="button"
                       onClick={() => removeItem.mutate(item.id)}
-                      className="mt-2 flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+                      className="text-muted-foreground hover:text-destructive mt-2 flex items-center gap-1 text-xs underline-offset-2 hover:underline"
                     >
                       <Trash2 size={12} /> Kaldır
                     </button>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
-                    <div className="flex items-center rounded-md border border-border">
+                    <div className="border-border flex items-center rounded-md border">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 rounded-r-none"
                         disabled={item.quantity <= 1 || isOutOfStock}
-                        onClick={() => changeQty(item.id, item.quantity - 1, item.availableQuantity)}
+                        onClick={() =>
+                          changeQty(item.id, item.quantity - 1, item.availableQuantity)
+                        }
                       >
                         <Minus size={14} />
                       </Button>
@@ -128,12 +128,14 @@ export function CartView() {
                         size="icon"
                         className="h-8 w-8 rounded-l-none"
                         disabled={isOutOfStock || item.quantity >= item.availableQuantity}
-                        onClick={() => changeQty(item.id, item.quantity + 1, item.availableQuantity)}
+                        onClick={() =>
+                          changeQty(item.id, item.quantity + 1, item.availableQuantity)
+                        }
                       >
                         <Plus size={14} />
                       </Button>
                     </div>
-                    <span className="w-16 text-right text-sm font-medium text-foreground">
+                    <span className="text-foreground w-16 text-right text-sm font-medium">
                       {(Number(item.currentPrice) * item.quantity).toFixed(2)}
                     </span>
                   </div>
@@ -145,23 +147,23 @@ export function CartView() {
       </div>
 
       <div className="w-1/3">
-        <div className="sticky top-4 rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-medium text-foreground">Sipariş özeti</h2>
+        <div className="border-border bg-card sticky top-4 rounded-lg border p-4">
+          <h2 className="text-foreground text-sm font-medium">Sipariş özeti</h2>
           <Separator className="my-3" />
-          <div className="flex justify-between text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex justify-between text-sm">
             <span>Ara toplam</span>
             <span className="text-foreground">{cart.subtotal}</span>
           </div>
           <Separator className="my-3" />
           <div className="flex justify-between">
-            <span className="text-sm font-medium text-foreground">Toplam</span>
-            <span className="font-serif italic text-foreground">
+            <span className="text-foreground text-sm font-medium">Toplam</span>
+            <span className="text-foreground font-serif italic">
               {(Number(cart.subtotal) - discount).toFixed(2)}
             </span>
           </div>
 
           {hasBlockingIssue && (
-            <p className="mt-3 text-xs text-destructive">
+            <p className="text-destructive mt-3 text-xs">
               Sepetinizde stokta olmayan ürün var, ödemeye geçmeden önce kontrol edin.
             </p>
           )}

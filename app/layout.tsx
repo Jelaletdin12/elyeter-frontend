@@ -49,10 +49,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      suppressHydrationWarning
-      className={`${fraunces.variable} ${publicSans.variable}`}
-    >
+    <html suppressHydrationWarning className={`${fraunces.variable} ${publicSans.variable}`}>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <QueryProvider>{children}</QueryProvider>

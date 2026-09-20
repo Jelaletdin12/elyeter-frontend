@@ -6,11 +6,13 @@ import {
   LayoutDashboard,
   Package,
   Tag,
+  Award,
   Image as ImageIcon,
   ShoppingCart,
   Users,
   TicketPercent,
   ScrollText,
+  FileSpreadsheet,
   LogOut,
 } from 'lucide-react';
 import { useAdminLogoutMutation } from '@/features/auth/api/mutations';
@@ -28,6 +30,13 @@ const NAV_ITEMS: {
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
+  { href: '/admin/brands', label: 'Brands', icon: Award },
+  {
+    href: '/admin/catalog',
+    label: 'Catalog',
+    icon: FileSpreadsheet,
+    requires: 'catalog.export',
+  },
   { href: '/admin/banners', label: 'Banners', icon: ImageIcon },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/coupons', label: 'Coupons', icon: TicketPercent },
@@ -54,12 +63,14 @@ export function AdminSidebar() {
     <aside className="border-border bg-card sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r">
       <div className="flex items-center justify-between gap-2 px-4 pt-5 pb-4">
         <Link href="/admin" className="group flex items-center gap-2.5">
-          <span className="bg-sidebar-primary font-serif flex h-9 w-9 items-center justify-center rounded-lg text-lg text-white italic shadow-sm transition-transform group-hover:scale-105">
+          <span className="bg-sidebar-primary flex h-9 w-9 items-center justify-center rounded-lg font-serif text-lg text-white italic shadow-sm transition-transform group-hover:scale-105">
             B
           </span>
-          <span className="font-serif text-foreground text-lg leading-none italic">
+          <span className="text-foreground font-serif text-lg leading-none italic">
             Bazaar
-            <span className="text-sidebar-primary block text-xs tracking-widest uppercase">Admin</span>
+            <span className="text-sidebar-primary block text-xs tracking-widest uppercase">
+              Admin
+            </span>
           </span>
         </Link>
         <ThemeToggle />
@@ -79,8 +90,8 @@ export function AdminSidebar() {
               href={item.href}
               className={
                 isActive
-                  ? 'rounded-md bg-sidebar-primary flex items-center gap-2 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors'
-                  : 'rounded-md text-muted-foreground hover:bg-sidebar-primary/5 hover:text-foreground flex items-center gap-2 px-3 py-2 text-sm transition-colors'
+                  ? 'bg-sidebar-primary flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors'
+                  : 'text-muted-foreground hover:bg-sidebar-primary/5 hover:text-foreground flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors'
               }
             >
               <Icon size={16} strokeWidth={1.75} />

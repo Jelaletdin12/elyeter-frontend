@@ -54,7 +54,7 @@ export default function OrderDetailPage() {
   const discount = order.discountAmount ? Number(order.discountAmount) : 0;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <button
         type="button"
         onClick={() => router.back()}

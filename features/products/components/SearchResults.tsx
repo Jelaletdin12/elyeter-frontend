@@ -128,7 +128,7 @@ export function SearchResults() {
               </div>
               <p className="text-foreground mt-2 truncate text-sm">{product.name}</p>
               <div className="flex items-baseline justify-between">
-                <p className="font-serif text-foreground text-sm italic">{product.price}</p>
+                <p className="text-foreground font-serif text-sm italic">{product.price}</p>
                 <p className="text-muted-foreground text-xs">{product.sku}</p>
               </div>
             </Link>

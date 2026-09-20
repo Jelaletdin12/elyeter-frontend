@@ -50,7 +50,7 @@ export function OrderHistoryList() {
   }
 
   return (
-    <div className="space-y-4 max-w-6xl">
+    <div className="max-w-7xl space-y-4">
       <ul className="divide-border border-border bg-card divide-y rounded-md border">
         {data.items.map((order) => (
           <li key={order.id}>

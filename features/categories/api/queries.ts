@@ -4,11 +4,14 @@ import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys, dataCacheTags } from '@/lib/api/query-keys';
 import type { Category, CategoryListResponse, CategoryTreeNode } from '../types';
 
-/** Admin liste — sayfalanmış, adminAuthorizedFetch (ayrı admin oturumu). */
-export function categoryListOptions(storeId: string, page = 1) {
+/** Admin liste — sayfalanmış + `search` (backend: translation adında case-insensitive substring). */
+export function categoryListOptions(storeId: string, page = 1, search = '') {
   return queryOptions({
-    queryKey: queryKeys.adminCategories.all(storeId),
-    queryFn: () => adminAuthorizedFetch<CategoryListResponse>(`/categories?page=${page}`),
+    queryKey: [...queryKeys.adminCategories.all(storeId), 'list', page, search] as const,
+    queryFn: () =>
+      adminAuthorizedFetch<CategoryListResponse>(
+        `/categories?page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+      ),
     staleTime: 30_000,
   });
 }
@@ -36,5 +39,28 @@ export async function getCategoryBySlug(locale: string, slug: string): Promise<C
 export async function getPublicCategories(limit = 8): Promise<CategoryListResponse> {
   return apiFetch<CategoryListResponse>(`/categories?limit=${limit}`, {
     next: { revalidate: 300, tags: [dataCacheTags.categories(), dataCacheTags.home()] },
+  });
+}
+
+/** Public ISR — marka filtre paneli + kategori dizini için hiyerarşik ağaç. */
+export async function getPublicCategoryTree(): Promise<CategoryTreeNode[]> {
+  return apiFetch<CategoryTreeNode[]>(`/categories/tree`, {
+    next: { revalidate: 300, tags: [dataCacheTags.categories()] },
+  });
+}
+
+/**
+ * Client'ta kategori dizini filtreleme — backend `search` param'ını
+ * (translation adında case-insensitive substring) kullanır. TanStack Query +
+ * apiFetch; filtre kombinasyonları Next Data Cache'e girmez (STANDARDS.md #4).
+ */
+export function publicCategoryListOptions(storeId: string, search: string) {
+  return queryOptions({
+    queryKey: [...queryKeys.categories.list(storeId), search] as const,
+    queryFn: () =>
+      apiFetch<CategoryListResponse>(
+        `/categories?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+      ),
+    staleTime: 60_000,
   });
 }

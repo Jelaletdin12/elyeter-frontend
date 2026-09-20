@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FRONTEND_AGENTS.md #2: Backend DTO tipleri elle kopyalanmaz —
  * types/generated/api.ts, gerçek backend Swagger şemasından üretildi.
  * Bu dosya sadece feature içinde kullanılacak isimlere ince bir alias veriyor.
@@ -15,6 +15,7 @@
  * silineceği için oraya düzeltme yazmak kalıcı olmaz).
  */
 import type { components } from '@/types/generated/api';
+import type { BrandBrief } from '@/features/brands/types';
 
 export type ProductTranslation = Omit<
   components['schemas']['ProductTranslationResponseDto'],
@@ -40,8 +41,10 @@ export type Product = Omit<
 > & {
   translations: ProductTranslation[];
   variants: ProductVariant[];
-  /** openapi-typescript nullable string'i bazen Record<string,never> olarak üretir — override */
-  brand?: string | null;
+  /** openapi-typescript nullable string'i bazen `Record<string, never>` olarak üretir — override. */
+  brand?: BrandBrief | null;
+  /** ürünün marka FK'si — backend artık brandId UUID bekliyor (brand string değil). */
+  brandId?: string | null;
   /** API response'unda gelen populate edilmiş kategori — generated tipte sadece categoryId var */
   category?: {
     id: string;

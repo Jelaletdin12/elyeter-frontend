@@ -38,7 +38,7 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
   if (coupon) {
     const discount = coupon.discountAmount ?? 0;
     return (
-      <div className="rounded-md border-sidebar-primary/30 bg-sidebar-primary/5 flex items-center justify-between border px-3 py-2.5">
+      <div className="border-sidebar-primary/30 bg-sidebar-primary/5 flex items-center justify-between rounded-md border px-3 py-2.5">
         <div className="flex items-center gap-2">
           <BadgePercent size={16} className="text-sidebar-primary" />
           <div>

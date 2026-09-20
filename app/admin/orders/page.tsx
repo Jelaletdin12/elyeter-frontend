@@ -35,7 +35,7 @@ export default function AdminOrdersPage() {
   return (
     <div>
       <div>
-        <h1 className="font-serif text-foreground text-2xl italic">Orders</h1>
+        <h1 className="text-foreground font-serif text-2xl italic">Orders</h1>
         <p className="text-muted-foreground mt-1 text-sm">{meta?.total ?? 0} orders</p>
       </div>
 
@@ -69,7 +69,9 @@ export default function AdminOrdersPage() {
             },
             {
               header: 'Items',
-              cell: (row) => <span className="text-muted-foreground text-sm">{row.items.length}</span>,
+              cell: (row) => (
+                <span className="text-muted-foreground text-sm">{row.items.length}</span>
+              ),
             },
             {
               header: 'Fulfillment',

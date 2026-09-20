@@ -6,15 +6,11 @@ import { ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
+import { SearchableSelect } from '@/components/shared/SearchableSelect';
 import { useAuthStore } from '@/stores/auth-store';
 import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
+import { brandListOptions } from '@/features/brands/api/queries';
+import { brandTranslation } from '@/features/brands/types';
 import { flattenCategoryTree } from '@/features/categories/types';
 import { useMediaUpload, type PendingMedia } from '@/features/media/hooks/useMediaUpload';
 import type { Product, CreateProductInput, UpdateProductInput } from '../types';
@@ -65,6 +61,7 @@ export function ProductForm({
 }: ProductFormProps) {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { data: categoryData } = useQuery(adminCategoryTreeOptions(storeId));
+  const { data: brandData } = useQuery(brandListOptions(storeId));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     pendingMediaList,
@@ -76,7 +73,7 @@ export function ProductForm({
 
   const [translations, setTranslations] = useState<TranslationDrafts>(emptyTranslations());
   const [categoryId, setCategoryId] = useState('');
-  const [brand, setBrand] = useState('');
+  const [brandId, setBrandId] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
@@ -106,7 +103,7 @@ export function ProductForm({
       }
       setTranslations(next);
       setCategoryId(initialProduct.categoryId);
-      setBrand(initialProduct.brand ?? '');
+      setBrandId(initialProduct.brandId ?? '');
       setIsActive(initialProduct.isActive);
     }
   }, [mode, initialProduct]);
@@ -155,7 +152,7 @@ export function ProductForm({
       if (uploadedImages.length === 0) return;
       onSubmitCreate({
         categoryId,
-        brand: brand.trim() || undefined,
+        brandId: brandId.trim() || undefined,
         isActive,
         translations: translationInputs,
         variants: [
@@ -175,7 +172,7 @@ export function ProductForm({
     } else {
       onSubmitEdit({
         categoryId,
-        brand: brand.trim() || undefined,
+        brandId: brandId.trim() || undefined,
         isActive,
         translations: translationInputs,
       });
@@ -192,31 +189,34 @@ export function ProductForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-1.5">
         <Label htmlFor="category">Category</Label>
-        <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger id="category">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {flattenCategoryTree(categoryData ?? []).map((opt) => (
-              <SelectItem key={opt.id} value={opt.id}>
-                {opt.label}
-              </SelectItem>
-            ))}
-            {(!categoryData || categoryData.length === 0) && (
-              <div className="text-muted-foreground px-2 py-1.5 text-sm">No categories yet</div>
-            )}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          value={categoryId}
+          onValueChange={setCategoryId}
+          placeholder="Select a category"
+          searchPlaceholder="Search categories…"
+          emptyText="No categories"
+          label="Category"
+          options={flattenCategoryTree(categoryData ?? []).map((opt) => ({
+            value: opt.id,
+            label: opt.label,
+          }))}
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="brand">Brand</Label>
-        <Input
-          id="brand"
-          placeholder="e.g. Sony"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          maxLength={120}
+        <SearchableSelect
+          value={brandId}
+          onValueChange={setBrandId}
+          placeholder="Select a brand"
+          searchPlaceholder="Search brands…"
+          emptyText="No brands"
+          label="Brand"
+          options={(brandData?.items ?? []).map((brief) => ({
+            value: brief.id,
+            label: brandTranslation(brief, 'en')?.name ?? brief.translations[0]?.name ?? '—',
+            disabled: !brief.isActive && brandId !== brief.id,
+          }))}
         />
       </div>
 

@@ -65,16 +65,57 @@ export function productDetailOptions(storeId: string, productId: string) {
 export function productListOptions(storeId: string, filters: ProductFilters) {
   const params = new URLSearchParams();
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
+  if (filters.brandId) params.set('brandId', filters.brandId);
   if (filters.search) params.set('search', filters.search);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.minPrice) params.set('minPrice', String(filters.minPrice));
   if (filters.maxPrice) params.set('maxPrice', String(filters.maxPrice));
+  // Filtre paneli tüm kataloğu görür — backend limit max 100 (product-list-query.dto).
+  params.set('limit', '100');
 
   return queryOptions({
     queryKey: queryKeys.products.list(storeId, filters),
     queryFn: () =>
       apiFetch<ProductListResponse>(`/products?${params.toString()}`, { cache: 'no-store' }),
     staleTime: 30_000,
+  });
+}
+
+export type CategoryFacet = { id: string; label: string };
+
+/** markanın ürünlerindeki kategori alanından benzersiz kategori listesi çıkarır. */
+export function extractCategoryFacets(items: Product[], locale: string): CategoryFacet[] {
+  const seen = new Map<string, CategoryFacet>();
+  for (const product of items) {
+    const category = product.category;
+    if (!category || seen.has(category.id)) continue;
+    const label =
+      category.translations?.find((t) => t.locale === locale)?.name ??
+      category.translations?.[0]?.name ??
+      category.name ??
+      category.id;
+    seen.set(category.id, { id: category.id, label });
+  }
+  return [...seen.values()];
+}
+
+/**
+ * Marka sayfasının filtre paneli KATEGORİ listesi. Backend'de "markanın
+ * kategorileri" endpoint'i yok (categories controller'ı yalnızca kategori
+ * içindeki markaları destekler: /brands?categoryId=, tersini değil). Bu yüzden
+ * markanın ürünleri çekilip imbeding category alanından benzersiz kategoriler
+ * türetilir (limit 100 — panel önerileri için yeterli). Çekim AYRI bir query
+ * key'ine sahip: kullanıcı filtreledikçe sonuç kümesi daralsa da panel listesi
+ * sabit kalır.
+ */
+export function brandCategoriesOptions(storeId: string, locale: string, brandId: string) {
+  return queryOptions({
+    queryKey: [...queryKeys.products.all(storeId), 'brand-categories', locale, brandId] as const,
+    queryFn: () =>
+      apiFetch<ProductListResponse>(`/products?brandId=${encodeURIComponent(brandId)}&limit=100`, {
+        cache: 'no-store',
+      }).then((res) => extractCategoryFacets(res.items, locale)),
+    staleTime: 60_000,
   });
 }
 

@@ -10,7 +10,9 @@
 
 export type ProductFilters = {
   categoryId?: string;
+  brandId?: string;
   search?: string;
+  q?: string;
   page?: number;
   perPage?: number;
   minPrice?: number;
@@ -33,6 +35,13 @@ export const queryKeys = {
     list: (storeId: string) => ['categories', storeId, 'list'] as const,
     bySlug: (storeId: string, locale: string, slug: string) =>
       ['categories', storeId, 'slug', locale, slug] as const,
+  },
+
+  brands: {
+    all: (storeId: string) => ['brands', storeId] as const,
+    list: (storeId: string) => ['brands', storeId, 'list'] as const,
+    bySlug: (storeId: string, locale: string, slug: string) =>
+      ['brands', storeId, 'slug', locale, slug] as const,
   },
 
   cart: {
@@ -75,6 +84,9 @@ export const queryKeys = {
   adminCategories: {
     all: (storeId: string) => ['admin-categories', storeId] as const,
   },
+  adminBrands: {
+    all: (storeId: string) => ['admin-brands', storeId] as const,
+  },
   adminBanners: {
     all: (storeId: string) => ['admin-banners', storeId] as const,
   },
@@ -86,7 +98,8 @@ export const queryKeys = {
   },
   adminUsers: {
     all: (storeId: string) => ['admin-users', storeId] as const,
-    list: (storeId: string, page: number) => ['admin-users', storeId, 'list', page] as const,
+    list: (storeId: string, page: number, filters?: { search?: string; role?: string }) =>
+      ['admin-users', storeId, 'list', page, filters] as const,
     detail: (storeId: string, userId: string) =>
       ['admin-users', storeId, 'detail', userId] as const,
   },
@@ -135,4 +148,6 @@ export const dataCacheTags = {
   product: (locale: string, slug: string) => `product:${locale}:${slug}`,
   categories: () => 'categories',
   category: (locale: string, slug: string) => `category:${locale}:${slug}`,
+  brands: () => 'brands',
+  brand: (locale: string, slug: string) => `brand:${locale}:${slug}`,
 } as const;

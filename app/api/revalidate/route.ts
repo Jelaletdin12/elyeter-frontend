@@ -42,10 +42,7 @@ export async function POST(request: NextRequest) {
   const body: unknown = await request.json();
 
   if (!isRevalidateBody(body)) {
-    return NextResponse.json(
-      { success: false, message: 'tags[] gerekli' },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, message: 'tags[] gerekli' }, { status: 400 });
   }
 
   for (const tag of body.tags) {

@@ -17,7 +17,15 @@ import { DataTable } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
-import type { User, UserRole } from '@/features/users/types';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { User, UserListFilters, UserRole } from '@/features/users/types';
 
 const ROLE_TONE: Record<UserRole, 'success' | 'neutral' | 'warning'> = {
   SUPER_ADMIN: 'success',
@@ -47,7 +55,20 @@ export default function AdminUsersPage() {
   const { can } = useAuth();
 
   const [page] = useState(1);
-  const { data, isLoading } = useQuery(userListOptions(storeId, page));
+  // Filtreler "draft" (kutuya yazılan, henüz uygulanmamış) ve "applied"
+  // (query'ye giden) olarak ikiye ayrılır — audit-log sayfasıyla AYNI desen.
+  const [draftFilters, setDraftFilters] = useState<UserListFilters>({});
+  const [appliedFilters, setAppliedFilters] = useState<UserListFilters>({});
+  const { data, isLoading } = useQuery(userListOptions(storeId, page, appliedFilters));
+
+  function applyFilters() {
+    setAppliedFilters({
+      search: draftFilters.search?.trim() || undefined,
+      role: draftFilters.role || undefined,
+    });
+  }
+
+  const hasActiveFilters = Boolean(appliedFilters.search || appliedFilters.role);
 
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -95,6 +116,65 @@ export default function AdminUsersPage() {
         {can('user.create') && (
           <Button onClick={openCreate}>
             <Plus size={16} /> New staff account
+          </Button>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label htmlFor="user-search" className="text-muted-foreground text-xs">
+            Search
+          </label>
+          <Input
+            id="user-search"
+            value={draftFilters.search ?? ''}
+            onChange={(e) => setDraftFilters((d) => ({ ...d, search: e.target.value }))}
+            placeholder="Name or email"
+            className="w-56"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') applyFilters();
+            }}
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="user-role" className="text-muted-foreground text-xs">
+            Role
+          </label>
+          <Select
+            value={draftFilters.role || '__all__'}
+            onValueChange={(value) =>
+              setDraftFilters((d) => ({
+                ...d,
+                role: value === '__all__' ? undefined : (value as UserRole),
+              }))
+            }
+          >
+            <SelectTrigger id="user-role" className="w-44">
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All roles</SelectItem>
+              {(Object.keys(ROLE_TONE) as UserRole[]).map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="outline" size="sm" onClick={applyFilters}>
+          Apply filters
+        </Button>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDraftFilters({});
+              setAppliedFilters({});
+            }}
+          >
+            Clear
           </Button>
         )}
       </div>

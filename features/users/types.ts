@@ -34,3 +34,12 @@ export type UpdateUserInput = Partial<{
   role: UserRole;
   isActive: boolean;
 }>;
+
+/**
+ * GET /users toolbar filtreleri (İş #5): `search` email/tam ad üzerinde
+ * contains araması (backend users.service), `role` IsEnum(Role) ile doğrulanır.
+ */
+export type UserListFilters = {
+  search?: string;
+  role?: UserRole;
+};

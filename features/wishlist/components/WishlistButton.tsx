@@ -34,7 +34,7 @@ export function WishlistButton({ productId }: { productId: string }) {
       aria-pressed={isWishlisted}
       disabled={toggle.isPending}
       onClick={() => toggle.mutate({ productId, isWishlisted })}
-      className="rounded-full border border-border p-2 disabled:opacity-50"
+      className="border-border rounded-full border p-2 disabled:opacity-50"
     >
       <Heart className={isWishlisted ? 'fill-destructive text-destructive' : ''} size={18} />
     </button>
