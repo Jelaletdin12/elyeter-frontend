@@ -3,17 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/**
- * Tasarım token sistemi — DESIGN_NOTES.md'deki karara göre:
- * "sıcak krem + turuncu" klişesinden kaçınmak için safran + koyu çam yeşili.
- *
- * shadcn STANDART slot isimleri (--background, --primary, --secondary,
- * --destructive, --border, --muted vb.) kullanılıyor. `npx shadcn add X`
- * ile gelen bileşenler bu isimleri otomatik olarak alır.
- *
- * Saffron (altın sarısı) için shadcn'de standart bir slot bulunmadığından
- * --color-saffron / --color-saffron-dark kendi token'ları olarak korunuyor.
- */
+
 
 @theme inline {
   --font-sans: 'Inter Variable', sans-serif;

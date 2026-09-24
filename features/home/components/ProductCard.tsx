@@ -26,11 +26,18 @@ interface ProductCardProps {
   product: Product;
   locale: string;
   isWishlisted?: boolean;
+  /**
+   * "Sizin için" bölümündeki "Neden önerildi?" rozeti. Tanımlanırsa kartın
+   * sol altında küçük bir pill olarak çizilir; öneri dışı kullanımlar için
+   * doldurulmaz. (Öneri motorunun `recommendationReason`'ı backend tarafında
+   * i18n resolve ETMEZ — label frontend'te message key'inden üretilir.)
+   */
+  reasonLabel?: string;
 }
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'tmt',
   maximumFractionDigits: 2,
 });
 
@@ -40,7 +47,12 @@ function formatPrice(value: string | number) {
   return currencyFormatter.format(num);
 }
 
-export function ProductCard({ product, locale, isWishlisted = false }: ProductCardProps) {
+export function ProductCard({
+  product,
+  locale,
+  isWishlisted = false,
+  reasonLabel,
+}: ProductCardProps) {
   const storeId = useAuthStore((state) => state.activeStoreId);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrating = useAuthStore((state) => state.isHydrating);
@@ -162,7 +174,7 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
             <CarouselContent className="ml-0 h-full">
               {images.map((image, index) => (
                 <CarouselItem key={image.id ?? index} className="h-full pl-0">
-                  <div className="flex h-full items-center justify-center p-4">
+                  <div className="flex h-full items-center justify-center">
                     <img
                       src={image.cardUrl}
                       alt={translation.name}
@@ -204,15 +216,23 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
             <Heart
               className={cn(
                 'size-4 transition-colors',
-                isWishlisted && 'fill-destructive text-destructive',
+                isWishlisted && 'fill-foreground text-foreground dark:fill-primary dark:text-primary',
               )}
             />
           )}
         </Button>
 
         {!inStock && (
-          <span className="bg-background/90 text-foreground pointer-events-none absolute bottom-3 left-3 z-20 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur">
+          <span className="bg-background/90 text-foreground pointer-events-none absolute bottom-3 left-3 z-20 rounded-md px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur">
             Out of stock
+          </span>
+        )}
+
+        {/* "NASIL BULUNDU?" rozeti — sadece öneri grid'lerinde. Öneri motoru
+            satılamayanı önermediği için stok pill'iyle çakışmaz. */}
+        {reasonLabel && (
+          <span className="bg-primary/90 text-white pointer-events-none absolute bottom-3 left-3 z-20 rounded-md px-2.5 py-1.5 text-[11px] font-semibold shadow-sm backdrop-blur">
+            {reasonLabel}
           </span>
         )}
 
@@ -265,17 +285,17 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
             type="button"
             variant="secondary"
             disabled
-            className="mt-3 h-10 w-full rounded-xl"
+            className="mt-3 h-10 w-full "
           >
             Out of stock
           </Button>
         ) : quantity > 0 ? (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border p-1">
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-md border p-1">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-8 rounded-lg"
+              className="size-8"
               onClick={() => handleQuantityChange(quantity - 1)}
               disabled={isCartMutating}
             >
@@ -286,7 +306,7 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
               type="button"
               variant="ghost"
               size="icon"
-              className="size-8 rounded-lg"
+              className="size-8 "
               onClick={() => handleQuantityChange(quantity + 1)}
               disabled={isCartMutating || quantity >= availableQuantity}
             >
@@ -298,7 +318,7 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
             </Button>
           </div>
         ) : isHydrating ? (
-          <Button disabled className="mt-3 h-10 w-full rounded-xl">
+          <Button disabled className="mt-3 h-10 w-full">
             <Loader2 className="size-4 animate-spin" />
           </Button>
         ) : (
@@ -306,7 +326,7 @@ export function ProductCard({ product, locale, isWishlisted = false }: ProductCa
             type="button"
             onClick={handleAddToCart}
             disabled={addToCart.isPending || isCartMutating}
-            className="mt-3 h-10 w-full rounded-xl"
+            className="mt-3 h-10 w-full text-white"
           >
             {addToCart.isPending ? (
               <Loader2 className="size-4 animate-spin" />

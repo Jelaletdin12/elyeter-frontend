@@ -6,15 +6,40 @@
     "loading": "Loading...",
     "viewDetails": "View details"
   },
+  "search": {
+    "tabText": "Текстовый поиск",
+    "tabImage": "Поиск по изображению"
+  },
   "products": {
     "title": "Products",
     "filters": "Filters",
     "sortBy": "Sort by",
     "filterByCategory": "All categories",
     "sameProducts": "Похожие товары",
+    "similarProducts": "Похожие товары",
     "reindexVisualSearch": "Reindex visual search",
     "reindexVisualSearching": "Reindexing...",
     "reindexVisualSearchSuccess": "Visual search index rebuilt — {{indexed}} new, {{skipped}} already indexed."
+  },
+  "home": {
+    "trending": "Сейчас в тренде",
+    "newArrivals": "Новинки",
+    "forYou": "Рекомендовано для вас",
+    "brandsEyebrow": "Подобрано для вас",
+    "brands": "Бренды, которые могут вам понравиться",
+    "viewAll": "Смотреть все",
+    "exploreBrand": "Перейти к бренду"
+  },
+  "recommendations": {
+    "title": "Рекомендуемые товары",
+    "empty": "Пока недостаточно данных, чтобы рекомендовать товары — загляните позже.",
+    "reasons": {
+      "behavior": "На основе ваших интересов",
+      "content": "Соответствует вашим предпочтениям",
+      "collaborative": "Это нравится и другим покупателям",
+      "popularity": "Популярно сейчас",
+      "freshness": "Новое в каталоге"
+    }
   },
   "cart": {
     "title": "Your cart",
@@ -27,15 +52,15 @@
     "review": "Review"
   },
   "visualSearch": {
-    "title": "Search by image",
-    "description": "Upload a photo and we'll find visually similar products.",
-    "upload": "Upload an image",
-    "uploadAnother": "Choose another image",
-    "finding": "Finding similar products...",
-    "noMatchesTitle": "No visual matches",
-    "noMatchesDescription": "Try a different photo or a closer crop of the product.",
-    "tryAnother": "Try another image",
-    "similarityMatch": "{percent}% match",
-    "tooLarge": "This image is too large (max 10 MB)."
+    "title": "Поиск по изображению",
+    "description": "Загрузите фото — мы найдём похожие товары.",
+    "upload": "Загрузить изображение",
+    "uploadAnother": "Выбрать другое изображение",
+    "finding": "Ищем похожие товары…",
+    "noMatchesTitle": "Похожих товаров не найдено",
+    "noMatchesDescription": "Попробуйте другое фото или более близкий кадр товара.",
+    "tryAnother": "Попробовать другое изображение",
+    "similarityMatch": "{percent}% совпадение",
+    "tooLarge": "Изображение слишком большое (макс. 10 МБ)."
   }
 }

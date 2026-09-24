@@ -6,15 +6,40 @@
     "loading": "Loading...",
     "viewDetails": "View details"
   },
+  "search": {
+    "tabText": "Tekst boýunça gözleg",
+    "tabImage": "Surat boýunça gözleg"
+  },
   "products": {
     "title": "Products",
     "filters": "Filters",
     "sortBy": "Sort by",
     "filterByCategory": "All categories",
     "sameProducts": "Şolara meňzeş harytlar",
+    "similarProducts": "Meňzeş harytlar",
     "reindexVisualSearch": "Reindex visual search",
     "reindexVisualSearching": "Reindexing...",
     "reindexVisualSearchSuccess": "Visual search index rebuilt — {{indexed}} new, {{skipped}} already indexed."
+  },
+  "home": {
+    "trending": "Trenddäki harytlar",
+    "newArrivals": "Täze gelýän harytlar",
+    "forYou": "Size hödürlenýär",
+    "brandsEyebrow": "Siziň üçin saýlandy",
+    "brands": "Halaýan bolar diýlip hasaplanýan brendler",
+    "viewAll": "Ählisini gör",
+    "exploreBrand": "Brende geç"
+  },
+  "recommendations": {
+    "title": "Hödürlenýän harytlar",
+    "empty": "Haryt hödürlemek üçin entek ýeterlik maglumat ýok — biraz soňrak gaýdyp görün.",
+    "reasons": {
+      "behavior": "Gyzyklanmalaryňyza görä",
+      "content": "Halan adam zatlaryňyza gabat gelýär",
+      "collaborative": "Beýleki müşderilere hem halanýar",
+      "popularity": "Häzir meşhur",
+      "freshness": "Katalogyň täzesi"
+    }
   },
   "cart": {
     "title": "Your cart",
@@ -27,15 +52,15 @@
     "review": "Review"
   },
   "visualSearch": {
-    "title": "Search by image",
-    "description": "Upload a photo and we'll find visually similar products.",
-    "upload": "Upload an image",
-    "uploadAnother": "Choose another image",
-    "finding": "Finding similar products...",
-    "noMatchesTitle": "No visual matches",
-    "noMatchesDescription": "Try a different photo or a closer crop of the product.",
-    "tryAnother": "Try another image",
-    "similarityMatch": "{percent}% match",
-    "tooLarge": "This image is too large (max 10 MB)."
+    "title": "Surat boýunça gözleg",
+    "description": "Surat ýükläň — biz meňzeş harytlary taparys.",
+    "upload": "Surat ýükle",
+    "uploadAnother": "Başga surat saýla",
+    "finding": "Meňzeş harytlar gözlänýär…",
+    "noMatchesTitle": "Meňzeş tapylmady",
+    "noMatchesDescription": "Başga surat ýa-da has ýakyn kesiş synanyşyň.",
+    "tryAnother": "Başga surat synanyş",
+    "similarityMatch": "{percent}% gabat geldi",
+    "tooLarge": "Bu surat gaty uly (iň köp 10 MB)."
   }
 }

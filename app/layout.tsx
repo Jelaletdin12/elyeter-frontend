@@ -1,7 +1,7 @@
 ﻿import type { Metadata } from 'next';
 import { Fraunces, Public_Sans } from 'next/font/google';
 import { QueryProvider } from '@/providers/QueryProvider';
-import { ThemeProvider } from '@/components/theme/theme-provider';
+import { ThemeProvider } from '@/components/theme/theme-context';
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
@@ -23,10 +23,10 @@ import './globals.css';
  * tipografi kararı. CSS değişkenleri (--font-fraunces/--font-public-sans)
  * app/globals.css'teki @theme bloğunda font-serif/font-sans'a bağlanıyor.
  *
- * suppressHydrationWarning <html>'de ZORUNLU: next-themes class'ı client'ta
- * (script ile, hydration'dan önce) <html>'e ekliyor — server'ın render ettiği
- * ile client'ın ilk paint'i farklı olacak, bu FARK BEKLENEN bir şey, React'in
- * bunun için uyarı vermesini istemiyoruz.
+ * suppressHydrationWarning <html>'de ZORUNLU: tema class'ı client'ta
+ * (anti-flash script ile, hydration'dan önce) <html>'e ekleniyor — server'ın
+ * render ettiği ile client'ın ilk paint'i farklı olacak, bu FARK BEKLENEN bir
+ * şey, React'in bunun için uyarı vermesini istemiyoruz.
  */
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html suppressHydrationWarning className={`${fraunces.variable} ${publicSans.variable}`}>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
           <Toaster position="top-center" />
         </ThemeProvider>

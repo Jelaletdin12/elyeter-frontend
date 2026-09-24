@@ -27,18 +27,11 @@ export async function getProductBySlug(locale: string, slug: string): Promise<Pr
 }
 
 /**
- * "Aynı ürünler" bölümü — detay sayfasındaki ürünle aynı kategorideki
- * popüler, aktif ürünler (kendisi hariç). GET /products/:id/related.
- * ISR cache'li (600s), products tag'ine bağlı.
+ * "Benzer ürünler" bölümü artık öneri motoruyla geliyor —
+ * bkz. features/recommendations/api/queries.ts (getSimilarProducts).
+ * Buradaki /products/:id/related client'ı kaldırıldı; endpoint backend'de
+ * hâlâ mevcut olabilir ama frontend tüketmez.
  */
-export async function getRelatedProducts(productId: string, limit = 8): Promise<Product[]> {
-  return apiFetch<Product[]>(`/products/${productId}/related?limit=${limit}`, {
-    next: {
-      revalidate: 600,
-      tags: [dataCacheTags.products()],
-    },
-  });
-}
 
 export async function getProductList(
   locale: string,

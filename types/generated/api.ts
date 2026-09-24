@@ -708,6 +708,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MediaController_cleanupOrphaned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -896,7 +912,7 @@ export interface paths {
         put?: never;
         /**
          * Katalogdaki görselleri yeniden indexler
-         * @description Embedding'i olmayan tüm ProductImage kayıtları için MinIO'dan ham görsel indirilir, CLIP ile embedding üretilir ve saklanır. Idempotent — embedding'i olan görseller atlanır. Bireysel hatalar job'ı durdurmaz.
+         * @description Embedding'i olmayan veya farklı bir CLIP_MODEL_DTYPE ile üretilmiş tüm ProductImage kayıtları için MinIO'dan ham görsel indirilir, CLIP ile embedding üretilir ve saklanır. Idempotent — doğru dtype ile embedding'i olan görseller atlanır. Bireysel hatalar job'ı durdurmaz.
          */
         post: operations["AdminVisualSearchController_reindex"];
         delete?: never;
@@ -916,9 +932,108 @@ export interface paths {
         put?: never;
         /**
          * Tek bir ProductImage için embedding üretir (idempotent)
-         * @description Embedding zaten varsa atlar (`indexed: false` döner).
+         * @description Doğru dtype ile embedding zaten varsa atlar (`indexed: false` döner). dtype değiştiyse yeniden üretir (`indexed: true`).
          */
         post: operations["AdminVisualSearchController_generateEmbedding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CatalogIoController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CatalogIoController_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CatalogIoController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recommendations/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Anasayfa önerileri: categories, brands, forYou, trending, newArrivals */
+        get: operations["RecommendationsController_getHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recommendations/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sayfalanmış kişisel öneri ürünleri (misafir: popülerlik fallback) */
+        get: operations["RecommendationsController_getProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recommendations/products/{productId}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ürün detayı benzer ürünler */
+        get: operations["RecommendationsController_getSimilar"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1010,6 +1125,8 @@ export interface components {
              * @example categories/electronics.webp
              */
             imageUrl?: string;
+            /** @description Önce POST /media/uploads?context=CATEGORY_IMAGE ile yüklenip alınan mediaId — verilirse imageUrl yerine MinIO CATEGORY_CARD varyantı kullanılır ve PendingMedia claim edilir (24s temizlikten muaf) */
+            imageMediaId?: string;
             /**
              * @example [
              *       {
@@ -1041,6 +1158,8 @@ export interface components {
              * @example categories/electronics.webp
              */
             imageUrl?: string;
+            /** @description Önce POST /media/uploads?context=CATEGORY_IMAGE ile yüklenip alınan mediaId — verilirse imageUrl yerine MinIO CATEGORY_CARD varyantı kullanılır ve PendingMedia claim edilir (24s temizlikten muaf) */
+            imageMediaId?: string;
             /**
              * @example [
              *       {
@@ -1094,6 +1213,8 @@ export interface components {
              * @example brands/apple.webp
              */
             logoUrl?: string;
+            /** @description Önce POST /media/uploads?context=BRAND_IMAGE ile yüklenip alınan mediaId — verilirse logoUrl yerine MinIO BRAND_LOGO varyantı kullanılır ve PendingMedia claim edilir (24s temizlikten muaf) */
+            logoMediaId?: string;
             /**
              * @example [
              *       {
@@ -1123,6 +1244,8 @@ export interface components {
              * @example brands/apple.webp
              */
             logoUrl?: string;
+            /** @description Önce POST /media/uploads?context=BRAND_IMAGE ile yüklenip alınan mediaId — verilirse logoUrl yerine MinIO BRAND_LOGO varyantı kullanılır ve PendingMedia claim edilir (24s temizlikten muaf) */
+            logoMediaId?: string;
             /**
              * @example [
              *       {
@@ -2086,6 +2209,165 @@ export interface components {
             /** @description true = embedding ilk kez üretildi; false = zaten indexlenmişti (idempotent skip). */
             indexed: boolean;
         };
+        RecommendedCategoryTranslationDto: {
+            /** @example ct1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example en */
+            locale: string;
+            /** @example Electronics */
+            name: string;
+            /** @example electronics */
+            slug: string;
+        };
+        RecommendedCategoryItemDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example https://localhost:9200/categories/x.webp */
+            imageUrl: Record<string, never> | null;
+            translations: components["schemas"]["RecommendedCategoryTranslationDto"][];
+        };
+        RecommendedBrandItemDto: {
+            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example https://localhost:9200/brands/x.webp */
+            logoUrl: Record<string, never> | null;
+            translations: {
+                id?: string;
+                locale?: string;
+                name?: string;
+                slug?: string;
+            }[];
+        };
+        RecommendationProductTranslationDto: {
+            /** @example t1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example en */
+            locale: string;
+            /** @example Wireless Headphones */
+            name: string;
+            /** @example wireless-headphones */
+            slug: string;
+            /** @example High quality headphones */
+            description: Record<string, never> | null;
+        };
+        RecommendationCategoryTranslationDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example en */
+            locale: string;
+            /** @example Electronics */
+            name: string;
+        };
+        RecommendationCategoryLiteDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            translations: components["schemas"]["RecommendationCategoryTranslationDto"][];
+        };
+        RecommendationBrandTranslationDto: {
+            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example en */
+            locale: string;
+            /** @example Acme */
+            name: string;
+            /** @example acme */
+            slug?: string;
+        };
+        RecommendationBrandLiteDto: {
+            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example https://localhost:9200/brands/acme-logo.webp */
+            logoUrl: Record<string, never> | null;
+            /** @example true */
+            isActive: boolean;
+            translations: components["schemas"]["RecommendationBrandTranslationDto"][];
+        };
+        RecommendationProductImageDto: {
+            /** @example i1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example https://localhost:9200/product-images/x-card.webp */
+            cardUrl: string;
+            /** @example https://localhost:9200/product-images/x-detail.webp */
+            detailUrl: string;
+            /** @example https://localhost:9200/product-images/x-original.webp */
+            originalUrl: string;
+            /** @example true */
+            isPrimary: boolean;
+            /** @example 1 */
+            order: number;
+        };
+        RecommendationVariantInventoryDto: {
+            /** @example 12 */
+            quantity: number;
+            /** @example 2 */
+            reservedQuantity: number;
+            /** @example 3 */
+            lowStockThreshold: Record<string, never> | null;
+        };
+        RecommendationVariantDto: {
+            /** @example v1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example WH-1000XM5-BLACK */
+            sku: string;
+            /** @example 299.99 */
+            price: number;
+            /** @example 349.99 */
+            compareAtPrice: Record<string, never> | null;
+            /**
+             * @example {
+             *       "color": "Black"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /** @example true */
+            isActive: boolean;
+            inventory: components["schemas"]["RecommendationVariantInventoryDto"] | null;
+        };
+        RecommendationProductDto: {
+            /** @example p1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example true */
+            isActive: boolean;
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            categoryId: string;
+            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
+            brandId: Record<string, never> | null;
+            /** @example 142 */
+            viewCount: number;
+            /**
+             * Format: date-time
+             * @example 2026-09-01T12:00:00.000Z
+             */
+            createdAt: string;
+            translations: components["schemas"]["RecommendationProductTranslationDto"][];
+            category: components["schemas"]["RecommendationCategoryLiteDto"];
+            brand: components["schemas"]["RecommendationBrandLiteDto"] | null;
+            images: components["schemas"]["RecommendationProductImageDto"][];
+            variants: components["schemas"]["RecommendationVariantDto"][];
+            /**
+             * @description Bu ürünü öneren baskın motor
+             * @example behavior
+             * @enum {string}
+             */
+            recommendationReason: "behavior" | "content" | "collaborative" | "popularity" | "freshness";
+        };
+        HomeRecommendationsResponseDto: {
+            /** @description İlgi/önerilen kategoriler (misafir: popüler) */
+            categories: components["schemas"]["RecommendedCategoryItemDto"][];
+            /** @description İlgi/önerilen markalar (misafir: popüler) */
+            brands: components["schemas"]["RecommendedBrandItemDto"][];
+            /** @description Kişisel öneriler (V1+V2+V3 hibrit) */
+            forYou: components["schemas"]["RecommendationProductDto"][];
+            /** @description En çok görüntülenenler */
+            trending: components["schemas"]["RecommendationProductDto"][];
+            /** @description En yeni ürünler */
+            newArrivals: components["schemas"]["RecommendationProductDto"][];
+        };
+        RecommendationProductListResponseDto: {
+            /** @description Sayfa içeriği (sıralama = skor sırası) */
+            items: components["schemas"]["RecommendationProductDto"][];
+            meta: components["schemas"]["ProductPaginationMetaDto"];
+        };
     };
     responses: never;
     parameters: never;
@@ -2198,7 +2480,14 @@ export interface operations {
     };
     UsersController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description E-posta veya tam ad üzerinde contains araması (locale-bağımsız). */
+                search?: string;
+                /** @description Role filtresi. */
+                role?: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
+                page?: number;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2552,7 +2841,24 @@ export interface operations {
     };
     ProductsController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Kategori ID — alt ağacı da kapsar (getSubtreeIds). */
+                categoryId?: string;
+                /** @description Marka ID — ürünleri markaya göre daraltır. */
+                brandId?: string;
+                /** @description Arama terimi (birincil) — ürün adında contains araması. */
+                q?: string;
+                /** @description Arama terimi alias'ı (q önceliklidir). */
+                search?: string;
+                /** @description Şu an servis tarafından kullanılmaz; whitelist uyumluluğu için kabul edilir. */
+                locale?: "en" | "ru" | "tk";
+                /** @description Min fiyat — şu an no-op (fiyat filtreleme kapsam dışı). */
+                minPrice?: number;
+                /** @description Max fiyat — şu an no-op. */
+                maxPrice?: number;
+                page?: number;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2594,7 +2900,24 @@ export interface operations {
     };
     ProductsController_findDiscounted: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Kategori ID — alt ağacı da kapsar (getSubtreeIds). */
+                categoryId?: string;
+                /** @description Marka ID — ürünleri markaya göre daraltır. */
+                brandId?: string;
+                /** @description Arama terimi (birincil) — ürün adında contains araması. */
+                q?: string;
+                /** @description Arama terimi alias'ı (q önceliklidir). */
+                search?: string;
+                /** @description Şu an servis tarafından kullanılmaz; whitelist uyumluluğu için kabul edilir. */
+                locale?: "en" | "ru" | "tk";
+                /** @description Min fiyat — şu an no-op (fiyat filtreleme kapsam dışı). */
+                minPrice?: number;
+                /** @description Max fiyat — şu an no-op. */
+                maxPrice?: number;
+                page?: number;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3411,7 +3734,7 @@ export interface operations {
     MediaController_upload: {
         parameters: {
             query: {
-                context: "PRODUCT_IMAGE" | "BANNER_IMAGE";
+                context: "PRODUCT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
             };
             header?: never;
             path?: never;
@@ -3460,6 +3783,26 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MediaController_cleanupOrphaned: {
+        parameters: {
+            query?: {
+                /** @description true = sadece tara (varsayılan), false = sil */
+                dryRun?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3736,6 +4079,12 @@ export interface operations {
             query?: {
                 /** @description Döndürülecek maksimum ürün sayısı (1-50). */
                 limit?: number;
+                /** @description Kategori ID — sağlanırsa aday küme, `<=>` sıralamasından ÖNCE bu kategorinin ürünleriyle daraltılır (alt ağaç dahil değildir, birebir eşleşme). */
+                categoryId?: string;
+                /** @description Min fiyat (varyantların canlı price değerine göre filtreler). */
+                priceMin?: number;
+                /** @description Max fiyat (varyantların canlı price değerine göre filtreler). */
+                priceMax?: number;
             };
             header?: never;
             path?: never;
@@ -3795,6 +4144,141 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GenerateEmbeddingResponseDto"];
                 };
+            };
+        };
+    };
+    CatalogIoController_export: {
+        parameters: {
+            query?: {
+                format?: "xlsx" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CatalogIoController_template: {
+        parameters: {
+            query?: {
+                format?: "xlsx" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CatalogIoController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RecommendationsController_getHome: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeRecommendationsResponseDto"];
+                };
+            };
+        };
+    };
+    RecommendationsController_getProducts: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationProductListResponseDto"];
+                };
+            };
+        };
+    };
+    RecommendationsController_getSimilar: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationProductDto"][];
+                };
+            };
+            /** @description errors.product_not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

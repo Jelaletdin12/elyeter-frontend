@@ -2,9 +2,19 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 
-import { categoryTranslation, type Category } from '@/features/categories/types';
+/**
+ * CategoryRail artık hem categories API'sinin tam `Category`'sini hem de
+ * öneri API'sinin `id + imageUrl + translations{locale,name,slug}` lite
+ * şeklini kabul eder (structural alt-küme — brands BrandLike deseniyle aynı).
+ * Sadece name/slug/imageUrl kullanıldığı için tam Category zorunlu değildir.
+ */
+export type CategoryRailItem = {
+  id: string;
+  imageUrl?: string | null;
+  translations: { locale: string; name: string; slug: string }[];
+};
 
-export function CategoryRail({ categories, locale }: { categories: Category[]; locale: string }) {
+export function CategoryRail({ categories, locale }: { categories: CategoryRailItem[]; locale: string }) {
   if (categories.length === 0) return null;
   const visibleCategories = categories.slice(0, 6);
   return (
@@ -30,7 +40,7 @@ export function CategoryRail({ categories, locale }: { categories: Category[]; l
 
         <Link
           href={`/${locale}/categories`}
-          className="group border-border bg-card/70 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary hidden shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-200 sm:flex"
+          className="group border-border bg-card/70 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary hidden shrink-0 items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold transition-all duration-200 sm:flex"
         >
           View all
           <ArrowUpRight
@@ -43,7 +53,8 @@ export function CategoryRail({ categories, locale }: { categories: Category[]; l
       {/* Category grid / rail */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {visibleCategories.map((category, index) => {
-          const translation = categoryTranslation(category, locale);
+          const translation =
+            category.translations.find((t) => t.locale === locale) ?? category.translations[0];
 
           if (!translation) return null;
 

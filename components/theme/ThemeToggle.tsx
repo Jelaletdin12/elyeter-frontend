@@ -1,13 +1,14 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/theme/theme-context';
 import { Moon, Sun } from 'lucide-react';
 
 /**
- * useTheme() next-themes'ten. `mounted` kontrolü şart — next-themes server'da
- * hangi temanın aktif olduğunu bilemez (localStorage server'da yok), bu yüzden
- * ilk render'da hep aynı ikonu göstermek hydration mismatch'e yol açar.
+ * useTheme() theme-context'ten (kullanıcıya özel tema — next-themes değil).
+ * `mounted` kontrolü şart — provider server'da hangi temanın aktif olduğunu
+ * bilemez (localStorage server'da yok), bu yüzden ilk render'da hep aynı
+ * ikonu göstermek hydration mismatch'e yol açar.
  */
 export function ThemeToggle({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const { resolvedTheme, setTheme } = useTheme();

@@ -73,6 +73,18 @@ export const queryKeys = {
     image: (storeId: string) => ['search', storeId, 'image'] as const,
   },
 
+  recommendations: {
+    all: (storeId: string) => ['recommendations', storeId] as const,
+    // Kişisel anasayfa bölümleri (forYou + markalar) — auth'lı client'ta.
+    home: (storeId: string) => ['recommendations', storeId, 'home'] as const,
+    // Sayfalanmış öneri ürünleri — /recommendations "View all" sayfası.
+    productsPage: (storeId: string, page: number) =>
+      ['recommendations', storeId, 'products', page] as const,
+    // Benzer ürünler — content-based, ürün detay sayfası.
+    similar: (storeId: string, productId: string) =>
+      ['recommendations', storeId, 'similar', productId] as const,
+  },
+
   // --- Admin (CSR, private) ---
   adminProducts: {
     all: (storeId: string) => ['admin-products', storeId] as const,

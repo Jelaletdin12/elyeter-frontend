@@ -6,15 +6,40 @@
     "loading": "Loading...",
     "viewDetails": "View details"
   },
+  "search": {
+    "tabText": "Text search",
+    "tabImage": "Search by image"
+  },
   "products": {
     "title": "Products",
     "filters": "Filters",
     "sortBy": "Sort by",
     "filterByCategory": "All categories",
     "sameProducts": "Same products",
+    "similarProducts": "Similar products",
     "reindexVisualSearch": "Reindex visual search",
     "reindexVisualSearching": "Reindexing...",
     "reindexVisualSearchSuccess": "Visual search index rebuilt — {{indexed}} new, {{skipped}} already indexed."
+  },
+  "home": {
+    "trending": "Trending now",
+    "newArrivals": "New arrivals",
+    "forYou": "Recommended for you",
+    "brandsEyebrow": "Handpicked for you",
+    "brands": "Brands you may like",
+    "viewAll": "View all",
+    "exploreBrand": "Explore brand"
+  },
+  "recommendations": {
+    "title": "Recommended products",
+    "empty": "We don't have enough data to recommend products yet — check back soon.",
+    "reasons": {
+      "behavior": "Because you've shown interest",
+      "content": "Because it matches what you like",
+      "collaborative": "Customers also like this",
+      "popularity": "Popular right now",
+      "freshness": "Fresh from the catalog"
+    }
   },
   "cart": {
     "title": "Your cart",
