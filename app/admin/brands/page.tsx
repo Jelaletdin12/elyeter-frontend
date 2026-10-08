@@ -2,38 +2,30 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Award, ImageOff } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Plus, Award, ImageOff } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { brandListOptions } from '@/features/brands/api/queries';
-import {
-  useCreateBrandMutation,
-  useUpdateBrandMutation,
-  useDeleteBrandMutation,
-} from '@/features/brands/api/mutations';
+import { useDeleteBrandMutation } from '@/features/brands/api/mutations';
 import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
 import { flattenCategoryTree } from '@/features/categories/types';
-import { BrandFormDialog } from '@/features/brands/components/BrandFormDialog';
 import { DataTable } from '@/components/shared/DataTable';
 import { DataTableToolbar } from '@/components/shared/DataTableToolbar';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+import { TableActions } from '@/components/shared/TableActions';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { brandTranslation } from '@/features/brands/types';
 import type { Brand } from '@/features/brands/types';
 
-/**
- * ✅ Şema doğrulandı (curl, 2026-09-16): GET/POST /brands, GET/PATCH/DELETE
- * /brands/{id}, public GET /brands/slug/{locale}/{slug}. Create/update
- * translation'ları Category ile AYNI createMany/deleteMany+create pattern'iyle
- * yazıyor; slug/metaTitle/metaDescription boş bırakılırsa backend name'den
- * üretiyor. 2026-09-18: backend `search` + `categoryId` filter'ları toolbar'a
- * bağlandı; logo önizleme kolonu (MinIO) + sayfalama eklendi.
- */
 export default function AdminBrandsPage() {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { can } = useAuth();
+  const router = useRouter();
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -46,54 +38,37 @@ export default function AdminBrandsPage() {
   const { data: categoryTreeData } = useQuery(adminCategoryTreeOptions(storeId));
   const categoryOptions = flattenCategoryTree(categoryTreeData ?? []);
 
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [pendingDeleteBrand, setPendingDeleteBrand] = useState<Brand | null>(null);
 
-  const createBrand = useCreateBrandMutation(storeId);
-  const updateBrand = useUpdateBrandMutation(storeId);
   const deleteBrand = useDeleteBrandMutation(storeId);
 
   const brands = data?.items ?? [];
 
-  function openCreate() {
-    setEditingBrand(null);
-    setDialogMode('create');
-  }
-
-  function openEdit(brand: Brand) {
-    setEditingBrand(brand);
-    setDialogMode('edit');
-  }
-
-  function closeDialog() {
-    setDialogMode(null);
-    setEditingBrand(null);
-  }
-
   async function confirmDelete() {
     if (!pendingDeleteBrand) return;
-    const name = brandTranslation(pendingDeleteBrand, 'en')?.name ?? 'Brand';
+    const name = brandTranslation(pendingDeleteBrand, 'en') ?? 'Brand';
     await deleteBrand.mutateAsync(pendingDeleteBrand.id);
     toast.success(`${name} was deleted.`);
     setPendingDeleteBrand(null);
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground font-serif text-2xl italic">Brands</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{data?.meta.total ?? 0} brands</p>
+          <h1 className="text-foreground font-serif text-2xl tracking-tight italic">Brands</h1>
+          <p className="text-muted-foreground mt-1 text-xs">{data?.meta.total ?? 0} total brands</p>
         </div>
         {can('brand.create') && (
-          <Button onClick={openCreate}>
-            <Plus size={16} /> New brand
+          <Button asChild>
+            <Link href="/admin/brands/new">
+              <Plus className="size-4" /> New brand
+            </Link>
           </Button>
         )}
       </div>
 
-      <div className="mt-6">
+      <div>
         <DataTableToolbar
           searchValue={search}
           onSearchChange={(value) => {
@@ -143,6 +118,7 @@ export default function AdminBrandsPage() {
           onPageChange={setPage}
           columnVisibility={columnVisibility}
           columnOrder={columnOrder}
+          enableRowSelection
           emptyTitle="No brands yet"
           emptyDescription="Brands you create will show up here and let you group your product catalog by manufacturer."
           emptyIcon={Award}
@@ -166,94 +142,58 @@ export default function AdminBrandsPage() {
               header: 'Logo',
               cell: (row) =>
                 row.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={row.logoUrl}
-                    alt=""
-                    className="bg-background h-10 w-10 rounded-md object-contain p-1"
-                  />
+                  <div className="border-border bg-background relative size-10 overflow-hidden rounded-md border p-1">
+                    <Image
+                      src={row.logoUrl}
+                      alt={brandTranslation(row, 'en')?.name ?? 'Brand logo'}
+                      fill
+                      sizes="40px"
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
                 ) : (
-                  <span className="bg-background text-muted-foreground flex h-10 w-10 items-center justify-center rounded-md">
-                    <ImageOff size={14} />
-                  </span>
+                  <div className="border-border bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-md border">
+                    <ImageOff className="size-3.5" />
+                  </div>
                 ),
             },
             {
               id: 'products',
               header: 'Products',
               cell: (row) => (
-                <span className="text-muted-foreground text-sm">{row._count?.products ?? 0}</span>
+                <span className="text-muted-foreground font-mono text-sm">
+                  {row._count?.products ?? 0}
+                </span>
               ),
             },
             {
               id: 'status',
               header: 'Status',
               cell: (row) => (
-                <StatusBadge tone={row.isActive ? 'success' : 'neutral'}>
+                <Badge
+                  variant={row.isActive ? 'default' : 'secondary'}
+                  className="px-2 py-0.5 text-[11px]"
+                >
                   {row.isActive ? 'Active' : 'Disabled'}
-                </StatusBadge>
+                </Badge>
               ),
             },
             {
               header: '',
               className: 'text-right',
               cell: (row) => (
-                <div className="flex justify-end gap-1">
-                  {can('brand.update') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(row)}
-                      aria-label="Edit"
-                    >
-                      <Pencil size={15} />
-                    </Button>
-                  )}
-                  {can('brand.delete') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDeleteBrand(row)}
-                      aria-label="Delete"
-                      className="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={15} />
-                    </Button>
-                  )}
-                </div>
+                <TableActions
+                  onEdit={
+                    can('brand.update') ? () => router.push(`/admin/brands/${row.id}`) : undefined
+                  }
+                  onDelete={can('brand.delete') ? () => setPendingDeleteBrand(row) : undefined}
+                />
               ),
             },
           ]}
         />
       </div>
-
-      <BrandFormDialog
-        open={dialogMode !== null}
-        mode={dialogMode ?? 'create'}
-        initialBrand={editingBrand ?? undefined}
-        isSubmitting={createBrand.isPending || updateBrand.isPending}
-        onCancel={closeDialog}
-        onSubmitCreate={(values) =>
-          createBrand.mutate(values, {
-            onSuccess: () => {
-              toast.success('Brand created.');
-              closeDialog();
-            },
-          })
-        }
-        onSubmitEdit={(values) => {
-          if (!editingBrand) return;
-          updateBrand.mutate(
-            { brandId: editingBrand.id, input: values },
-            {
-              onSuccess: () => {
-                toast.success('Brand updated.');
-                closeDialog();
-              },
-            },
-          );
-        }}
-      />
 
       <ConfirmDialog
         open={pendingDeleteBrand !== null}

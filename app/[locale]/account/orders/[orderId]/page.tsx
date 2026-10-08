@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { orderDetailOptions } from '@/features/orders/api/queries';
@@ -21,17 +22,16 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'neutr
   RETURNED: 'neutral',
 };
 
-/**
- * STANDARDS.md #4: private sayfa, CSR. Client Component olarak yazıldı
- * (Next.js 15'te dynamic segment param'ına Server Component'te de erişilebilir,
- * ama bu sayfa TanStack Query cache'ini paylaşmak / status history'i canlı
- * göstermek için CSR tercih edildi).
- */
 export default function OrderDetailPage() {
   const params = useParams<{ orderId: string }>();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations('orders');
+  const tStatus = useTranslations('notifications.status');
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { data: order, isLoading } = useQuery(orderDetailOptions(storeId, params.orderId));
+
+  const statusLabel = (status: string) => tStatus(status as Parameters<typeof tStatus>[0]);
 
   if (isLoading) {
     return (
@@ -46,7 +46,7 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <div className="mx-auto max-w-3xl">
-        <p className="text-muted-foreground text-sm">Sipariş bulunamadı.</p>
+        <p className="text-muted-foreground text-sm">{t('notFound')}</p>
       </div>
     );
   }
@@ -60,12 +60,16 @@ export default function OrderDetailPage() {
         onClick={() => router.back()}
         className="text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 text-sm"
       >
-        <ArrowLeft size={14} /> Siparişlere dön
+        <ArrowLeft size={14} /> {t('backToOrders')}
       </button>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-foreground text-xl font-semibold">Sipariş #{order.id.slice(0, 8)}</h1>
-        <StatusBadge tone={STATUS_TONE[order.status] ?? 'neutral'}>{order.status}</StatusBadge>
+        <h1 className="text-foreground text-xl font-semibold">
+          {t('orderNumber', { id: order.id.slice(0, 8) })}
+        </h1>
+        <StatusBadge tone={STATUS_TONE[order.status] ?? 'neutral'}>
+          {statusLabel(order.status)}
+        </StatusBadge>
       </div>
 
       <div className="border-border bg-card mt-6 rounded-md border">
@@ -86,19 +90,19 @@ export default function OrderDetailPage() {
         <div className="space-y-1.5 px-4 py-3.5">
           {order.coupon && (
             <div className="text-muted-foreground flex justify-between text-sm">
-              <span>Kupon {order.coupon.code}</span>
+              <span>{t('coupon', { code: order.coupon.code })}</span>
               <span className="text-sidebar-primary">−{discount.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm font-medium">
-            <span className="text-foreground">Toplam</span>
+            <span className="text-foreground">{t('total')}</span>
             <span className="text-foreground font-serif italic">{order.total}</span>
           </div>
         </div>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-foreground text-sm font-semibold">Sipariş geçmişi</h2>
+        <h2 className="text-foreground text-sm font-semibold">{t('historyTitle')}</h2>
         <ol className="mt-4 space-y-0">
           {order.statusHistory.map((h, i) => {
             return (
@@ -110,10 +114,12 @@ export default function OrderDetailPage() {
                 </div>
                 <div className="pb-4 text-sm">
                   <p className="text-foreground">
-                    {h.fromStatus ? `${h.fromStatus} → ${h.toStatus}` : h.toStatus}
+                    {h.fromStatus
+                      ? `${statusLabel(h.fromStatus)} → ${statusLabel(h.toStatus)}`
+                      : statusLabel(h.toStatus)}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    {new Date(h.createdAt).toLocaleString()}
+                    {new Date(h.createdAt).toLocaleString(locale)}
                   </p>
                 </div>
               </li>

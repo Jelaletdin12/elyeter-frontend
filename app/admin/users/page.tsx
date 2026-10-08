@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Users as UsersIcon } from 'lucide-react';
+import { Plus, Users as UsersIcon } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -16,6 +16,7 @@ import { UserFormDialog } from '@/features/users/components/UserFormDialog';
 import { DataTable } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { TableActions } from '@/components/shared/TableActions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -184,6 +185,7 @@ export default function AdminUsersPage() {
           isLoading={isLoading}
           rows={users}
           getRowId={(row) => row.id}
+          enableRowSelection
           emptyTitle="No users yet"
           emptyDescription="Staff accounts you create will show up here."
           emptyIcon={UsersIcon}
@@ -219,25 +221,10 @@ export default function AdminUsersPage() {
               className: 'text-right',
               cell: (row) =>
                 canManage ? (
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(row)}
-                      aria-label="Edit"
-                    >
-                      <Pencil size={15} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDeleteUser(row)}
-                      aria-label="Delete"
-                      className="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={15} />
-                    </Button>
-                  </div>
+                  <TableActions
+                    onEdit={() => openEdit(row)}
+                    onDelete={() => setPendingDeleteUser(row)}
+                  />
                 ) : null,
             },
           ]}

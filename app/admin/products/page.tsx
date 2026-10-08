@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/lib/i18n/admin';
 import { Plus, ImageOff, RefreshCw, PackageOpen, SearchX, ScanSearch } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
@@ -15,13 +15,6 @@ import { adminCategoryTreeOptions } from '@/features/categories/api/queries';
 import { flattenCategoryTree } from '@/features/categories/types';
 import { brandOptions } from '@/features/brands/api/queries';
 import { brandTranslation } from '@/features/brands/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useDeleteProductMutation } from '@/features/products/api/mutations';
 import { useVisualSearchReindexMutation } from '@/features/search/api/mutations';
 import { DataTable, type ColumnDef } from '@/components/shared/DataTable';
@@ -233,72 +226,61 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="mt-6">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <DataTableToolbar
-            searchValue={search}
-            onSearchChange={(value) => {
-              setSearch(value);
+        <DataTableToolbar
+          searchValue={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder={t('products.searchPlaceholder', 'Search products…')}
+          columns={[
+            { id: 'name', label: t('products.column.name', 'Name') },
+            { id: 'price', label: t('products.column.price', 'Price') },
+            { id: 'stock', label: t('products.column.stock', 'Stock') },
+          ]}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          columnOrder={columnOrder}
+          onColumnOrderChange={setColumnOrder}
+          filterFields={[
+            {
+              id: 'category',
+              label: 'Category',
+              type: 'combobox',
+              options: categoryOptions.map((opt) => ({ value: opt.id, label: opt.label })),
+            },
+            {
+              id: 'brand',
+              label: 'Brand',
+              type: 'combobox',
+              options:
+                brandOptionsData?.map((opt) => ({
+                  value: opt.id,
+                  label: brandTranslation(opt, 'en')?.name ?? opt.translations[0]?.name ?? opt.id,
+                })) ?? [],
+            },
+          ]}
+          activeFilters={[
+            { fieldId: 'category', value: categoryFilter },
+            { fieldId: 'brand', value: brandFilter },
+          ]}
+          onFilterChange={(fieldId, value) => {
+            if (fieldId === 'category') {
+              setCategoryFilter(value);
               setPage(1);
-            }}
-            searchPlaceholder={t('products.searchPlaceholder', 'Search products…')}
-            columns={[
-              { id: 'name', label: t('products.column.name', 'Name') },
-              { id: 'price', label: t('products.column.price', 'Price') },
-              { id: 'stock', label: t('products.column.stock', 'Stock') },
-            ]}
-            columnVisibility={columnVisibility}
-            onColumnVisibilityChange={setColumnVisibility}
-            columnOrder={columnOrder}
-            onColumnOrderChange={setColumnOrder}
-            hideAction
-          />
-
-          <Select
-            value={categoryFilter || '__all__'}
-            onValueChange={(value) => {
-              setCategoryFilter(value === '__all__' ? '' : value);
+            }
+            if (fieldId === 'brand') {
+              setBrandFilter(value);
               setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder={t('products.filterByCategory', 'All categories')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">
-                {t('products.filterByCategory', 'All categories')}
-              </SelectItem>
-              {categoryOptions.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={brandFilter || '__all__'}
-            onValueChange={(value) => {
-              setBrandFilter(value === '__all__' ? '' : value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder={t('products.filterByBrand', 'All brands')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">{t('products.filterByBrand', 'All brands')}</SelectItem>
-              {brandOptionsData?.map((opt) => (
-                <SelectItem
-                  key={opt.id}
-                  value={opt.id}
-                  disabled={!opt.isActive && brandFilter !== opt.id}
-                >
-                  {brandTranslation(opt, 'en')?.name ?? opt.translations[0]?.name ?? '—'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            }
+          }}
+          onFilterReset={() => {
+            setCategoryFilter('');
+            setBrandFilter('');
+            setPage(1);
+          }}
+          hideAction
+        />
 
         {isError ? (
           <div className="border-border bg-background flex flex-col items-center justify-center gap-3 rounded-md border py-16 text-center">
@@ -327,6 +309,7 @@ export default function AdminProductsPage() {
             totalPages={totalPages}
             totalCount={total}
             onPageChange={setPage}
+            enableRowSelection
           />
         )}
       </div>

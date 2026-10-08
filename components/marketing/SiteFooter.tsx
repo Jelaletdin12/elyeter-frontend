@@ -1,11 +1,13 @@
 ﻿import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import logo from '@/public/logo.png';
 
-export function SiteFooter({ locale }: { locale: string }) {
+export async function SiteFooter({ locale }: { locale: string }) {
   const year = new Date().getFullYear();
+  const t = await getTranslations({ locale, namespace: 'footer' });
 
   return (
     <footer className="border-border bg-card border-t">
@@ -18,22 +20,20 @@ export function SiteFooter({ locale }: { locale: string }) {
               <Image src={logo} alt="Elýeter" width={140} height={40} className="h-9 w-auto" />
             </Link>
 
-            <p className="text-muted-foreground mt-5 max-w-sm text-sm leading-6">
-              Gündelik durmuşuňyz üçin gerek bolan zatlaryňyzy aňsatlyk bilen tapyň we sargyt ediň.
-            </p>
+            <p className="text-muted-foreground mt-5 max-w-sm text-sm leading-6">{t('tagline')}</p>
 
             <Link
               href={`/${locale}/search`}
               className="hover:text-primary mt-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
             >
-              Söwda etmäge başla
+              {t('startShopping')}
               <ArrowUpRight size={15} />
             </Link>
           </div>
 
           {/* Shop */}
           <div>
-            <h3 className="text-sm font-semibold">Shop</h3>
+            <h3 className="text-sm font-semibold">{t('shop')}</h3>
 
             <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
               <li>
@@ -41,7 +41,7 @@ export function SiteFooter({ locale }: { locale: string }) {
                   href={`/${locale}/search`}
                   className="hover:text-foreground transition-colors"
                 >
-                  Search
+                  {t('search')}
                 </Link>
               </li>
 
@@ -50,13 +50,13 @@ export function SiteFooter({ locale }: { locale: string }) {
                   href={`/${locale}/discounted`}
                   className="hover:text-foreground transition-colors"
                 >
-                  Sale
+                  {t('sale')}
                 </Link>
               </li>
 
               <li>
                 <Link href={`/${locale}/cart`} className="hover:text-foreground transition-colors">
-                  Cart
+                  {t('cart')}
                 </Link>
               </li>
 
@@ -65,7 +65,7 @@ export function SiteFooter({ locale }: { locale: string }) {
                   href={`/${locale}/account/wishlist`}
                   className="hover:text-foreground transition-colors"
                 >
-                  Wishlist
+                  {t('wishlist')}
                 </Link>
               </li>
             </ul>
@@ -73,7 +73,7 @@ export function SiteFooter({ locale }: { locale: string }) {
 
           {/* Account */}
           <div>
-            <h3 className="text-sm font-semibold">Account</h3>
+            <h3 className="text-sm font-semibold">{t('account')}</h3>
 
             <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
               <li>
@@ -81,7 +81,7 @@ export function SiteFooter({ locale }: { locale: string }) {
                   href={`/${locale}/account`}
                   className="hover:text-foreground transition-colors"
                 >
-                  My account
+                  {t('myAccount')}
                 </Link>
               </li>
 
@@ -90,12 +90,12 @@ export function SiteFooter({ locale }: { locale: string }) {
                   href={`/${locale}/account/orders`}
                   className="hover:text-foreground transition-colors"
                 >
-                  Orders
+                  {t('orders')}
                 </Link>
               </li>
 
               <li>
-                <span className="text-muted-foreground">Ashgabat, Turkmenistan</span>
+                <span className="text-muted-foreground">{t('location')}</span>
               </li>
             </ul>
           </div>
@@ -103,9 +103,9 @@ export function SiteFooter({ locale }: { locale: string }) {
 
         {/* Bottom */}
         <div className="border-border text-muted-foreground flex flex-col gap-3 border-t py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} Elýeter. All rights reserved.</p>
+          <p>{t('rights', { year })}</p>
 
-          <p className="text-muted-foreground/70">Gerek zat. Bir ýerde.</p>
+          <p className="text-muted-foreground/70">{t('slogan')}</p>
         </div>
       </div>
     </footer>

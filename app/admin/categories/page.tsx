@@ -1,40 +1,32 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Tag, ImageOff } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Plus, Tag, ImageOff } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { categoryListOptions, adminCategoryTreeOptions } from '@/features/categories/api/queries';
-import {
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
-  useDeleteCategoryMutation,
-} from '@/features/categories/api/mutations';
-import { CategoryFormDialog } from '@/features/categories/components/CategoryFormDialog';
+import { useDeleteCategoryMutation } from '@/features/categories/api/mutations';
 import { DataTable } from '@/components/shared/DataTable';
 import { DataTableToolbar } from '@/components/shared/DataTableToolbar';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+import { TableActions } from '@/components/shared/TableActions';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   categoryTranslation,
   type Category,
   type CategoryTreeNode,
 } from '@/features/categories/types';
 
-/**
- * ✅ Şema doğrulandı (curl, 2026-09-07): POST/GET /categories,
- * GET/PATCH/DELETE /categories/{id}. 2026-09-14'te parent-child hiyerarşisi
- * eklendi (max 3 seviye): tree query'si parent selector'ü besliyor, tabloya
- * Parent kolonu geldi. 2026-09-18: backend `search` param'ı (translation adında
- * case-insensitive substring) toolbar'a bağlandı; görsel (imageUrl) önizleme
- * kolonu + sayfalama eklendi. Users/Products sayfalarıyla AYNI pattern.
- */
 export default function AdminCategoriesPage() {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { can } = useAuth();
+  const router = useRouter();
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -43,17 +35,13 @@ export default function AdminCategoriesPage() {
 
   const { data, isLoading } = useQuery(categoryListOptions(storeId, page, search));
 
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<Category | null>(null);
 
-  const createCategory = useCreateCategoryMutation(storeId);
-  const updateCategory = useUpdateCategoryMutation(storeId);
   const deleteCategory = useDeleteCategoryMutation(storeId);
 
   const categories = data?.items ?? [];
 
-  // Parent selector için hiyerarşik ağaç (sadece aktif kategoriler).
+  // Parent selector tree for mapping parent names
   const { data: treeData } = useQuery(adminCategoryTreeOptions(storeId));
   const tree = treeData ?? [];
 
@@ -64,21 +52,6 @@ export default function AdminCategoriesPage() {
     flatten(tree).map((n) => [n.id, categoryTranslation(n, 'en')?.name ?? '—']),
   );
 
-  function openCreate() {
-    setEditingCategory(null);
-    setDialogMode('create');
-  }
-
-  function openEdit(category: Category) {
-    setEditingCategory(category);
-    setDialogMode('edit');
-  }
-
-  function closeDialog() {
-    setDialogMode(null);
-    setEditingCategory(null);
-  }
-
   async function confirmDelete() {
     if (!pendingDeleteCategory) return;
     const name = categoryTranslation(pendingDeleteCategory, 'en')?.name ?? 'Category';
@@ -88,20 +61,24 @@ export default function AdminCategoriesPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground font-serif text-2xl italic">Categories</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{data?.meta.total ?? 0} categories</p>
+          <h1 className="text-foreground font-serif text-2xl tracking-tight italic">Categories</h1>
+          <p className="text-muted-foreground mt-1 text-xs">
+            {data?.meta.total ?? 0} total categories
+          </p>
         </div>
         {can('category.create') && (
-          <Button onClick={openCreate}>
-            <Plus size={16} /> New category
+          <Button asChild>
+            <Link href="/admin/categories/new">
+              <Plus className="size-4" /> New category
+            </Link>
           </Button>
         )}
       </div>
 
-      <div className="mt-6">
+      <div>
         <DataTableToolbar
           searchValue={search}
           onSearchChange={(value) => {
@@ -132,6 +109,7 @@ export default function AdminCategoriesPage() {
           onPageChange={setPage}
           columnVisibility={columnVisibility}
           columnOrder={columnOrder}
+          enableRowSelection
           emptyTitle="No categories yet"
           emptyDescription="Categories you create will show up here and organize your product catalog."
           emptyIcon={Tag}
@@ -141,16 +119,20 @@ export default function AdminCategoriesPage() {
               header: '',
               cell: (row) =>
                 row.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={row.imageUrl}
-                    alt=""
-                    className="bg-background h-10 w-16 rounded-md object-cover"
-                  />
+                  <div className="border-border bg-muted relative h-10 w-16 overflow-hidden rounded-md border">
+                    <Image
+                      src={row.imageUrl}
+                      alt={categoryTranslation(row, 'en')?.name ?? 'Category thumbnail'}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
                 ) : (
-                  <span className="bg-background text-muted-foreground flex h-10 w-16 items-center justify-center rounded-md">
-                    <ImageOff size={14} />
-                  </span>
+                  <div className="border-border bg-muted text-muted-foreground flex h-10 w-16 items-center justify-center rounded-md border">
+                    <ImageOff className="size-3.5" />
+                  </div>
                 ),
             },
             {
@@ -171,7 +153,7 @@ export default function AdminCategoriesPage() {
               id: 'slug',
               header: 'Slug',
               cell: (row) => (
-                <span className="text-muted-foreground text-sm">
+                <span className="text-muted-foreground font-mono text-sm">
                   {categoryTranslation(row, 'en')?.slug}
                 </span>
               ),
@@ -189,72 +171,33 @@ export default function AdminCategoriesPage() {
               id: 'status',
               header: 'Status',
               cell: (row) => (
-                <StatusBadge tone={row.isActive ? 'success' : 'neutral'}>
+                <Badge
+                  variant={row.isActive ? 'default' : 'secondary'}
+                  className="px-2 py-0.5 text-[11px]"
+                >
                   {row.isActive ? 'Active' : 'Disabled'}
-                </StatusBadge>
+                </Badge>
               ),
             },
             {
               header: '',
               className: 'text-right',
               cell: (row) => (
-                <div className="flex justify-end gap-1">
-                  {can('category.update') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(row)}
-                      aria-label="Edit"
-                    >
-                      <Pencil size={15} />
-                    </Button>
-                  )}
-                  {can('category.delete') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDeleteCategory(row)}
-                      aria-label="Delete"
-                      className="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={15} />
-                    </Button>
-                  )}
-                </div>
+                <TableActions
+                  onEdit={
+                    can('category.update')
+                      ? () => router.push(`/admin/categories/${row.id}`)
+                      : undefined
+                  }
+                  onDelete={
+                    can('category.delete') ? () => setPendingDeleteCategory(row) : undefined
+                  }
+                />
               ),
             },
           ]}
         />
       </div>
-
-      <CategoryFormDialog
-        open={dialogMode !== null}
-        mode={dialogMode ?? 'create'}
-        tree={tree}
-        initialCategory={editingCategory ?? undefined}
-        isSubmitting={createCategory.isPending || updateCategory.isPending}
-        onCancel={closeDialog}
-        onSubmitCreate={(values) =>
-          createCategory.mutate(values, {
-            onSuccess: () => {
-              toast.success('Category created.');
-              closeDialog();
-            },
-          })
-        }
-        onSubmitEdit={(values) => {
-          if (!editingCategory) return;
-          updateCategory.mutate(
-            { categoryId: editingCategory.id, input: values },
-            {
-              onSuccess: () => {
-                toast.success('Category updated.');
-                closeDialog();
-              },
-            },
-          );
-        }}
-      />
 
       <ConfirmDialog
         open={pendingDeleteCategory !== null}

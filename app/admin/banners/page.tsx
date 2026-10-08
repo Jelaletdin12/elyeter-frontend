@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Image as ImageIcon } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -15,6 +15,7 @@ import {
 import { BannerFormDialog } from '@/features/banners/components/BannerFormDialog';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { TableActions } from '@/components/shared/TableActions';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import type { Banner } from '@/features/banners/types';
@@ -109,25 +110,10 @@ export default function AdminBannersPage() {
                   <div className="flex items-center justify-between p-3">
                     <p className="text-muted-foreground truncate text-xs">Order {banner.order}</p>
                     {can('banner.manage') && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(banner)}
-                          aria-label="Edit"
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setPendingDeleteBanner(banner)}
-                          aria-label="Delete"
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
+                      <TableActions
+                        onEdit={() => openEdit(banner)}
+                        onDelete={() => setPendingDeleteBanner(banner)}
+                      />
                     )}
                   </div>
                 </div>

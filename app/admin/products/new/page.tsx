@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/admin';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCreateProductMutation } from '@/features/products/api/mutations';
@@ -16,40 +17,49 @@ export default function NewProductPage() {
   const createProduct = useCreateProductMutation(storeId);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link
-        href="/admin/products"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
-      >
-        <ArrowLeft size={14} />
-        {t('products.backToProducts', 'Back to products')}
-      </Link>
+    <div className="mx-auto space-y-6">
+      <div className="space-y-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="text-muted-foreground hover:text-foreground -ml-2 h-8"
+        >
+          <Link href="/admin/products">
+            <ArrowLeft className="size-4" />
+            {t('products.backToProducts', 'Back to products')}
+          </Link>
+        </Button>
 
-      <h1 className="text-foreground mt-3 font-serif text-2xl italic">
-        {t('products.newTitle', 'New product')}
-      </h1>
-
-      <div className="mt-6">
-        <ProductForm
-          mode="create"
-          isSubmitting={createProduct.isPending}
-          onCancel={() => router.push('/admin/products')}
-          onSubmitCreate={(values) =>
-            createProduct.mutate(values, {
-              onSuccess: (product) => {
-                toast.success(t('products.created', 'Product created.'));
-                router.push(`/admin/products/${product.id}`);
-              },
-              onError: () => {
-                toast.error(
-                  t('products.createFailed', 'Could not create the product. Please try again.'),
-                );
-              },
-            })
-          }
-          onSubmitEdit={() => {}}
-        />
+        <div>
+          <h1 className="text-foreground font-serif text-2xl tracking-tight italic">
+            {t('products.newTitle', 'New product')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Create a new product item in your store catalog.
+          </p>
+        </div>
       </div>
+
+      <ProductForm
+        mode="create"
+        isSubmitting={createProduct.isPending}
+        onCancel={() => router.push('/admin/products')}
+        onSubmitCreate={(values) =>
+          createProduct.mutate(values, {
+            onSuccess: (product) => {
+              toast.success(t('products.created', 'Product created.'));
+              router.push(`/admin/products/${product.id}`);
+            },
+            onError: () => {
+              toast.error(
+                t('products.createFailed', 'Could not create the product. Please try again.'),
+              );
+            },
+          })
+        }
+        onSubmitEdit={() => {}}
+      />
     </div>
   );
 }

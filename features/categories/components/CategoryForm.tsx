@@ -1,23 +1,12 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SearchableSelect } from '@/components/shared/SearchableSelect';
 import { useMediaUpload } from '@/features/media/hooks/useMediaUpload';
 import { MediaUploadField } from '@/features/media/components/MediaUploadField';
 import type {
@@ -37,24 +26,21 @@ const LOCALES: { code: CategoryLocale; label: string }[] = [
 
 const ROOT_SENTINEL = '__root__';
 
-type CategoryFormDialogProps = {
-  open: boolean;
+interface CategoryFormProps {
   mode: 'create' | 'edit';
-  /** Hiyerarşik parent selector için GET /categories/tree yanıtı. */
   tree: CategoryTreeNode[];
   initialCategory?: Category;
   isSubmitting: boolean;
   onCancel: () => void;
   onSubmitCreate: (values: CreateCategoryInput) => void;
   onSubmitEdit: (values: UpdateCategoryInput) => void;
-};
+}
 
 function emptyNames(): Record<CategoryLocale, string> {
   return { en: '', ru: '', tk: '' };
 }
 
-export function CategoryFormDialog({
-  open,
+export function CategoryForm({
   mode,
   tree,
   initialCategory,
@@ -62,7 +48,7 @@ export function CategoryFormDialog({
   onCancel,
   onSubmitCreate,
   onSubmitEdit,
-}: CategoryFormDialogProps) {
+}: CategoryFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingMedia, isUploading, error, upload, discard, reset } =
     useMediaUpload('CATEGORY_IMAGE');
@@ -70,7 +56,6 @@ export function CategoryFormDialog({
   const [names, setNames] = useState<Record<CategoryLocale, string>>(emptyNames());
   const [isActive, setIsActive] = useState(true);
   const [parentId, setParentId] = useState<string | null>(null);
-  // Dosyadan yüklenip henüz bağlanmamış görselin media id'si (submit'te imageMediaId olarak gider).
   const [imageMediaId, setImageMediaId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
 
@@ -90,11 +75,8 @@ export function CategoryFormDialog({
     }
     setImageMediaId(null);
     reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, initialCategory, open]);
+  }, [mode, initialCategory]);
 
-  // Düzenleme modunda bu kategorinin kendisi + alt ağacı parent olarak
-  // seçilemez (derinlik döngüsü) — backend de reddeder ama UI erken engeller.
   const parentOptions = flattenCategoryTree(
     tree,
     0,
@@ -107,9 +89,7 @@ export function CategoryFormDialog({
     try {
       const result = await upload(file);
       setImageMediaId(result.id);
-    } catch {
-      // Hata zaten useMediaUpload'ın `error` state'inde.
-    }
+    } catch {}
   }
 
   async function handleCancel() {
@@ -120,9 +100,6 @@ export function CategoryFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Sadece dolu bırakılan diller gönderilir — slug/metaTitle/metaDescription
-    // backend'de name'den otomatik üretiliyor (CategoryTranslationDto notu),
-    // frontend elle doldurmaz.
     const translations = LOCALES.filter(({ code }) => names[code].trim()).map(({ code }) => ({
       locale: code,
       name: names[code].trim(),
@@ -138,14 +115,11 @@ export function CategoryFormDialog({
         translations,
       });
     } else {
-      // parentId yalnızca kullanıcı değiştirdiyse gönderilir — undefined
-      // "dokunma" anlamına gelir (backend update semantiği).
       const parentChanged = parentId !== (initialCategory?.parentId ?? null);
       const imageChanged = typedUrl !== (initialCategory?.imageUrl ?? null);
 
       let patch: UpdateCategoryInput = { isActive, translations };
       if (imageMediaId) {
-        // Yeni dosya yüklendi — backend eski MinIO object'ini siler (claim akışı).
         patch = { ...patch, imageMediaId };
       } else if (imageChanged) {
         patch = { ...patch, imageUrl: typedUrl };
@@ -158,29 +132,58 @@ export function CategoryFormDialog({
   const hasAtLeastOneName = LOCALES.some(({ code }) => names[code].trim());
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && handleCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'New category' : 'Edit category'}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Category Names</CardTitle>
+          <CardDescription className="text-xs">
+            Enter the category name in English, Russian, and Turkmen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {LOCALES.map(({ code, label }) => (
             <div key={code} className="space-y-1.5">
               <Label htmlFor={`name-${code}`}>
                 Name <span className="text-muted-foreground">({label})</span>
+                {code === 'en' && <span className="text-destructive"> *</span>}
               </Label>
               <Input
                 id={`name-${code}`}
                 value={names[code]}
                 onChange={(e) => setNames((n) => ({ ...n, [code]: e.target.value }))}
-                placeholder={code === 'en' ? 'Electronics' : undefined}
+                placeholder={code === 'en' ? 'e.g. Electronics' : undefined}
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Parent & Image</CardTitle>
+          <CardDescription className="text-xs">
+            Set hierarchy and upload an optional cover image.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="parent-category">Parent category</Label>
+            <SearchableSelect
+              value={parentId ?? ROOT_SENTINEL}
+              onValueChange={(v) => setParentId(v === ROOT_SENTINEL ? null : v)}
+              options={[
+                { value: ROOT_SENTINEL, label: 'No parent (root category)' },
+                ...parentOptions.map((opt) => ({ value: opt.id, label: opt.label })),
+              ]}
+              placeholder="No parent (root category)"
+              searchPlaceholder="Search categories…"
+              emptyText="No results"
+              label="Parent category"
+            />
+          </div>
 
           <MediaUploadField
-            label="Image"
+            label="Category Image"
             hint="Upload a file — it's cropped to a category card and stored on MinIO."
             initialUrl={initialCategory?.imageUrl ?? null}
             pendingMedia={pendingMedia}
@@ -195,7 +198,7 @@ export function CategoryFormDialog({
             }}
           />
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 pt-1">
             <Label htmlFor="category-image-url">Image URL (alternative)</Label>
             <Input
               id="category-image-url"
@@ -208,50 +211,32 @@ export function CategoryFormDialog({
               Optional. Only if you don&apos;t upload a file above.
             </p>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="parent-category">Parent category</Label>
-            <Select
-              value={parentId ?? ROOT_SENTINEL}
-              onValueChange={(v) => setParentId(v === ROOT_SENTINEL ? null : v)}
-            >
-              <SelectTrigger id="parent-category" className="w-full">
-                <SelectValue placeholder="No parent (root category)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ROOT_SENTINEL}>No parent (root category)</SelectItem>
-                {parentOptions.map((opt) => (
-                  <SelectItem key={opt.id} value={opt.id}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <label className="text-foreground flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isActive"
               checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="border-border h-4 w-4 rounded"
+              onCheckedChange={(checked) => setIsActive(checked === true)}
             />
-            Active
-          </label>
+            <Label htmlFor="isActive" className="cursor-pointer text-sm font-medium">
+              Category is active and visible to customers
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || isUploading || !hasAtLeastOneName}
-            >
-              {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Button type="button" variant="outline" onClick={handleCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting || isUploading || !hasAtLeastOneName}>
+          {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create category' : 'Save changes'}
+        </Button>
+      </div>
+    </form>
   );
 }

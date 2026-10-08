@@ -1,13 +1,11 @@
+import { useTranslations } from 'next-intl';
 import { AccountNav } from '@/features/account/components/AccountNav';
 
-/** STANDARDS.md #4: Hesap bölümü — CSR, cache yok. Sekmeler (Profil /
- *  Favoriler / Siparişler) alt sayfalarda ortak başlık olarak görünür. */
-export const dynamic = 'force-dynamic';
-
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('account');
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-foreground text-xl font-semibold">Hesabım</h1>
+      <h1 className="text-foreground text-xl font-semibold">{t('title')}</h1>
       <div className="mt-4">
         <AccountNav />
       </div>

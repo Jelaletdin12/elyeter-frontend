@@ -4,9 +4,9 @@ import { isValidLocale } from './config';
 
 /**
  * FRONTEND_AGENTS.md #4 / STANDARDS #11: backend'in i18n key'leri (errors.*)
- * ile frontend'in kendi UI key'leri (common.*, products.*) AYNI namespace'te
- * karışmaz. Backend hata key'leri lib/i18n/error-messages/{locale}.json'da,
- * UI metinleri messages/{locale}.json'da ayrı tutulur.
+ * ile frontend'in kendi UI key'leri (common.*, products.*) aynı
+ * messages/{locale}.json içinde ayrı namespace'lerde tutulur (errors ns backend
+ * anahtarları, geri kalanı UI metinleri).
  */
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;

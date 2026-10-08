@@ -11,30 +11,22 @@ import { queryKeys } from '@/lib/api/query-keys';
 import { useAuthStore } from '@/stores/auth-store';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
+import { ProductCard } from '@/features/home/components/ProductCard';
 import { VisualSearchPanel } from '@/features/search/components/VisualSearchPanel';
+import type { Product } from '@/features/products/types';
 
 type SearchMode = 'text' | 'image';
 
 /**
  * ⚠️ GET /search'in response şeması Swagger'da yok — backend search.service.ts'ten
- * çıkarıldı (2026-09-10). Şekil her zaman { products, categories }; `price`
- * Decimal serialization yüzünden string gelir ("From X" değil, en ucuz aktif
- * varyantın fiyatı).
+ * çıkarıldı (2026-09-10). `products` öğeleri tam populate edilmiş ürün kartlarıdır
+ * (translations + brand + category + images + variants + inventory) — image
+ * arama sonuçlarıyla aynı ProductCard ile çizilir.
  */
-type SearchProductResult = {
-  id: string;
-  sku: string;
-  price: string;
-  slug: string;
-  name: string;
-  cardImageUrl: string | null;
-  matchedIn: 'name' | 'description';
-};
-
 type SearchCategoryResult = { id: string; slug: string; name: string };
 
 type SearchResultsData = {
-  products: SearchProductResult[];
+  products: Product[];
   categories: SearchCategoryResult[];
 };
 
@@ -126,7 +118,7 @@ export function SearchResults() {
             autoFocus
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search products..."
+            placeholder={t('productsPlaceholder')}
             className="border-border mt-4 w-full rounded-md border px-3 py-2 text-sm"
           />
 
@@ -136,15 +128,17 @@ export function SearchResults() {
             <div className="mt-4">
               <EmptyState
                 icon={SearchX}
-                title={`No results for "${debouncedTerm}"`}
-                description="Try a different search term or check the spelling."
+                title={t('noResultsTitle', { term: debouncedTerm })}
+                description={t('noResultsDescription')}
               />
             </div>
           )}
 
           {data?.categories.length ? (
             <div className="mt-6">
-              <h2 className="text-muted-foreground text-sm font-medium">Categories</h2>
+              <h2 className="text-muted-foreground text-sm font-medium">
+                {t('categoriesHeading')}
+              </h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 {data.categories.map((category) => (
                   <Link
@@ -159,26 +153,12 @@ export function SearchResults() {
             </div>
           ) : null}
 
-          <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* Ürün kartları — image arama sonuçlarıyla AYNI ProductCard (marksar
+              indirim rozeti, carousel, stok/CTA dahil). */}
+          <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {data?.products.map((product) => (
               <li key={product.id}>
-                <Link href={`/${locale}/products/${product.slug}`} className="group block">
-                  <div className="border-border bg-card relative aspect-square overflow-hidden rounded-lg border">
-                    {product.cardImageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element -- gerçek entegrasyonda next/image + remotePatterns
-                      <img
-                        src={product.cardImageUrl}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                      />
-                    )}
-                  </div>
-                  <p className="text-foreground mt-2 truncate text-sm">{product.name}</p>
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-foreground font-serif text-sm italic">{product.price}</p>
-                    <p className="text-muted-foreground text-xs">{product.sku}</p>
-                  </div>
-                </Link>
+                <ProductCard product={product} locale={locale} />
               </li>
             ))}
           </ul>

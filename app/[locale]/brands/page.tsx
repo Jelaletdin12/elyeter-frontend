@@ -4,13 +4,6 @@ import { getPublicCategoryTree } from '@/features/categories/api/queries';
 import { BrandFilters } from '@/features/brands/components/BrandFilters';
 import { categoryTranslation, type CategoryTreeNode } from '@/features/categories/types';
 
-/**
- * TÜM MARKALAR — GET /brands (public, curl ile doğrulanmış: brand listesi + slug).
- * STANDARDS.md #4: ISR — getPublicBrands revalidate:300, tags:['brands','home'].
- * `generateStaticParams` KULLANILMAZ (bkz. [categorySlug] notu) — marka listesi
- * ilk istekte ISR'a girer. 2026-09-18: arama + kategori filtreleme
- * (BrandFilters client bileşeni, backend search/categoryId param'ları).
- */
 export const metadata: Metadata = {
   title: 'Brands',
 };

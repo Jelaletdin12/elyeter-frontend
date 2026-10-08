@@ -2,11 +2,6 @@ import type { Metadata } from 'next';
 import { getPublicCategories } from '@/features/categories/api/queries';
 import { CategoryBrowser } from '@/features/categories/components/CategoryBrowser';
 
-/**
- * KATEGORİ DİZİNİ — GET /categories (public). STANDARDS.md #4: ISR,
- * getPublicCategories revalidate:300, tags:['categories','home'].
- * Arama + liste client bileşeni (CategoryBrowser).
- */
 export const metadata: Metadata = {
   title: 'Categories',
 };

@@ -1,20 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import {
-  Check,
-  Loader2,
-  Minus,
-  Plus,
-  ShoppingCart,
-  Truck,
-} from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
+import { Check, Loader2, Minus, Plus, ShoppingCart, Truck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
-import { useAddCartItemMutation } from '@/features/cart/api/mutations';
+import { useCartItemQuantity } from '@/features/cart/hooks/useCartItemQuantity';
+import { NotifyMeButton } from '@/features/notifications/components/NotifyMeButton';
+import { toast } from '@/components/ui/sonner';
+import { useVariantSelection } from './VariantSelectionProvider';
 
 import type { ProductVariant } from '../types';
 
@@ -31,62 +27,51 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 function formatPrice(value: string | number) {
   const num = typeof value === 'string' ? Number(value) : value;
 
-  return Number.isNaN(num)
-    ? String(value)
-    : currencyFormatter.format(num);
+  return Number.isNaN(num) ? String(value) : currencyFormatter.format(num);
 }
 
 function normalizeAttributeName(value: string) {
-  return value
-    .replace(/[_-]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function ProductVariantPicker({
-  variants,
-}: ProductVariantPickerProps) {
-  const storeId = useAuthStore((state) => state.activeStoreId);
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated,
-  );
+export function ProductVariantPicker({ variants }: ProductVariantPickerProps) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const tCommon = useTranslations('common');
+  const tProducts = useTranslations('products');
 
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    variants[0]?.id ?? '',
-  );
+  const { selectedVariant, selectVariant } = useVariantSelection();
 
-  const [quantity, setQuantity] = useState(1);
-
-  const addItem = useAddCartItemMutation(storeId);
-
-  const selectedVariant = variants.find(
-    (variant) => variant.id === selectedVariantId,
-  );
+  // Pasif varyantlar satılabilir değil — karttaki ProductCard ile aynı filtre.
+  // (Backend `addItem` da isActive:true şartı koşuyor, seçilirse 404 verirdi.)
+  const activeVariants = useMemo(() => variants.filter((variant) => variant.isActive), [variants]);
 
   const availableQuantity = selectedVariant?.inventory
-    ? Math.max(
-        0,
-        selectedVariant.inventory.quantity -
-          selectedVariant.inventory.reservedQuantity,
-      )
+    ? Math.max(0, selectedVariant.inventory.quantity - selectedVariant.inventory.reservedQuantity)
     : 0;
 
   const isOutOfStock = availableQuantity <= 0;
 
   const isLowStock =
-    !isOutOfStock &&
-    availableQuantity <=
-      (selectedVariant?.inventory?.lowStockThreshold ?? 0);
+    !isOutOfStock && availableQuantity <= (selectedVariant?.inventory?.lowStockThreshold ?? 0);
+
+  const {
+    quantity,
+    increment,
+    decrement,
+    isPending: isCartMutating,
+    canIncrement,
+    canDecrement,
+  } = useCartItemQuantity({
+    variantId: selectedVariant?.id ?? '',
+    availableQuantity,
+    onAuthRequired: () => toast.error(tCommon('signInToCart')),
+  });
 
   const attributeGroups = useMemo(() => {
     const groups = new Map<string, string[]>();
 
-    variants.forEach((variant) => {
-      const attributes = variant.attributes as Record<
-        string,
-        string
-      >;
-
-      Object.entries(attributes).forEach(([key, value]) => {
+    activeVariants.forEach((variant) => {
+      Object.entries(variant.attributes).forEach(([key, value]) => {
         if (!groups.has(key)) {
           groups.set(key, []);
         }
@@ -103,12 +88,20 @@ export function ProductVariantPicker({
       key,
       values,
     }));
-  }, [variants]);
+  }, [activeVariants]);
+
+  /**
+   * Attribute'sız varyantlar (ör. ürün create'inde otomatik oluşan ilk varyant)
+   * hiçbir attribute grubunda temsil edilemez — sadece değer butonlarıyla
+   * onlara asla geri dönülemez. Bu durumda tüm varyantlar chip olarak
+   * gösterilir ve attribute grupları gizlenir (chip zaten her şeyi kapsar).
+   */
+  const useVariantChips =
+    activeVariants.length > 1 &&
+    activeVariants.some((variant) => Object.keys(variant.attributes).length === 0);
 
   const selectedAttributes = useMemo(() => {
-    return (
-      (selectedVariant?.attributes as Record<string, string>) ?? {}
-    );
+    return (selectedVariant?.attributes as Record<string, string>) ?? {};
   }, [selectedVariant]);
 
   const discountPercentage = useMemo(() => {
@@ -119,74 +112,44 @@ export function ProductVariantPicker({
     const price = Number(selectedVariant.price);
     const compareAt = Number(selectedVariant.compareAtPrice);
 
-    if (
-      !Number.isFinite(price) ||
-      !Number.isFinite(compareAt) ||
-      compareAt <= price
-    ) {
+    if (!Number.isFinite(price) || !Number.isFinite(compareAt) || compareAt <= price) {
       return null;
     }
 
     return Math.round(((compareAt - price) / compareAt) * 100);
   }, [selectedVariant]);
 
-  function selectAttribute(
-    attributeKey: string,
-    value: string,
-  ) {
-    const candidate = variants.find((variant) => {
-      const attributes = variant.attributes as Record<
-        string,
-        string
-      >;
+  /**
+   * Bir attribute değerine tıklamak her zaman bir varyant seçmeli:
+   * 1) Diğer seçili değerlerin hepsini koruyan (tam eşleşme) varyant varsa o.
+   * 2) Tam eşleşme yoksa (çapraz kombinasyon, örn. Red+L yoksa) diğer seçili
+   *    anahtarlardan vazgeçerek en çok eşleşen varyanta geçilir — buton asla
+   *    "disabled" olmaz, varyantlar arası geçiş her zaman yapılabilir.
+   */
+  function selectAttribute(attributeKey: string, value: string) {
+    const currentAttributes = selectedVariant?.attributes ?? {};
 
-      if (attributes[attributeKey] !== value) {
-        return false;
-      }
-
-      return Object.entries(selectedAttributes).every(
-        ([key, selectedValue]) => {
-          if (key === attributeKey) {
-            return true;
-          }
-
-          return attributes[key] === selectedValue;
-        },
-      );
-    });
-
-    if (!candidate) {
-      return;
-    }
-
-    setSelectedVariantId(candidate.id);
-    setQuantity(1);
-  }
-
-  function handleAddToCart() {
-    if (!isAuthenticated) {
-      toast.error('Sign in to add products to your cart.');
-      return;
-    }
-
-    if (!selectedVariant || isOutOfStock) {
-      return;
-    }
-
-    addItem.mutate(
-      {
-        productVariantId: selectedVariant.id,
-        quantity,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Added to cart.');
-        },
-        onError: () => {
-          toast.error('Could not add product to cart.');
-        },
-      },
+    const candidates = activeVariants.filter(
+      (variant) => variant.attributes[attributeKey] === value,
     );
+    if (candidates.length === 0) return;
+
+    const otherKeys = Object.keys(currentAttributes).filter((key) => key !== attributeKey);
+    const matchCount = (variant: ProductVariant) =>
+      otherKeys.filter((key) => variant.attributes[key] === currentAttributes[key]).length;
+    const matchesAllOthers = (variant: ProductVariant) =>
+      otherKeys.every((key) => variant.attributes[key] === currentAttributes[key]);
+
+    const exactMatch = candidates
+      .filter(matchesAllOthers)
+      .find((variant) => variant.id !== selectedVariant?.id);
+
+    const relaxedMatch = [...candidates]
+      .sort((a, b) => matchCount(b) - matchCount(a))
+      .find((variant) => variant.id !== selectedVariant?.id);
+
+    const next = exactMatch ?? relaxedMatch;
+    if (next) selectVariant(next.id);
   }
 
   if (!selectedVariant) {
@@ -215,80 +178,85 @@ export function ProductVariantPicker({
           )}
         </div>
 
-        <p className="text-muted-foreground text-xs">
-          Price includes applicable taxes
-        </p>
+        <p className="text-muted-foreground text-xs">{tProducts('priceWithTaxes')}</p>
       </div>
 
-      {/* VARIANTS */}
-      {attributeGroups.length > 0 && (
+      {/* VARIANTS — attribute'sız varyant varsa chip listesi, yoksa attribute grupları */}
+      {useVariantChips && (
+        <div className="space-y-2.5">
+          <span className="text-sm font-semibold">{tProducts('variantLabel')}</span>
+
+          <div className="flex flex-wrap gap-2">
+            {activeVariants.map((variant) => {
+              const entries = Object.entries(variant.attributes);
+              const label =
+                entries.length > 0
+                  ? entries
+                      .map(([key, val]) => `${normalizeAttributeName(key)}: ${val}`)
+                      .join(' · ')
+                  : variant.sku;
+              const isSelected = variant.id === selectedVariant?.id;
+
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={() => selectVariant(variant.id)}
+                  className={cn(
+                    'relative min-w-16 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all',
+                    'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none',
+                    isSelected && 'border-primary bg-primary/5 text-primary shadow-sm',
+                    !isSelected &&
+                      'border-border bg-background hover:border-foreground/30 hover:-translate-y-0.5 hover:shadow-sm',
+                  )}
+                >
+                  {label}
+
+                  {isSelected && (
+                    <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full">
+                      <Check className="size-2.5" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!useVariantChips && attributeGroups.length > 0 && (
         <div className="space-y-5">
           {attributeGroups.map(({ key, values }) => (
             <div key={key} className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">
-                  {normalizeAttributeName(key)}
-                </span>
+                <span className="text-sm font-semibold">{normalizeAttributeName(key)}</span>
 
                 <span className="text-muted-foreground text-xs">
-                  {selectedAttributes[key] ?? 'Select'}
+                  {selectedAttributes[key] ?? tProducts('selectAttribute')}
                 </span>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 {values.map((value) => {
-                  const isSelected =
-                    selectedAttributes[key] === value;
-
-                  const isAvailable = variants.some((variant) => {
-                    const attributes =
-                      variant.attributes as Record<
-                        string,
-                        string
-                      >;
-
-                    if (attributes[key] !== value) {
-                      return false;
-                    }
-
-                    return Object.entries(selectedAttributes).every(
-                      ([selectedKey, selectedValue]) => {
-                        if (selectedKey === key) {
-                          return true;
-                        }
-
-                        return (
-                          attributes[selectedKey] ===
-                          selectedValue
-                        );
-                      },
-                    );
-                  });
+                  const isSelected = selectedAttributes[key] === value;
 
                   return (
                     <button
                       key={`${key}-${value}`}
                       type="button"
-                      disabled={!isAvailable}
-                      onClick={() =>
-                        selectAttribute(key, value)
-                      }
+                      onClick={() => selectAttribute(key, value)}
                       className={cn(
                         'relative min-w-16 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all',
-                        'focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none',
-                        isSelected &&
-                          'border-primary bg-primary/5 text-primary shadow-sm',
+                        'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none',
+                        isSelected && 'border-primary bg-primary/5 text-primary shadow-sm',
                         !isSelected &&
-                          isAvailable &&
-                          'border-border bg-background hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-sm',
-                        !isAvailable &&
-                          'cursor-not-allowed opacity-35 line-through',
+                          'border-border bg-background hover:border-foreground/30 hover:-translate-y-0.5 hover:shadow-sm',
                       )}
                     >
                       {value}
 
                       {isSelected && (
-                        <span className="bg-primary absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full text-primary-foreground">
+                        <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full">
                           <Check className="size-2.5" />
                         </span>
                       )}
@@ -315,11 +283,7 @@ export function ProductVariantPicker({
         <span
           className={cn(
             'size-2 rounded-full',
-            isOutOfStock
-              ? 'bg-destructive'
-              : isLowStock
-                ? 'bg-amber-500'
-                : 'bg-emerald-500',
+            isOutOfStock ? 'bg-destructive' : isLowStock ? 'bg-amber-500' : 'bg-emerald-500',
           )}
         />
 
@@ -342,172 +306,164 @@ export function ProductVariantPicker({
           </p>
 
           {!isOutOfStock && (
-            <p className="text-muted-foreground text-xs">
-              {availableQuantity} available
-            </p>
+            <p className="text-muted-foreground text-xs">{availableQuantity} available</p>
           )}
         </div>
 
-        {!isOutOfStock && (
-          <Truck className="text-muted-foreground size-4" />
-        )}
+        {!isOutOfStock && <Truck className="text-muted-foreground size-4" />}
       </div>
 
-      {/* DESKTOP PURCHASE */}
-      <div className="hidden space-y-3 sm:block">
-        <div className="flex gap-3">
-          {/* QUANTITY */}
-          <div className="flex h-12 items-center rounded-xl border bg-background">
+      {/* BACK IN STOCK — seçili varyant stokta yoksa abonelik butonu */}
+      {isOutOfStock && <NotifyMeButton productVariantId={selectedVariant.id} />}
+
+      {/* DESKTOP — quantity 0 ise "Add to cart", sepette varsa +/- stepper */}
+      <div className="hidden sm:block">
+        {isOutOfStock ? (
+          <Button
+            type="button"
+            size="lg"
+            disabled
+            className="h-12 w-full rounded-xl text-sm font-semibold"
+          >
+            {tCommon('outOfStock')}
+          </Button>
+        ) : quantity === 0 ? (
+          <Button
+            type="button"
+            size="lg"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+            onClick={increment}
+            disabled={isCartMutating}
+          >
+            {isCartMutating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <ShoppingCart className="size-4" />
+                {tCommon('addToCart')}
+              </>
+            )}
+          </Button>
+        ) : (
+          <div className="border-border/80 bg-muted/30 hover:border-border flex h-12 w-full items-center justify-between rounded-xl border p-1.5 transition-colors">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-11 rounded-l-xl rounded-r-none"
-              disabled={
-                isOutOfStock ||
-                quantity <= 1 ||
-                addItem.isPending
-              }
-              onClick={() =>
-                setQuantity((current) =>
-                  Math.max(1, current - 1),
-                )
-              }
+              className={cn(
+                'size-9 rounded-lg transition-all',
+                !canDecrement
+                  ? 'cursor-not-allowed opacity-30'
+                  : 'text-foreground hover:bg-background hover:shadow-xs active:scale-95',
+              )}
+              onClick={decrement}
+              disabled={!canDecrement || isCartMutating}
+              aria-label={tCommon('decreaseQuantity')}
             >
               <Minus className="size-4" />
             </Button>
 
-            <span className="w-10 text-center text-sm font-semibold">
-              {quantity}
-            </span>
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-foreground min-w-[2ch] text-center text-base font-semibold tabular-nums">
+                {quantity}
+              </span>
+              {isCartMutating && (
+                <span className="bg-primary size-1.5 animate-pulse rounded-full" />
+              )}
+            </div>
 
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-11 rounded-l-none rounded-r-xl"
-              disabled={
-                isOutOfStock ||
-                quantity >= availableQuantity ||
-                addItem.isPending
-              }
-              onClick={() =>
-                setQuantity((current) =>
-                  Math.min(
-                    availableQuantity,
-                    current + 1,
-                  ),
-                )
-              }
+              className={cn(
+                'size-9 rounded-lg transition-all',
+                !canIncrement
+                  ? 'cursor-not-allowed opacity-30'
+                  : 'text-foreground hover:bg-background hover:shadow-xs active:scale-95',
+              )}
+              onClick={increment}
+              disabled={!canIncrement}
+              aria-label={tCommon('increaseQuantity')}
             >
               <Plus className="size-4" />
             </Button>
           </div>
-
-          {/* ADD TO CART */}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 flex-1 rounded-xl text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-            disabled={
-              !isAuthenticated ||
-              isOutOfStock ||
-              addItem.isPending
-            }
-            onClick={handleAddToCart}
-          >
-            {addItem.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="size-4" />
-            )}
-
-            {isOutOfStock
-              ? 'Out of stock'
-              : 'Add to cart'}
-          </Button>
-        </div>
+        )}
 
         {!isAuthenticated && (
-          <p className="text-muted-foreground text-center text-xs">
-            Sign in to add items to your cart.
+          <p className="text-muted-foreground mt-2 text-center text-xs">
+            {tCommon('signInToCart')}
           </p>
         )}
       </div>
 
-      {/* MOBILE STICKY PURCHASE */}
+      {/* MOBILE STICKY — aynı mantık */}
       <div className="h-16 sm:hidden" />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 p-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:hidden">
-        <div className="flex items-center gap-2">
-          <div className="flex h-11 shrink-0 items-center rounded-xl border bg-background">
+      <div className="bg-background/95 fixed inset-x-0 bottom-0 z-50 border-t p-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:hidden">
+        {isOutOfStock ? (
+          <Button type="button" disabled className="h-11 w-full rounded-xl font-semibold">
+            {tCommon('outOfStock')}
+          </Button>
+        ) : quantity === 0 ? (
+          <Button
+            type="button"
+            className="h-11 w-full rounded-xl font-semibold"
+            onClick={increment}
+            disabled={isCartMutating}
+          >
+            {isCartMutating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <ShoppingCart className="size-4" />
+                {tCommon('addToCart')}
+              </>
+            )}
+          </Button>
+        ) : (
+          <div className="border-border/80 bg-muted/30 flex h-11 w-full items-center justify-between rounded-xl border p-1">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-9 rounded-l-xl rounded-r-none"
-              disabled={
-                isOutOfStock ||
-                quantity <= 1 ||
-                addItem.isPending
-              }
-              onClick={() =>
-                setQuantity((current) =>
-                  Math.max(1, current - 1),
-                )
-              }
+              className={cn(
+                'size-9 rounded-lg transition-all',
+                !canDecrement ? 'cursor-not-allowed opacity-30' : 'active:scale-95',
+              )}
+              onClick={decrement}
+              disabled={!canDecrement || isCartMutating}
+              aria-label={tCommon('decreaseQuantity')}
             >
               <Minus className="size-3.5" />
             </Button>
 
-            <span className="w-7 text-center text-xs font-semibold">
-              {quantity}
-            </span>
+            <div className="flex items-center gap-1.5 px-2">
+              <span className="min-w-[2ch] text-center text-sm font-semibold tabular-nums">
+                {quantity}
+              </span>
+              {isCartMutating && (
+                <span className="bg-primary size-1.5 animate-pulse rounded-full" />
+              )}
+            </div>
 
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-9 rounded-l-none rounded-r-xl"
-              disabled={
-                isOutOfStock ||
-                quantity >= availableQuantity ||
-                addItem.isPending
-              }
-              onClick={() =>
-                setQuantity((current) =>
-                  Math.min(
-                    availableQuantity,
-                    current + 1,
-                  ),
-                )
-              }
+              className={cn(
+                'size-9 rounded-lg transition-all',
+                !canIncrement ? 'cursor-not-allowed opacity-30' : 'active:scale-95',
+              )}
+              onClick={increment}
+              disabled={!canIncrement}
+              aria-label={tCommon('increaseQuantity')}
             >
               <Plus className="size-3.5" />
             </Button>
           </div>
-
-          <Button
-            type="button"
-            className="h-11 flex-1 rounded-xl font-semibold"
-            disabled={
-              !isAuthenticated ||
-              isOutOfStock ||
-              addItem.isPending
-            }
-            onClick={handleAddToCart}
-          >
-            {addItem.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="size-4" />
-            )}
-
-            {isOutOfStock
-              ? 'Out of stock'
-              : 'Add to cart'}
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );

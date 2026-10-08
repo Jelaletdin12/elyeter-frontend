@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { productListOptions, brandCategoriesOptions } from '../api/queries';
@@ -46,6 +47,7 @@ export function ProductBrowser({
 }) {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const t = useTranslations('products');
   const [hasInteracted, setHasInteracted] = useState(false);
   const [search, setSearch] = useState('');
   // Kategori sayfası: kullanıcının seçtiği marka (boş = hepsi).
@@ -106,15 +108,15 @@ export function ProductBrowser({
     <div className="mt-6 flex flex-col gap-6 lg:flex-row">
       {/* ── Filtre paneli ─────────────────────────────────────────────── */}
       <aside className="shrink-0 lg:w-64">
-        <div className="space-y-5 rounded-xl border border-border bg-card p-4">
+        <div className="border-border bg-card space-y-5 rounded-xl border p-4">
           <div>
-            <p className="mb-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Search
+            <p className="text-muted-foreground mb-1.5 text-xs font-semibold tracking-wider uppercase">
+              {t('panelSearch')}
             </p>
             <div className="relative">
               <Search
                 size={14}
-                className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground"
+                className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
               />
               <input
                 type="text"
@@ -123,15 +125,15 @@ export function ProductBrowser({
                   markInteracted();
                   setSearch(e.target.value);
                 }}
-                placeholder={categoryId ? 'Search in this category…' : 'Search this brand…'}
-                className="border-border bg-background placeholder:text-muted-foreground/60 w-full rounded-md border py-1.5 pr-7 pl-7.5 text-sm focus:border-teal focus:outline-none"
+                placeholder={categoryId ? t('searchInCategory') : t('searchInBrand')}
+                className="border-border bg-background placeholder:text-muted-foreground/60 focus:border-teal w-full rounded-md border py-1.5 pr-7 pl-7.5 text-sm focus:outline-none"
               />
               {search && (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={t('clearSearch')}
                   onClick={() => setSearch('')}
-                  className="absolute top-1/2 right-1 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 -translate-y-1/2 rounded p-0.5"
                 >
                   <X size={13} />
                 </button>
@@ -141,12 +143,12 @@ export function ProductBrowser({
 
           {categoryId && !brandId && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Brands
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold tracking-wider uppercase">
+                {t('brandsSection')}
               </p>
               {brandOptions.length === 0 ? (
                 <p className="text-muted-foreground text-xs">
-                  {isSectionLoading ? '…' : 'No brands in this category.'}
+                  {isSectionLoading ? '…' : t('noBrandsInCategory')}
                 </p>
               ) : (
                 <ul className="space-y-1">
@@ -163,7 +165,7 @@ export function ProductBrowser({
                           : 'text-muted-foreground hover:bg-background hover:text-foreground'
                       }`}
                     >
-                      All brands
+                      {t('allBrands')}
                     </button>
                   </li>
                   {brandOptions.map((brand) => (
@@ -191,12 +193,12 @@ export function ProductBrowser({
 
           {brandId && !categoryId && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Categories
+              <p className="text-muted-foreground mb-1.5 text-xs font-semibold tracking-wider uppercase">
+                {t('categoriesSection')}
               </p>
               {!categoryOptions || categoryOptions.length === 0 ? (
                 <p className="text-muted-foreground text-xs">
-                  {isSectionLoading ? '…' : 'No categories for this brand.'}
+                  {isSectionLoading ? '…' : t('noCategoriesForBrand')}
                 </p>
               ) : (
                 <ul className="space-y-1">
@@ -213,7 +215,7 @@ export function ProductBrowser({
                           : 'text-muted-foreground hover:bg-background hover:text-foreground'
                       }`}
                     >
-                      All categories
+                      {t('allCategories')}
                     </button>
                   </li>
                   {categoryOptions.map((category) => (
@@ -245,15 +247,15 @@ export function ProductBrowser({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
-            {result.meta.total} products{inStock ? '' : ' — out of stock'}
+            {inStock
+              ? t('resultsCount', { count: result.meta.total })
+              : t('resultsCountOutOfStock', { count: result.meta.total })}
             {isFetching && <span className="ml-2 text-xs">…</span>}
           </p>
         </div>
 
         {products.length === 0 ? (
-          <p className="text-muted-foreground mt-8 text-sm">
-            No products found. Try a different search or clear the filters.
-          </p>
+          <p className="text-muted-foreground mt-8 text-sm">{t('noProducts')}</p>
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3">
             {products.map((product: Product) => (

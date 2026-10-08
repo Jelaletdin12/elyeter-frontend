@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { AdminSidebar } from './AdminSidebar';
+import { AdminShell } from './AdminShell';
 
 /**
  * FRONTEND_AGENTS.md #9: rol bazlı UI kontrolü `useAuth().can(action)`
@@ -42,12 +42,5 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return (
-    <div className="bg-background text-foreground flex min-h-screen">
-      <AdminSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <main className="mx-auto w-full max-w-7xl flex-1 p-5 md:p-8">{children}</main>
-      </div>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

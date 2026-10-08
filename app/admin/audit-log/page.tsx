@@ -1,43 +1,83 @@
 ﻿'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ScrollText, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { ScrollText, Search, ShieldAlert, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { auditLogListOptions } from '@/features/audit-log/api/queries';
 import type { AuditLogEntry, AuditLogFilters } from '@/features/audit-log/types';
 import { DataTable } from '@/components/shared/DataTable';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
  * GET /audit-log — SADECE SUPER_ADMIN (backend @Roles). Sayfalanmış
- * {items, meta} (users/coupons ile AYNI desen), filtreler entity|resourceType,
- * action, actorId (hepsi opsiyonel, backend "contains" ile eşleştiriyor).
+ * {items, meta}, filtreler entity | action | actorId (backend "contains").
  *
- * Detay hücresi: kaydın payload'ı metadata ?? newValue ?? oldValue olarak
- * render edilir — örn. kupon oluşturma `{code,type,value}` (newValue), sipariş
- * durum güncellemesi `{total:"479.98", source:"cart_checkout"}` (metadata).
+ * Detay hücresi: metadata ?? newValue ?? oldValue payload'ı.
  *
- * Güvenlik notu: sayfa girişi "enabled" ile engelleniyor (role != SUPER_ADMIN
- * olunca hiç fetch yok) + render tarafında EmptyState gösteriliyor — RolesGuard
- * zaten backend'de son sözü söylüyor.
+ * Güvenlik: role != SUPER_ADMIN ise fetch yapılmaz (enabled) + EmptyState
+ * gösterilir. Son söz backend RolesGuard'ındadır.
+ *
+ * Tipografi kuralı: ana metin text-sm, ikincil metin text-xs muted,
+ * teknik değerler Badge içinde. Tüm kontroller h-9.
  */
 
-function formatDetails(row: AuditLogEntry): string {
-  const payload = row.metadata ?? row.newValue ?? row.oldValue;
-  if (payload === null || payload === undefined) return '—';
+const getRowId = (row: AuditLogEntry) => row.id;
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+const timeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
+
+type Payload = { kind: 'New value' | 'Old value' | 'Meta'; value: unknown } | null;
+
+function getPayload(row: AuditLogEntry): Payload {
+  if (row.metadata !== null && row.metadata !== undefined) {
+    return { kind: 'Meta', value: row.metadata };
+  }
+  if (row.newValue !== null && row.newValue !== undefined) {
+    return { kind: 'New value', value: row.newValue };
+  }
+  if (row.oldValue !== null && row.oldValue !== undefined) {
+    return { kind: 'Old value', value: row.oldValue };
+  }
+  return null;
+}
+
+function stringify(value: unknown): string {
+  if (typeof value === 'string') return value;
   try {
-    return typeof payload === 'string' ? payload : JSON.stringify(payload);
+    return JSON.stringify(value);
   } catch {
-    return String(payload);
+    return String(value);
   }
 }
 
 function shortId(id: string): string {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
+}
+
+function FilterField({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-muted-foreground text-xs font-medium">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
 }
 
 export default function AdminAuditLogPage() {
@@ -49,9 +89,15 @@ export default function AdminAuditLogPage() {
   const [draft, setDraft] = useState<AuditLogFilters>({});
   const [applied, setApplied] = useState<AuditLogFilters>({});
 
-  const { data, isLoading } = useQuery({
+  // Store değişince 1. sayfaya dön.
+  useEffect(() => {
+    setPage(1);
+  }, [storeId]);
+
+  const { data, isLoading, isFetching } = useQuery({
     ...auditLogListOptions(storeId, page, applied),
     enabled: isSuperAdmin,
+    placeholderData: keepPreviousData,
   });
 
   if (!isSuperAdmin) {
@@ -66,8 +112,10 @@ export default function AdminAuditLogPage() {
 
   const entries = data?.items ?? [];
   const meta = data?.meta;
+  const hasFilters = Boolean(applied.entity || applied.action || applied.actorId);
 
-  function applyFilters() {
+  function applyFilters(e?: React.FormEvent) {
+    e?.preventDefault();
     setApplied({
       entity: draft.entity?.trim() || undefined,
       action: draft.action?.trim() || undefined,
@@ -76,169 +124,185 @@ export default function AdminAuditLogPage() {
     setPage(1);
   }
 
+  function clearFilters() {
+    setDraft({});
+    setApplied({});
+    setPage(1);
+  }
+
   return (
-    <div>
+    <TooltipProvider delayDuration={200}>
       <div>
-        <h1 className="text-foreground font-serif text-2xl italic">Audit log</h1>
-        <p className="text-muted-foreground mt-1 text-sm">{meta?.total ?? 0} recorded actions</p>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label htmlFor="audit-entity" className="text-muted-foreground text-xs">
-            Entity
-          </label>
-          <Input
-            id="audit-entity"
-            value={draft.entity ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, entity: e.target.value }))}
-            placeholder="e.g. Order, Coupon"
-            className="w-44"
-          />
+        <div>
+          <h1 className="text-foreground font-serif text-2xl italic">Audit log</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{meta?.total ?? 0} recorded actions</p>
         </div>
-        <div className="space-y-1">
-          <label htmlFor="audit-action" className="text-muted-foreground text-xs">
-            Action
-          </label>
-          <Input
-            id="audit-action"
-            value={draft.action ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))}
-            placeholder="e.g. updated_status"
-            className="w-44"
-          />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="audit-actor" className="text-muted-foreground text-xs">
-            Actor ID
-          </label>
-          <Input
-            id="audit-actor"
-            value={draft.actorId ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, actorId: e.target.value }))}
-            placeholder="User id (partial ok)"
-            className="w-56"
-          />
-        </div>
-        <Button variant="outline" size="sm" onClick={applyFilters}>
-          Apply filters
-        </Button>
-        {(applied.entity || applied.action || applied.actorId) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setDraft({});
-              setApplied({});
-              setPage(1);
-            }}
-          >
-            Clear
-          </Button>
-        )}
-      </div>
 
-      <div className="mt-6">
-        <DataTable<AuditLogEntry>
-          isLoading={isLoading}
-          rows={entries}
-          getRowId={(row) => row.id}
-          emptyTitle="No audit entries"
-          emptyDescription="Actions that match your filters will show up here."
-          emptyIcon={ScrollText}
-          columns={[
-            {
-              header: 'When',
-              cell: (row) => (
-                <span className="text-muted-foreground text-sm whitespace-nowrap">
-                  {new Date(row.createdAt).toLocaleString()}
-                </span>
-              ),
-            },
-            {
-              header: 'Actor',
-              cell: (row) => (
-                <span className="text-muted-foreground font-mono text-xs">
-                  {shortId(row.actorId)}
-                </span>
-              ),
-            },
-            {
-              header: 'Action',
-              cell: (row) => (
-                <span className="text-foreground font-mono text-xs">{row.action}</span>
-              ),
-            },
-            {
-              header: 'Entity',
-              cell: (row) => (
-                <div>
-                  <p className="text-foreground text-sm font-medium">{row.entity}</p>
-                  <p className="text-muted-foreground font-mono text-xs">
-                    #{shortId(row.entityId)}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              header: 'Target',
-              cell: (row) => (
-                <span className="text-muted-foreground font-mono text-xs">
-                  {row.newValue !== null && row.newValue !== undefined
-                    ? 'New value'
-                    : row.oldValue !== null && row.oldValue !== undefined
-                      ? 'Old value'
-                      : row.metadata !== null && row.metadata !== undefined
-                        ? 'Meta'
-                        : '—'}
-                </span>
-              ),
-            },
-            {
-              header: 'Details',
-              cell: (row) => {
-                const details = formatDetails(row);
-                return details === '—' ? (
-                  <span className="text-muted-foreground text-sm">—</span>
-                ) : (
-                  <span
-                    title={details}
-                    className="text-muted-foreground block max-w-56 truncate font-mono text-xs"
-                  >
-                    {details}
-                  </span>
-                );
-              },
-            },
-          ]}
-        />
-      </div>
+        <form
+          onSubmit={applyFilters}
+          className="border-border bg-card mt-6 flex flex-wrap items-end gap-4 rounded-md border p-4"
+        >
+          <FilterField id="audit-entity" label="Entity">
+            <Input
+              id="audit-entity"
+              value={draft.entity ?? ''}
+              onChange={(e) => setDraft((d) => ({ ...d, entity: e.target.value }))}
+              placeholder="e.g. Order, Coupon"
+              className="h-9 w-48 text-sm"
+            />
+          </FilterField>
 
-      {(meta?.totalPages ?? 0) > 1 && (
-        <div className="text-muted-foreground mt-4 flex items-center justify-between text-sm">
-          <p>
-            Page {meta?.page} of {meta?.totalPages}
-          </p>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-            >
-              <ChevronLeft size={14} /> Prev
+          <FilterField id="audit-action" label="Action">
+            <Input
+              id="audit-action"
+              value={draft.action ?? ''}
+              onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))}
+              placeholder="e.g. order.status_update"
+              className="h-9 w-56 text-sm"
+            />
+          </FilterField>
+
+          <FilterField id="audit-actor" label="Actor ID">
+            <Input
+              id="audit-actor"
+              value={draft.actorId ?? ''}
+              onChange={(e) => setDraft((d) => ({ ...d, actorId: e.target.value }))}
+              placeholder="User id (partial ok)"
+              className="h-9 w-56 text-sm"
+            />
+          </FilterField>
+
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" className="h-9">
+              <Search size={14} /> Apply
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= (meta?.totalPages ?? 1)}
-            >
-              Next <ChevronRight size={14} />
-            </Button>
+            {hasFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9"
+                onClick={clearFilters}
+              >
+                <X size={14} /> Clear
+              </Button>
+            )}
           </div>
+        </form>
+
+        <div
+          className={`mt-6 transition-opacity ${isFetching && !isLoading ? 'opacity-70' : 'opacity-100'}`}
+        >
+          <DataTable<AuditLogEntry>
+            isLoading={isLoading}
+            rows={entries}
+            getRowId={getRowId}
+            emptyTitle="No audit entries"
+            emptyDescription="Actions that match your filters will show up here."
+            emptyIcon={ScrollText}
+            currentPage={meta?.page ?? page}
+            totalPages={meta?.totalPages ?? 1}
+            totalCount={meta?.total}
+            onPageChange={setPage}
+            columns={[
+              {
+                id: 'when',
+                header: 'When',
+                sortValue: (row) => new Date(row.createdAt).getTime(),
+                cell: (row) => {
+                  const d = new Date(row.createdAt);
+                  return (
+                    <div className="whitespace-nowrap">
+                      <p className="text-foreground text-sm">{dateFormatter.format(d)}</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {timeFormatter.format(d)}
+                      </p>
+                    </div>
+                  );
+                },
+              },
+              {
+                id: 'actor',
+                header: 'Actor',
+                cell: (row) => (
+                  <Badge variant="outline" className="font-mono text-xs font-normal">
+                    {shortId(row.actorId)}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'action',
+                header: 'Action',
+                sortValue: (row) => row.action,
+                cell: (row) => (
+                  <Badge variant="secondary" className="font-mono text-xs font-normal">
+                    {row.action}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'entity',
+                header: 'Entity',
+                sortValue: (row) => row.entity,
+                cell: (row) => (
+                  <div>
+                    <p className="text-foreground text-sm">{row.entity}</p>
+                    <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                      #{shortId(row.entityId)}
+                    </p>
+                  </div>
+                ),
+              },
+              {
+                id: 'target',
+                header: 'Target',
+                cell: (row) => {
+                  const payload = getPayload(row);
+                  return payload ? (
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {payload.kind}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  );
+                },
+              },
+              {
+                id: 'details',
+                header: 'Details',
+                cell: (row) => {
+                  const payload = getPayload(row);
+                  if (!payload) return <span className="text-muted-foreground text-sm">—</span>;
+
+                  const text = stringify(payload.value);
+                  let pretty = text;
+                  try {
+                    pretty = JSON.stringify(payload.value, null, 2);
+                  } catch {
+                    /* düz metin kalır */
+                  }
+
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground block max-w-64 cursor-default truncate font-mono text-xs">
+                          {text}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="left"
+                        className="max-w-md font-mono text-xs break-all whitespace-pre-wrap"
+                      >
+                        {pretty}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                },
+              },
+            ]}
+          />
         </div>
-      )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

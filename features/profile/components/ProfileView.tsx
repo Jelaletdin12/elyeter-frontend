@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Heart, Loader2, MapPin, Plus, Star, Trash2, User } from 'lucide-react';
+import { Heart, Loader2, LogOut, MapPin, Plus, Star, Trash2, User } from 'lucide-react';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useLogoutMutation } from '@/features/auth/api/mutations';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
@@ -20,6 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LocationInput } from '@/features/locations/components/LocationInput';
+import type { LocationPoint } from '@/features/locations/types';
 import type { ClientAddress, Profile, ProfileAddressInput } from '../types';
 
 /**
@@ -33,6 +37,8 @@ import type { ClientAddress, Profile, ProfileAddressInput } from '../types';
 function ProfileInfoForm({ profile }: { profile: Profile }) {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const updateProfile = useUpdateProfileMutation(storeId);
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
 
   const [fullName, setFullName] = useState(profile.fullName);
   const [phone, setPhone] = useState(profile.phone ?? '');
@@ -41,9 +47,9 @@ function ProfileInfoForm({ profile }: { profile: Profile }) {
   async function handleSaveProfile() {
     try {
       await updateProfile.mutateAsync({ fullName, phone: phone || undefined });
-      toast.success('Profil güncellendi.');
+      toast.success(t('profileUpdated'));
     } catch {
-      toast.error('Profil güncellenemedi, tekrar deneyin.');
+      toast.error(t('profileUpdateFailed'));
     }
   }
 
@@ -51,11 +57,11 @@ function ProfileInfoForm({ profile }: { profile: Profile }) {
     <section className="border-border bg-card rounded-md border p-5">
       <h2 className="text-foreground flex items-center gap-2 text-sm font-semibold">
         <User size={15} className="text-muted-foreground" />
-        Kişisel bilgiler
+        {t('personalInfo')}
       </h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="profile-name">Ad soyad</Label>
+          <Label htmlFor="profile-name">{t('fullName')}</Label>
           <Input
             id="profile-name"
             value={fullName}
@@ -64,11 +70,11 @@ function ProfileInfoForm({ profile }: { profile: Profile }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="profile-email">E-posta</Label>
+          <Label htmlFor="profile-email">{t('email')}</Label>
           <Input id="profile-email" value={profile.email} disabled />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="profile-phone">Telefon</Label>
+          <Label htmlFor="profile-phone">{t('phone')}</Label>
           <Input
             id="profile-phone"
             value={phone}
@@ -81,7 +87,7 @@ function ProfileInfoForm({ profile }: { profile: Profile }) {
       <div className="mt-4 flex justify-end">
         <Button onClick={handleSaveProfile} disabled={isSaving}>
           {isSaving && <Loader2 size={14} className="animate-spin" />}
-          Kaydet
+          {tCommon('save')}
         </Button>
       </div>
     </section>
@@ -99,6 +105,9 @@ function AddressCard({
   onMakeDefault: (address: ClientAddress) => void;
   isMutating: boolean;
 }) {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
+
   return (
     <li className="border-border bg-card rounded-md border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -110,7 +119,7 @@ function AddressCard({
             {address.isDefault && (
               <span className="bg-primary/10 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
                 <Star size={10} className="fill-current" />
-                Varsayılan
+                {tCommon('default')}
               </span>
             )}
           </div>
@@ -118,6 +127,18 @@ function AddressCard({
           <p className="text-muted-foreground mt-0.5 text-xs">
             {address.recipientName} · {address.recipientPhone}
           </p>
+          {address.latitude != null && (
+            <p className="text-muted-foreground mt-1 inline-flex items-center gap-1 text-[11px]">
+              <MapPin size={11} className="text-primary" />
+              {t('locationSaved')}
+              {address.locationAccuracy != null ? ` · ±${address.locationAccuracy} m` : ''}
+            </p>
+          )}
+          {address.deliveryNote && (
+            <p className="text-muted-foreground mt-0.5 text-[11px]">
+              {t('note', { note: address.deliveryNote })}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {!address.isDefault && (
@@ -127,14 +148,14 @@ function AddressCard({
               disabled={isMutating}
               className="text-muted-foreground hover:text-foreground text-xs transition-colors disabled:opacity-50"
             >
-              Varsayılan yap
+              {t('makeDefault')}
             </button>
           )}
           <button
             type="button"
             onClick={() => onDelete(address.id)}
             disabled={isMutating}
-            aria-label="Adresi sil"
+            aria-label={t('deleteAddress')}
             className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md p-1.5 transition-colors disabled:opacity-50"
           >
             <Trash2 size={15} />
@@ -147,9 +168,13 @@ function AddressCard({
 
 export function ProfileView() {
   const locale = useLocale();
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
   const storeId = useAuthStore((s) => s.activeStoreId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthDialog = useUiStore((s) => s.openAuthDialog);
+  const router = useRouter();
+  const logout = useLogoutMutation();
 
   const { data: profile, isLoading } = useQuery({
     ...profileOptions(storeId),
@@ -169,18 +194,29 @@ export function ProfileView() {
   };
   const [addressForm, setAddressForm] = useState<ProfileAddressInput>(emptyAddress);
 
+  // Formdaki seçili konum — LocationInput'a `value` olarak verilir.
+  const locationPoint: LocationPoint | null =
+    typeof addressForm.latitude === 'number' && typeof addressForm.longitude === 'number'
+      ? {
+          latitude: addressForm.latitude,
+          longitude: addressForm.longitude,
+          source: addressForm.locationSource ?? 'MANUAL',
+          accuracy: addressForm.locationAccuracy,
+        }
+      : null;
+
   if (!isAuthenticated) {
     return (
       <EmptyState
         icon={User}
-        title="Profilinizi görmek için giriş yapın"
+        title={t('signInTitle')}
         action={
           <button
             type="button"
             onClick={() => openAuthDialog('login')}
             className="text-sm underline"
           >
-            Giriş yap
+            {t('signIn')}
           </button>
         }
       />
@@ -198,34 +234,30 @@ export function ProfileView() {
 
   if (!profile) {
     return (
-      <EmptyState
-        icon={User}
-        title="Profil bulunamadı"
-        description="Oturumunuzla ilgili bir sorun oluştu. Çıkış yapıp tekrar girmeyi deneyin."
-      />
+      <EmptyState icon={User} title={t('notFoundTitle')} description={t('notFoundDescription')} />
     );
   }
 
   async function handleAddAddress() {
     if (!addressForm.recipientName || !addressForm.recipientPhone || !addressForm.addressLine) {
-      toast.error('Alıcı adı, telefon ve adres satırı gereklidir.');
+      toast.error(t('addressRequired'));
       return;
     }
     try {
       await addAddress.mutateAsync(addressForm);
       setAddressForm(emptyAddress);
-      toast.success('Adres eklendi.');
+      toast.success(t('addressAdded'));
     } catch {
-      toast.error('Adres eklenemedi, tekrar deneyin.');
+      toast.error(t('addressAddFailed'));
     }
   }
 
   async function handleRemoveAddress(addressId: string) {
     try {
       await removeAddress.mutateAsync(addressId);
-      toast.success('Adres silindi.');
+      toast.success(t('addressDeleted'));
     } catch {
-      toast.error('Adres silinemedi, tekrar deneyin.');
+      toast.error(t('addressDeleteFailed'));
     }
   }
 
@@ -238,48 +270,91 @@ export function ProfileView() {
         recipientPhone: address.recipientPhone,
         addressLine: address.addressLine,
         isDefault: true,
+        // Koordinatları olduğu gibi koru — geçirilmezse update backend'de
+        // koordinatları SİLER (null = MANUAL + coords temizlenir).
+        latitude: address.latitude != null ? Number(address.latitude) : undefined,
+        longitude: address.longitude != null ? Number(address.longitude) : undefined,
+        locationSource: address.locationSource ?? undefined,
+        locationAccuracy: address.locationAccuracy ?? undefined,
+        deliveryNote: address.deliveryNote ?? undefined,
       });
-      toast.success('Varsayılan adres güncellendi.');
+      toast.success(t('defaultUpdated'));
     } catch {
-      toast.error('Güncellenemedi, tekrar deneyin.');
+      toast.error(t('updateFailed'));
     }
   }
 
   const isAddressMutating =
     addAddress.isPending || removeAddress.isPending || updateAddress.isPending;
 
+  async function handleLogout() {
+    try {
+      await logout.mutateAsync();
+      router.push('/');
+    } catch {
+      toast.error(tCommon('logoutFailed'));
+    }
+  }
+
   return (
     <div className="space-y-6">
       <ProfileInfoForm profile={profile} />
+
+      {/* Oturum — çıkış işlemi; sekme çubuğundakinin yanında profile sayfasında
+          bariz görünür olması için ayrı bir karttır. */}
+      <section className="border-border bg-card rounded-md border p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-foreground flex items-center gap-2 text-sm font-semibold">
+              <LogOut size={15} className="text-muted-foreground" />
+              {t('session')}
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">{profile.email}</p>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={logout.isPending}
+          >
+            {logout.isPending ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <LogOut size={14} />
+            )}
+            {tCommon('logout')}
+          </Button>
+        </div>
+      </section>
 
       {/* Adresler */}
       <section className="border-border bg-card rounded-md border p-5">
         <h2 className="text-foreground flex items-center gap-2 text-sm font-semibold">
           <MapPin size={15} className="text-muted-foreground" />
-          Adresler
+          {t('addresses')}
         </h2>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="addr-label">Etiket</Label>
+            <Label htmlFor="addr-label">{t('label')}</Label>
             <Input
               id="addr-label"
               value={addressForm.label ?? ''}
               onChange={(e) => setAddressForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder="Ev / İş"
+              placeholder={t('labelPlaceholder')}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="addr-recipient">Alıcı adı</Label>
+            <Label htmlFor="addr-recipient">{t('recipientName')}</Label>
             <Input
               id="addr-recipient"
               value={addressForm.recipientName}
               onChange={(e) => setAddressForm((f) => ({ ...f, recipientName: e.target.value }))}
-              placeholder="Ad Soyad"
+              placeholder={t('recipientNamePlaceholder')}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="addr-phone">Alıcı telefon</Label>
+            <Label htmlFor="addr-phone">{t('recipientPhone')}</Label>
             <Input
               id="addr-phone"
               value={addressForm.recipientPhone}
@@ -295,16 +370,37 @@ export function ProfileView() {
                 onChange={(e) => setAddressForm((f) => ({ ...f, isDefault: e.target.checked }))}
                 className="accent-teal h-4 w-4 cursor-pointer"
               />
-              Varsayılan yap
+              {t('makeDefault')}
             </label>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="addr-line">Adres satırı</Label>
+            <Label htmlFor="addr-line">{t('addressLine')}</Label>
             <Input
               id="addr-line"
               value={addressForm.addressLine}
-              onChange={(e) => setAddressForm((f) => ({ ...f, addressLine: e.target.value }))}
-              placeholder="Mahalle, sokak, no, ilçe, şehir"
+              onChange={(event) =>
+                setAddressForm((f) => ({ ...f, addressLine: event.target.value }))
+              }
+              placeholder={t('addressLinePlaceholder')}
+            />
+          </div>
+
+          {/* Konum: harita / adres arama / mevcut konum (spec bölüm 5) */}
+          <div className="rounded-lg sm:col-span-2">
+            <LocationInput
+              value={locationPoint}
+              onResolvedAddress={(addressLine) => setAddressForm((f) => ({ ...f, addressLine }))}
+              onChange={(point) =>
+                setAddressForm((f) => ({
+                  ...f,
+                  latitude: point?.latitude,
+                  longitude: point?.longitude,
+                  locationSource: point?.source,
+                  locationAccuracy: point?.accuracy,
+                }))
+              }
+              note={addressForm.deliveryNote}
+              onNoteChange={(deliveryNote) => setAddressForm((f) => ({ ...f, deliveryNote }))}
             />
           </div>
         </div>
@@ -316,7 +412,7 @@ export function ProfileView() {
             ) : (
               <Plus size={14} />
             )}
-            Adres ekle
+            {t('addAddress')}
           </Button>
         </div>
 
@@ -338,11 +434,13 @@ export function ProfileView() {
       {/* Referans: wishlist içine link */}
       <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
         <Heart size={14} />
-        Favorileriniz için{' '}
-        <Link href={`/${locale}/account/wishlist`} className="underline">
-          favori listenize
-        </Link>{' '}
-        göz atın.
+        {t.rich('wishlistHint', {
+          link: (chunks) => (
+            <Link href={`/${locale}/account/wishlist`} className="underline">
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
     </div>
   );

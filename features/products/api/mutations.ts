@@ -1,13 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys, dataCacheTags } from '@/lib/api/query-keys';
+import { revalidatePublicTags } from '@/lib/api/revalidate';
 import type {
   CreateProductInput,
   UpdateProductInput,
   CreateProductVariantInput,
+  UpdateProductVariantInput,
   StockAdjustmentInput,
   Product,
   ProductVariant,
+  ProductVariantUpdated,
 } from '../types';
 
 /**
@@ -16,19 +19,12 @@ import type {
  *
  *   1) invalidateQueries  → admin'in kendi TanStack listesi (CSR)
  *   2) POST /api/revalidate → public sayfanın Next Data Cache tag'i (ISR)
+ *      (helper: lib/api/revalidate.ts — secret header'ı oradan eklenir)
  *
  * Sadece (1) yapılırsa: admin'de değişiklik görünür ama public ürün detay
  * sayfası `revalidate:600` süresi dolana kadar (10dk) eski fiyat/stok
  * gösterir.
  */
-
-async function revalidatePublicTags(tags: string[]) {
-  await fetch('/api/revalidate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tags }),
-  });
-}
 
 /** Ürünün TÜM dillerdeki slug'larını revalidate eder — hangi dilde düzenlendiği önemli değil. */
 function productTags(product: Product): string[] {
@@ -164,6 +160,76 @@ export function useDeleteProductImageMutation(storeId: string) {
   return useMutation({
     mutationFn: ({ productId, imageId }: { productId: string; imageId: string }) =>
       adminAuthorizedFetch<void>(`/products/${productId}/images/${imageId}`, { method: 'DELETE' }),
+    onSuccess: async (_data, { productId }) => {
+      const product = queryClient.getQueryData<Product>(
+        queryKeys.adminProducts.detail(storeId, productId),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.adminProducts.detail(storeId, productId),
+      });
+      await revalidatePublicTags(
+        product ? [...productTags(product), dataCacheTags.products()] : [dataCacheTags.products()],
+      );
+    },
+  });
+}
+
+/**
+ * PATCH /products/{productId}/variants/{variantId}
+ * Partial varyant güncellemesi: sku/price/compareAtPrice/attributes/isActive +
+ * aynı istekte `images: [{ mediaId, isPrimary }]` ile varyant görseli claim.
+ */
+export function useUpdateVariantMutation(storeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      productId,
+      variantId,
+      input,
+    }: {
+      productId: string;
+      variantId: string;
+      input: UpdateProductVariantInput;
+    }) =>
+      adminAuthorizedFetch<ProductVariantUpdated>(`/products/${productId}/variants/${variantId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: async (_variant, { productId }) => {
+      const product = queryClient.getQueryData<Product>(
+        queryKeys.adminProducts.detail(storeId, productId),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.adminProducts.detail(storeId, productId),
+      });
+      await revalidatePublicTags(
+        product ? [...productTags(product), dataCacheTags.products()] : [dataCacheTags.products()],
+      );
+    },
+  });
+}
+
+/**
+ * DELETE /products/{productId}/variants/{variantId}/images/{imageId}
+ * MinIO objelerini (card/detail/original) sonra satırı siler.
+ */
+export function useDeleteVariantImageMutation(storeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      productId,
+      variantId,
+      imageId,
+    }: {
+      productId: string;
+      variantId: string;
+      imageId: string;
+    }) =>
+      adminAuthorizedFetch<void>(`/products/${productId}/variants/${variantId}/images/${imageId}`, {
+        method: 'DELETE',
+      }),
     onSuccess: async (_data, { productId }) => {
       const product = queryClient.getQueryData<Product>(
         queryKeys.adminProducts.detail(storeId, productId),

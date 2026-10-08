@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { useRegisterMutation } from '../api/mutations';
 import { useUiStore } from '@/stores/ui-store';
 
 export function RegisterForm({ locale }: { locale: string }) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const register = useRegisterMutation();
   const authRedirect = useUiStore((s) => s.authRedirect);
@@ -34,7 +36,7 @@ export function RegisterForm({ locale }: { locale: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="fullName">Full name</Label>
+        <Label htmlFor="fullName">{t('fullName')}</Label>
         <Input
           id="fullName"
           required
@@ -44,7 +46,7 @@ export function RegisterForm({ locale }: { locale: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
@@ -55,7 +57,7 @@ export function RegisterForm({ locale }: { locale: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t('password')}</Label>
         <Input
           id="password"
           type="password"
@@ -64,17 +66,17 @@ export function RegisterForm({ locale }: { locale: string }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="text-muted-foreground text-xs">At least 8 characters.</p>
+        <p className="text-muted-foreground text-xs">{t('passwordHint')}</p>
       </div>
 
       {register.isError && (
         <p className="text-destructive text-sm">
-          {register.error instanceof Error ? register.error.message : 'Something went wrong.'}
+          {register.error instanceof Error ? register.error.message : t('genericError')}
         </p>
       )}
 
       <Button type="submit" disabled={register.isPending} className="w-full">
-        {register.isPending ? 'Creating account…' : 'Create account'}
+        {register.isPending ? t('creatingAccount') : t('createAccount')}
       </Button>
     </form>
   );

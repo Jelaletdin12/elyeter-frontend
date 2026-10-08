@@ -1,21 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys, dataCacheTags } from '@/lib/api/query-keys';
+import { revalidatePublicTags } from '@/lib/api/revalidate';
 import type { Banner, CreateBannerInput, UpdateBannerInput } from '../types';
 
 /**
  * FRONTEND_AGENTS.md #7 — dual invalidation, products/categories mutation'larıyla
  * AYNI pattern. Banner'lar sadece anasayfada göründüğü için tag seti daha dar
- * (banners + home).
+ * (banners + home). revalidate çağrısı ortak helper: lib/api/revalidate.ts
  */
-
-async function revalidatePublicTags(tags: string[]) {
-  await fetch('/api/revalidate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tags }),
-  });
-}
 
 export function useCreateBannerMutation(storeId: string) {
   const queryClient = useQueryClient();

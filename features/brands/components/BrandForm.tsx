@@ -1,16 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMediaUpload } from '@/features/media/hooks/useMediaUpload';
 import { MediaUploadField } from '@/features/media/components/MediaUploadField';
 import type {
@@ -27,29 +22,27 @@ const LOCALES: { code: BrandLocale; label: string }[] = [
   { code: 'tk', label: 'Türkmençe' },
 ];
 
-type BrandFormDialogProps = {
-  open: boolean;
+interface BrandFormProps {
   mode: 'create' | 'edit';
   initialBrand?: Brand;
   isSubmitting: boolean;
   onCancel: () => void;
   onSubmitCreate: (values: CreateBrandInput) => void;
   onSubmitEdit: (values: UpdateBrandInput) => void;
-};
+}
 
 function emptyNames(): Record<BrandLocale, string> {
   return { en: '', ru: '', tk: '' };
 }
 
-export function BrandFormDialog({
-  open,
+export function BrandForm({
   mode,
   initialBrand,
   isSubmitting,
   onCancel,
   onSubmitCreate,
   onSubmitEdit,
-}: BrandFormDialogProps) {
+}: BrandFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingMedia, isUploading, error, upload, discard, reset } =
     useMediaUpload('BRAND_IMAGE');
@@ -74,14 +67,14 @@ export function BrandFormDialog({
     setLogoMediaId(null);
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, initialBrand, open]);
+  }, [mode, initialBrand]);
 
   async function handleFileSelect(file: File) {
     try {
       const result = await upload(file);
       setLogoMediaId(result.id);
     } catch {
-      // Hata zaten useMediaUpload'ın `error` state'inde.
+      // Captured in useMediaUpload error state
     }
   }
 
@@ -93,9 +86,6 @@ export function BrandFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Brand'de parent/SEO otomatik üretimi yok — sadece locale+name zorunlu.
-    // slug/metaTitle/metaDescription backend'de name'den üretilir. logoUrl
-    // opsiyonel URL string'i (backend zorunlu tutmuyor).
     const translations: BrandTranslationInput[] = LOCALES.filter(({ code }) =>
       names[code].trim(),
     ).map(({ code }) => ({ locale: code, name: names[code].trim() }));
@@ -112,7 +102,6 @@ export function BrandFormDialog({
     } else {
       let patch: UpdateBrandInput = { ...base };
       if (logoMediaId) {
-        // Yeni dosya yüklendi — backend eski MinIO logo object'ini siler (claim akışı).
         patch = { ...patch, logoMediaId };
       } else {
         const logoChanged = typedUrl !== (initialBrand?.logoUrl ?? null);
@@ -125,27 +114,40 @@ export function BrandFormDialog({
   const hasAtLeastOneName = LOCALES.some(({ code }) => names[code].trim());
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && handleCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'New brand' : 'Edit brand'}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Brand Names</CardTitle>
+          <CardDescription className="text-xs">
+            Enter the brand name in English, Russian, and Turkmen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {LOCALES.map(({ code, label }) => (
             <div key={code} className="space-y-1.5">
               <Label htmlFor={`name-${code}`}>
                 Name <span className="text-muted-foreground">({label})</span>
+                {code === 'en' && <span className="text-destructive"> *</span>}
               </Label>
               <Input
                 id={`name-${code}`}
                 value={names[code]}
                 onChange={(e) => setNames((n) => ({ ...n, [code]: e.target.value }))}
-                placeholder={code === 'en' ? 'Nike' : undefined}
+                placeholder={code === 'en' ? 'e.g. Nike' : undefined}
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
 
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Brand Logo</CardTitle>
+          <CardDescription className="text-xs">
+            Upload a square logo image for this brand.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
           <MediaUploadField
             label="Logo"
             hint="Upload a square logo file — it's resized and stored on MinIO."
@@ -163,7 +165,7 @@ export function BrandFormDialog({
             }}
           />
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 pt-1">
             <Label htmlFor="brand-logo-url">Logo URL (alternative)</Label>
             <Input
               id="brand-logo-url"
@@ -176,36 +178,37 @@ export function BrandFormDialog({
               Optional. Only if you don&apos;t upload a file above.
             </p>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="brand-active">Active</Label>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isActive"
+              checked={isActive}
+              onCheckedChange={(checked) => setIsActive(checked === true)}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label htmlFor="isActive" className="cursor-pointer text-sm font-medium">
+                Brand is active
+              </Label>
               <p className="text-muted-foreground text-xs">
-                Inaktif markalar public sayfalarda listelenmez.
+                Inactive brands will not be shown on public store pages.
               </p>
             </div>
-            <input
-              id="brand-active"
-              type="checkbox"
-              className="accent-primary size-4"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-            />
           </div>
+        </CardContent>
+      </Card>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || isUploading || !hasAtLeastOneName}
-            >
-              {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Button type="button" variant="outline" onClick={handleCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting || isUploading || !hasAtLeastOneName}>
+          {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create brand' : 'Save changes'}
+        </Button>
+      </div>
+    </form>
   );
 }

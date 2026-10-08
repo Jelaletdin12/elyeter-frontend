@@ -21,7 +21,7 @@ function handleGlobalError(error: unknown) {
     toast.error(resolveErrorMessage(error.i18nKey));
     return;
   }
-  toast.error('Something went wrong. Please try again.');
+  toast.error(resolveErrorMessage('errors.unexpected_response'));
 }
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {

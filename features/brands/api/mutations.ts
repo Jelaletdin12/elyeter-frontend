@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys, dataCacheTags } from '@/lib/api/query-keys';
+import { revalidatePublicTags } from '@/lib/api/revalidate';
 import type { Brand, BrandListResponse, CreateBrandInput, UpdateBrandInput } from '../types';
 
 /**
@@ -9,20 +10,11 @@ import type { Brand, BrandListResponse, CreateBrandInput, UpdateBrandInput } fro
  * pattern'iyle yazıyor; slug/metaTitle/metaDescription boş bırakılırsa
  * backend name'den üretiyor (Category ile AYNI). Brand logoUrl zorunlu
  * değil; create formunda opsiyonel URL string'i girilir.
+ *
+ * Brand adı/slug değiştiğinde public brand sayfası + brand listesi + home
+ * (marka rozeti görünebilir) + ürün kartları revalidate edilir. revalidate
+ * çağrısı ortak helper: lib/api/revalidate.ts
  */
-
-/** Brand adı/slug değiştiğinde public brand sayfası + brand listesi +
- * home (marka rozeti görünebilir) + ürün kartları revalidate edilir. */
-const BRAND_REVALIDATE_ENDPOINT = '/api/revalidate';
-
-async function revalidatePublicTags(tags: string[]) {
-  const res = await fetch(BRAND_REVALIDATE_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tags }),
-  });
-  if (!res.ok) console.error('revalidatePublicTags failed', res.status, await res.text());
-}
 
 const BRAND_PUBLIC_TAGS = [dataCacheTags.brands(), dataCacheTags.home(), dataCacheTags.products()];
 

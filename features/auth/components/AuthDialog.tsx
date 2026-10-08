@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ locale, open, onOpenChange, defaultTab = 'login' }: AuthDialogProps) {
+  const t = useTranslations('auth');
   const [tab, setTab] = useState<'login' | 'register'>(defaultTab);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -42,16 +44,16 @@ export function AuthDialog({ locale, open, onOpenChange, defaultTab = 'login' }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{tab === 'login' ? 'Sign in' : 'Create an account'}</DialogTitle>
+          <DialogTitle>{tab === 'login' ? t('signIn') : t('createAccountTitle')}</DialogTitle>
           <DialogDescription>
-            {tab === 'login' ? 'Welcome back.' : 'Join to save your cart and track orders.'}
+            {tab === 'login' ? t('welcomeBack') : t('joinDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'login' | 'register')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Sign in</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="login">{t('signIn')}</TabsTrigger>
+            <TabsTrigger value="register">{t('register')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login" className="mt-4">

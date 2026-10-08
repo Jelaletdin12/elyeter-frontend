@@ -11,6 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List audit log entries
+         * @description Read-only view of every recorded mutation, newest first. `entity` (also accepted as `resourceType`) and `action` are exact-match filters, `actorId` restricts to one account, and `q` does a case-insensitive partial match over the entity, the action and the affected row id.
+         */
         get: operations["AuditLogController_findAll"];
         put?: never;
         post?: never;
@@ -29,6 +33,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Register a new client account
+         * @description Creates a CLIENT account and returns a ready-to-use token pair. The email address is not verified.
+         */
         post: operations["AuthController_register"];
         delete?: never;
         options?: never;
@@ -45,6 +53,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Log in with email and password
+         * @description Verifies the credentials and returns a token pair. Deactivated accounts are rejected with `errors.invalid_credentials`.
+         */
         post: operations["AuthController_login"];
         delete?: never;
         options?: never;
@@ -61,6 +73,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Exchange a refresh token for a new token pair
+         * @description Rotates the refresh token: the old one is revoked, so it can be used only once. A revoked token is rejected early from Redis without touching the database.
+         */
         post: operations["AuthController_refresh"];
         delete?: never;
         options?: never;
@@ -77,6 +93,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Revoke a refresh token
+         * @description Marks the refresh token as revoked. The access token stays valid until it expires on its own.
+         */
         post: operations["AuthController_logout"];
         delete?: never;
         options?: never;
@@ -91,8 +111,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List user accounts
+         * @description SUPER_ADMIN sees every account; an ADMIN only sees the accounts it created itself (its own operators). Supports a case-insensitive search over email and full name plus a role filter.
+         */
         get: operations["UsersController_findAll"];
         put?: never;
+        /**
+         * Create a user account
+         * @description Staff-provisioned account; the password is hashed here and never returned. SUPER_ADMIN may create ADMIN, OPERATOR or CLIENT, an ADMIN only OPERATOR — any other combination is rejected as `errors.insufficient_permissions`. Writes a user.create audit entry.
+         */
         post: operations["UsersController_create"];
         delete?: never;
         options?: never;
@@ -107,12 +135,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a single user account
+         * @description Returns any account in the system. The password hash is never part of the response, and no ownership filter is applied here — role-based access to this controller is the only gate.
+         */
         get: operations["UsersController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Deactivate a user account
+         * @description Soft delete: the row is kept for audit traceability and only `isActive` is set to false, which blocks further logins. The caller must be allowed to manage the target's role and must have created it (SUPER_ADMIN is exempt). Writes a user.delete audit entry.
+         */
         delete: operations["UsersController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a user account
+         * @description Email, full name and the active flag can be changed; the role is not editable here and the password has its own flow. The caller must be allowed to manage the target's current role AND must be the one who created it (SUPER_ADMIN is exempt). Changing the email to an existing one is rejected as `errors.email_already_exists`. Writes a user.update audit entry.
+         */
         patch: operations["UsersController_update"];
         trace?: never;
     };
@@ -123,8 +163,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List categories
+         * @description Paginated category list for the admin panel, newest first. Inactive categories are included on purpose — staff have to be able to find and re-activate them; each row carries a child count instead of the children themselves.
+         */
         get: operations["CategoriesController_findAll"];
         put?: never;
+        /**
+         * Create a category
+         * @description Creates a category with one translation per locale and generates the missing slug/SEO fields from the name. When `imageMediaId` is given, the pending upload is claimed and its processed card variant becomes the category image; the parent must exist, the tree may not exceed three levels and the media must belong to the caller.
+         */
         post: operations["CategoriesController_create"];
         delete?: never;
         options?: never;
@@ -139,6 +187,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a category by its locale-specific slug
+         * @description Resolves the category behind a storefront URL such as `/categories/slug/en/electronics` and ships the active direct children for the sub-category strip in the same call. A signed-in CLIENT visit is recorded as a best-effort CATEGORY_VIEW interaction; an unknown slug answers 404.
+         */
         get: operations["CategoriesController_findBySlug"];
         put?: never;
         post?: never;
@@ -155,6 +207,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the category tree
+         * @description Every active category as a nested tree, used to render the storefront navigation in a single request. Children of an inactive parent are promoted to the root so nothing stays hidden behind a parent the storefront never shows.
+         */
         get: operations["CategoriesController_findTree"];
         put?: never;
         post?: never;
@@ -171,12 +227,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a category by id
+         * @description Single category with both hierarchy directions — parent, all children and the child count — which is what the admin edit form needs. A signed-in CLIENT visit is recorded as a best-effort CATEGORY_VIEW interaction; an unknown id answers 404.
+         */
         get: operations["CategoriesController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Delete a category
+         * @description Soft delete: the row is kept and only `isActive` is set to false, so existing product links and URLs stay valid and staff can re-activate it. Categories that still have sub-categories are rejected, and the linked image is removed from MinIO.
+         */
         delete: operations["CategoriesController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a category
+         * @description Partial update: omitted fields are left untouched. Sending `translations` replaces the whole translation set, so all locales must be included again. A new `imageMediaId` is claimed first and the previously linked image is deleted from MinIO afterwards, and moving a category under its own descendant is rejected.
+         */
         patch: operations["CategoriesController_update"];
         trace?: never;
     };
@@ -187,8 +255,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List brands
+         * @description Paginated brand list, newest first, with the number of products linked to each brand. Passing `categoryId` narrows the result down to the brands used by the products of that category subtree — that is what the category page filter panel needs. Inactive brands stay in the list so staff can re-activate them.
+         */
         get: operations["BrandsController_findAll"];
         put?: never;
+        /**
+         * Create a brand
+         * @description Creates a brand with one translation per locale; missing slug/SEO fields are derived from the name and slugs are de-duplicated per locale. When `logoMediaId` is given, the pending upload is claimed and its processed logo variant is linked — the media must have been uploaded by the caller.
+         */
         post: operations["BrandsController_create"];
         delete?: never;
         options?: never;
@@ -203,6 +279,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a brand by its locale-specific slug
+         * @description Resolves the brand behind a storefront URL such as `/brands/slug/en/apple`, together with its product count. A signed-in CLIENT visit is recorded as a best-effort BRAND_VIEW interaction; an unknown slug answers 404.
+         */
         get: operations["BrandsController_findBySlug"];
         put?: never;
         post?: never;
@@ -219,12 +299,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a brand by id
+         * @description Single brand with all its translations and its product count, which is enough to render the brand page and the "other products" section. A signed-in CLIENT visit is recorded as a best-effort BRAND_VIEW interaction; an unknown id answers 404.
+         */
         get: operations["BrandsController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Delete a brand
+         * @description Hard delete, unlike categories: no product may reference the brand, otherwise the request is rejected with 409 to avoid leaving products without a brand. The linked logo is removed from MinIO.
+         */
         delete: operations["BrandsController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a brand
+         * @description Partial update: omitted fields are left untouched. Sending `translations` replaces the whole translation set, so all locales must be included again. A new `logoMediaId` is claimed first and the previous logo is deleted from MinIO only after the new one is linked.
+         */
         patch: operations["BrandsController_update"];
         trace?: never;
     };
@@ -235,8 +327,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List products
+         * @description Paginated catalog listing. Every row is a full product card: variants with `availableQuantity`/`discountPercent` and product level `hasDiscount`, `discountPercent`, `availableQuantity` and `isInStock`, so a listing card can render stock and discount without a second request.
+         */
         get: operations["ProductsController_findAll"];
         put?: never;
+        /**
+         * Create a product
+         * @description Creates the product, its translations and its variants. Variants given in the body must not already exist, and `images` references media uploaded earlier through `POST /media/uploads`.
+         */
         post: operations["ProductsController_create"];
         delete?: never;
         options?: never;
@@ -251,6 +351,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List discounted products
+         * @description Only products that have at least one variant with `compareAtPrice > price`, best discount first.
+         */
         get: operations["ProductsController_findDiscounted"];
         put?: never;
         post?: never;
@@ -267,6 +371,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a product by locale and slug
+         * @description Slug lookups are locale specific: a product can have a different slug per language. Increments `viewCount` for customer traffic only.
+         */
         get: operations["ProductsController_findBySlug"];
         put?: never;
         post?: never;
@@ -283,12 +391,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get one product
+         * @description Increments `viewCount` for customer traffic only, and records a `PRODUCT_VIEW` signal for signed-in clients.
+         */
         get: operations["ProductsController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Delete a product
+         * @description Deletes the product with its variants, images and stock movements, and removes the MinIO objects of those images. The database cascade alone would leave the files behind.
+         */
         delete: operations["ProductsController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a product
+         * @description Partial update of the product, its translations, variants and images. Adding an image is done here with `{ images: [{ mediaId, isPrimary }] }` — there is no separate "add image" endpoint.
+         */
         patch: operations["ProductsController_update"];
         trace?: never;
     };
@@ -299,6 +419,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List related products
+         * @description Other active products from the same category, ordered by view count. Read only: it never increments `viewCount`.
+         */
         get: operations["ProductsController_findRelated"];
         put?: never;
         post?: never;
@@ -318,6 +442,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a product image
+         * @description Deletes the image row and its three MinIO objects (card, detail, original). Use `PATCH /products/:id` to add an image instead.
+         */
         delete: operations["ProductsController_removeImage"];
         options?: never;
         head?: never;
@@ -333,8 +461,52 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a variant to a product
+         * @description Creates the variant, its Inventory row and — when `initialStock > 0` — the opening stock movement, all in one transaction.
+         */
         post: operations["ProductsController_addVariant"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}/variants/{variantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a variant
+         * @description Partial update of a variant: SKU, price, compare-at price, attributes and active state. `initialStock` is not part of a variant edit — stock only changes through the stock adjustment flow. New variant images can be claimed in the same request via `images[]`, deletion is a separate endpoint.
+         */
+        patch: operations["ProductsController_updateVariant"];
+        trace?: never;
+    };
+    "/api/v1/products/{id}/variants/{variantId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a variant image
+         * @description Removes the MinIO objects (card/detail/original) and then the `VariantImage` row.
+         */
+        delete: operations["ProductsController_removeVariantImage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -349,6 +521,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Adjust the stock of a variant
+         * @description Applies a manual IN / OUT / ADJUSTMENT / RETURN movement and returns the resulting Inventory row. RESERVE and RELEASE are rejected with 403 — those are written by the order flow only.
+         */
         post: operations["ProductsController_adjustStock"];
         delete?: never;
         options?: never;
@@ -363,6 +539,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the stock movements of a variant
+         * @description Newest first. `quantity` is always positive — read the direction from `type`.
+         */
         get: operations["ProductsController_getStockMovements"];
         put?: never;
         post?: never;
@@ -379,8 +559,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List active banners
+         * @description Returns every active banner ordered by `order` ascending, ready for the storefront carousel. Inactive banners are excluded — only the create/update responses can carry `isActive: false`. Not paginated on purpose: the carousel needs the whole set in one request.
+         */
         get: operations["BannersController_findAll"];
         put?: never;
+        /**
+         * Create a banner
+         * @description Links an already uploaded image: `imageId` must be the `id` returned by `POST /media/uploads?context=BANNER_IMAGE`, uploaded by the caller, and the pending row is claimed and deleted inside the same transaction. Omitted `isActive`/`order` default to `true`/`0`. Raw files are never accepted here.
+         */
         post: operations["BannersController_create"];
         delete?: never;
         options?: never;
@@ -395,12 +583,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a banner by id
+         * @description Single banner regardless of its `isActive` flag, so a staff preview can open a deactivated one. An unknown id answers 404 with `errors.banner_not_found`.
+         */
         get: operations["BannersController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Delete a banner
+         * @description Hard delete: both MinIO objects are removed explicitly before the row is dropped, so no orphan files are left behind. Writes a `banner.delete` audit entry.
+         */
         delete: operations["BannersController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a banner
+         * @description Partial update: omitted fields are left untouched. When `imageId` is sent it is claimed first and the previous desktop/mobile objects are deleted from MinIO only after the new image is linked, so a failure leaves the old banner intact. Writes a `banner.update` audit entry.
+         */
         patch: operations["BannersController_update"];
         trace?: never;
     };
@@ -411,8 +611,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List orders
+         * @description Staff (SUPER_ADMIN/ADMIN/OPERATOR) get every order; a CLIENT gets only their own, filtered in the service. Newest first, including items, status history and the applied coupon.
+         */
         get: operations["OrdersController_findAll"];
         put?: never;
+        /**
+         * Place an order directly from a list of variants
+         * @description Direct "buy now" order: the items come from the request body and the cart is left untouched. Prices are always read from the live `ProductVariant.price` — the client can never supply its own — and stock is reserved in the same transaction. Records the order.create audit entry and the PURCHASE signal after the commit.
+         */
         post: operations["OrdersController_create"];
         delete?: never;
         options?: never;
@@ -427,6 +635,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download the order invoice as PDF
+         * @description Renders the invoice from the order plus the client's profile data. This is a binary attachment, so the body is NOT wrapped in the `{ success, data }` envelope — `TransformInterceptor` passes `StreamableFile` through untouched.
+         */
         get: operations["OrdersController_getInvoicePdf"];
         put?: never;
         post?: never;
@@ -443,6 +655,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a single order
+         * @description Returns the order with its items, full status timeline and applied coupon. A CLIENT asking for someone else's order is rejected as `errors.not_resource_owner` rather than `errors.order_not_found`, so the endpoint does not confirm that the id exists.
+         */
         get: operations["OrdersController_findOne"];
         put?: never;
         post?: never;
@@ -465,6 +681,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Change the order status
+         * @description The transition must be allowed from the current status (DELIVERED cannot go back to PROCESSING). CANCELLED releases the reservation, SHIPPED physically removes the stock and RETURNED puts it back; every accepted transition appends an OrderStatusHistory row and writes an order.status_update audit entry.
+         */
         patch: operations["OrdersController_updateStatus"];
         trace?: never;
     };
@@ -475,8 +695,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List coupons
+         * @description Paginated coupon list, newest first, including inactive and expired ones so staff can review history. `isActive` filters on the flag and `search` does a case-insensitive match on the code.
+         */
         get: operations["CouponsController_findAll"];
         put?: never;
+        /**
+         * Create a coupon
+         * @description Creates a coupon from a unique uppercased code and links the product/category scope in the same transaction. Percentage coupons reject a value above 100; `productIds`/`categoryIds` restrict the coupon to those items, and leaving both empty makes it apply to the whole cart.
+         */
         post: operations["CouponsController_create"];
         delete?: never;
         options?: never;
@@ -491,12 +719,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a coupon by id
+         * @description Single coupon with its scope and the number of redemptions and orders that reference it, which is what the admin detail drawer shows.
+         */
         get: operations["CouponsController_findOne"];
         put?: never;
         post?: never;
+        /**
+         * Delete a coupon
+         * @description Hard delete together with its scope and redemption rows. Orders keep their already discounted totals, so historical revenue is not recalculated.
+         */
         delete: operations["CouponsController_remove"];
         options?: never;
         head?: never;
+        /**
+         * Update a coupon
+         * @description Partial update: omitted fields keep their current value and a percentage `value` above 100 is rejected. Already recorded redemptions are left untouched, so editing the value never rewrites what past orders were discounted by.
+         */
         patch: operations["CouponsController_update"];
         trace?: never;
     };
@@ -509,7 +749,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a product to the coupon scope
+         * @description Scopes the coupon to one more product and answers with the reloaded coupon. Linking a product that is already in the scope is a no-op rather than an error.
+         */
         post: operations["CouponsController_addProduct"];
+        /**
+         * Remove a product from the coupon scope
+         * @description Unscopes the coupon from a product and answers with the reloaded coupon. A link that does not exist is ignored, so the call is safe to repeat.
+         */
         delete: operations["CouponsController_removeProduct"];
         options?: never;
         head?: never;
@@ -525,7 +773,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a category to the coupon scope
+         * @description Scopes the coupon to every product of one more category and answers with the reloaded coupon. Adding a category that is already scoped is a no-op.
+         */
         post: operations["CouponsController_addCategory"];
+        /**
+         * Remove a category from the coupon scope
+         * @description Unscopes the coupon from a category and answers with the reloaded coupon. A link that does not exist is ignored, so the call is safe to repeat.
+         */
         delete: operations["CouponsController_removeCategory"];
         options?: never;
         head?: never;
@@ -539,6 +795,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List coupon redemptions
+         * @description Paginated redemption history, newest first. A row is written only when an order was actually placed, so preview calls to `POST /coupons/validate` never appear here.
+         */
         get: operations["CouponsController_getUsages"];
         put?: never;
         post?: never;
@@ -557,6 +817,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Preview a coupon discount
+         * @description Calculates the discount a code would grant, without reserving stock or writing a redemption — safe to call on every cart change. When `items` is omitted the caller's current cart is used, which then must not be empty. Every rejection reason (unknown, inactive, not started, expired, usage or minimum-amount limits, nothing in scope) answers 400 with an i18n key.
+         */
         post: operations["CouponsController_validate"];
         delete?: never;
         options?: never;
@@ -571,9 +835,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the current cart
+         * @description Creates the cart on first call, then returns it with live variant, product and inventory data. Every line carries the derived flags the cart page needs (`currentPrice`, `priceChanged`, `inStock`, `availableQuantity`, `isWishlisted`) plus a recomputed `subtotal`.
+         */
         get: operations["CartController_getCart"];
         put?: never;
         post?: never;
+        /**
+         * Empty the cart
+         * @description Deletes every line of the caller's cart at once. Stock is not affected — nothing was ever reserved.
+         */
         delete: operations["CartController_clearCart"];
         options?: never;
         head?: never;
@@ -589,6 +861,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a variant to the cart
+         * @description Adding a variant that is already in the cart INCREMENTS its quantity instead of replacing it, and refreshes `priceSnapshot` to the live price. Stock is validated against the combined (existing + new) quantity against available units, not the requested amount alone. Only a genuinely new line records the CART_ADD interaction signal.
+         */
         post: operations["CartController_addItem"];
         delete?: never;
         options?: never;
@@ -606,9 +882,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Remove a single cart line
+         * @description Deletes the line and returns the remaining cart. Only lines belonging to the caller's own cart can be removed.
+         */
         delete: operations["CartController_removeItem"];
         options?: never;
         head?: never;
+        /**
+         * Set the quantity of a cart line
+         * @description Overwrites the line quantity (it is not added to the current one) after checking it against the variant's available units. The whole cart is returned so the client can re-render totals without a second request.
+         */
         patch: operations["CartController_updateItem"];
         trace?: never;
     };
@@ -621,6 +905,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Turn the current cart into an order
+         * @description Builds the order from the caller's own cart contents — never from a client-supplied item list — reserves stock, applies the optional coupon and empties the cart in the same transaction, so a failure leaves the cart untouched.
+         */
         post: operations["CartController_checkout"];
         delete?: never;
         options?: never;
@@ -637,7 +925,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Subscribe to a back-in-stock notification for a variant
+         * @description Only variants that are currently out of stock can be subscribed to; a buyable variant is rejected with 400. Subscribing again after a previous cycle already notified the client resets `readyAt` to null instead of failing, so a second sell-out can be waited for again. There is no email/push delivery in this project: the moment restock flips `readyAt`, the server pushes a `stock_notification.ready` event over Socket.IO; `GET /notifications/stock` is the fallback list/badge source.
+         */
         post: operations["NotificationsController_subscribe"];
+        /**
+         * Cancel a back-in-stock subscription
+         * @description Removes the subscription for this variant and this client only. The call is idempotent: cancelling a variant you never subscribed to still succeeds, so no read-before-delete is needed.
+         */
         delete: operations["NotificationsController_unsubscribe"];
         options?: never;
         head?: never;
@@ -651,6 +947,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my back-in-stock subscriptions
+         * @description Paginated list of the signed-in client's subscriptions, newest first, each with its variant and product (all locales) inlined so the notification screen can be rendered from a single request. `onlyReady=true` narrows it to the ones already restocked, `unreadOnly=true` to restocked ones the client has not acknowledged yet (what the header badge counts). Real-time events are delivered over Socket.IO — this endpoint is for page loads, reconnects and other devices. The list is scoped to the caller — passing someone else's client id is not possible.
+         */
         get: operations["NotificationsController_listMine"];
         put?: never;
         post?: never;
@@ -658,6 +958,26 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/stock/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Acknowledge back-in-stock notifications
+         * @description Marks the callers ready notifications as read so the header badge can drop to zero. Without a body every ready notification is acknowledged; with `productVariantId` only that variant is (used when a single card is opened). Idempotent — rows that were already read are not counted again.
+         */
+        patch: operations["NotificationsController_markRead"];
         trace?: never;
     };
     "/api/v1/media/uploads": {
@@ -669,6 +989,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Upload an image for later linking
+         * @description Validates, resizes and compresses the file into WebP variants (resized per `context`), stores them in the matching MinIO bucket and returns a `PendingMedia.id`. This is the only endpoint that accepts a raw file: the returned id is then referenced as `mediaId`/`imageId` by the product, banner, brand or category create/update endpoints, which is what "claims" it. An upload that is never claimed is deleted automatically after PENDING_MEDIA_TTL_HOURS (24h by default).
+         */
         post: operations["MediaController_upload"];
         delete?: never;
         options?: never;
@@ -683,6 +1007,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my unclaimed uploads
+         * @description Every upload of the caller that is still pending, newest first. Useful to restore a draft form or to warn about uploads that are about to be swept by the cleanup job. Media already claimed by an entity is not returned here.
+         */
         get: operations["MediaController_listMine"];
         put?: never;
         post?: never;
@@ -702,6 +1030,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Discard an unclaimed upload
+         * @description Deletes the pending media and every MinIO object it produced, so the caller does not have to wait for the automatic cleanup. Only the uploader can discard a media; an already claimed media is gone from this table and therefore answers 404.
+         */
         delete: operations["MediaController_discard"];
         options?: never;
         head?: never;
@@ -717,7 +1049,51 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Scan and optionally delete orphaned MinIO objects
+         * @description Compares every object key in the product/banner/brand/category buckets against the keys the database still references and reports the difference. Defaults to a dry run that only counts; `dryRun=false` physically deletes the orphans and, when at least one object was removed, also writes a `media.cleanup` audit entry.
+         */
         post: operations["MediaController_cleanupOrphaned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sitemap.xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fetch the XML sitemap
+         * @description Lists one URL per active product and category translation, as `{siteUrl}/{locale}/products/{slug}` and `{siteUrl}/{locale}/categories/{slug}`, each with the parent entity's `updatedAt` as `lastmod`. Public and generated per request. The body is written straight to the response as XML, so it is NOT wrapped in the `{ success, data }` envelope, and the path sits outside the `/api/v1` prefix.
+         */
+        get: operations["SeoController_sitemap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/robots.txt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fetch robots.txt
+         * @description Static `User-agent`/`Allow` rules plus the absolute sitemap URL built from `SITE_URL`. Nothing is read from the database, so unlike the sitemap it cannot fail on data. The body is written straight to the response as plain text, so it is NOT wrapped in the `{ success, data }` envelope, and the path sits outside the `/api/v1` prefix.
+         */
+        get: operations["SeoController_robots"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -731,6 +1107,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Search products and categories
+         * @description Typo tolerant search backed by PostgreSQL trigram similarity, so partial words and typos still match. Products are ranked name matches first, then description-only matches. Logs the search term for customer traffic only, so staff searches never pollute the statistics.
+         */
         get: operations["SearchController_search"];
         put?: never;
         post?: never;
@@ -747,6 +1127,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the dashboard overview counters
+         * @description Runs five independent aggregates and returns them as one payload: active products, remaining physical stock, order totals per status and units sold. Cancelled orders are excluded from `totalUnitsSold` but counted in `totalOrders`, and every OrderStatus key is present with a 0 default. Read-only — nothing is written.
+         */
         get: operations["StatsController_getOverview"];
         put?: never;
         post?: never;
@@ -763,6 +1147,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Count products per staff member
+         * @description Groups every product by its `createdById` and joins the user rows to resolve email and full name, sorted by product count descending. The grouping ignores roles, so deactivated staff accounts that still own products are listed too; a product whose creator row can no longer be read is reported with the literal `unknown`.
+         */
         get: operations["StatsController_getProductsByOperator"];
         put?: never;
         post?: never;
@@ -779,6 +1167,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the most viewed active products
+         * @description Ranks active products by `viewCount` descending and returns only the id, the view count and the product name in the requested `locale`. Products with no translation in that locale come back as `Unknown`, so pass a locale the catalog actually covers. No pagination — the `limit` caps the list.
+         */
         get: operations["StatsController_getMostViewedProducts"];
         put?: never;
         post?: never;
@@ -795,6 +1187,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the most frequently searched terms
+         * @description Groups `SearchLog` rows by the lower-cased, trimmed term and returns the most frequent ones first. Only CLIENT and anonymous searches are counted — staff traffic never enters this report. The list is capped by `limit` and has no pagination.
+         */
         get: operations["StatsController_getMostSearchedTerms"];
         put?: never;
         post?: never;
@@ -811,6 +1207,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List wishlist items
+         * @description Creates the wishlist on first call and returns its rows newest first. Each row embeds the full product card — the same payload as `GET /products` — so the list can show price, discount and stock state without one request per row.
+         */
         get: operations["WishlistController_list"];
         put?: never;
         post?: never;
@@ -829,7 +1229,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a product to the wishlist
+         * @description Wishlists are product level, not variant level — the shopper decides the size/colour later when adding to the cart. Re-adding a product already on the list is rejected as `errors.wishlist_item_already_exists` instead of silently succeeding. Records a WISHLIST interaction signal (best effort).
+         */
         post: operations["WishlistController_add"];
+        /**
+         * Remove a product from the wishlist
+         * @description Wishlist rows are addressed by product id, not by wishlist item id. Removing something that is not on the list is an error rather than a silent no-op.
+         */
         delete: operations["WishlistController_remove"];
         options?: never;
         head?: never;
@@ -843,12 +1251,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the signed-in client profile
+         * @description Returns the client's own account plus their address book, default address first. `passwordHash` and the staff-only user fields are never included.
+         */
         get: operations["ProfileController_getMe"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update the signed-in client profile
+         * @description Only `fullName` and `phone` can be changed here — credentials and the role are managed elsewhere. Writes a profile.update audit entry and returns the profile with the address book attached.
+         */
         patch: operations["ProfileController_updateMe"];
         trace?: never;
     };
@@ -861,6 +1277,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add a delivery address
+         * @description The first address a client saves automatically becomes the default one, and any address flagged `isDefault` demotes the previous default in the same transaction. `latitude` and `longitude` must be sent together. Writes a profile.address.create audit entry.
+         */
         post: operations["ProfileController_addAddress"];
         delete?: never;
         options?: never;
@@ -878,9 +1298,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a delivery address
+         * @description Deletes the caller's own address. When the deleted row was the default, the oldest remaining address is promoted to default in the same transaction. Writes a profile.address.delete audit entry.
+         */
         delete: operations["ProfileController_removeAddress"];
         options?: never;
         head?: never;
+        /**
+         * Update a delivery address
+         * @description Only the caller's own addresses are editable. Omitting the coordinates clears them and resets the source to MANUAL, because a manually typed address must not keep a stale GPS position. Setting `isDefault` demotes the previous default. Writes a profile.address.update audit entry.
+         */
         patch: operations["ProfileController_updateAddress"];
         trace?: never;
     };
@@ -893,7 +1321,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Görsel ile ürün arama (self-hosted, pgvector) */
+        /**
+         * Search products by image
+         * @description Self-hosted CLIP + pgvector similarity search. This endpoint is a deliberate exception to the "upload first, link later" rule: the uploaded image is never persisted to MinIO or the database, it is only turned into a temporary embedding and thrown away.
+         */
         post: operations["VisualSearchController_searchByImage"];
         delete?: never;
         options?: never;
@@ -911,8 +1342,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Katalogdaki görselleri yeniden indexler
-         * @description Embedding'i olmayan veya farklı bir CLIP_MODEL_DTYPE ile üretilmiş tüm ProductImage kayıtları için MinIO'dan ham görsel indirilir, CLIP ile embedding üretilir ve saklanır. Idempotent — doğru dtype ile embedding'i olan görseller atlanır. Bireysel hatalar job'ı durdurmaz.
+         * Reindex the catalog images
+         * @description Walks every ProductImage that has no embedding, or one built with a different CLIP_MODEL_DTYPE, downloads the original from MinIO, generates a new CLIP embedding and stores it. Idempotent: images that already have a correct embedding are skipped. Individual failures are collected instead of aborting the job.
          */
         post: operations["AdminVisualSearchController_reindex"];
         delete?: never;
@@ -931,8 +1362,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Tek bir ProductImage için embedding üretir (idempotent)
-         * @description Doğru dtype ile embedding zaten varsa atlar (`indexed: false` döner). dtype değiştiyse yeniden üretir (`indexed: true`).
+         * Generate the embedding of a single product image
+         * @description Skips the work when a correct embedding already exists and reports `indexed: false`; regenerates it and reports `indexed: true` when the model dtype has changed.
          */
         post: operations["AdminVisualSearchController_generateEmbedding"];
         delete?: never;
@@ -948,6 +1379,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Export the catalog as a spreadsheet
+         * @description Streams every product variant (SKU) with price, stock levels, category, translatable names and attributes as an attachment. This is a raw file download, not a JSON envelope. Use `POST /catalog/template` to get the matching column layout first.
+         */
         get: operations["CatalogIoController_export"];
         put?: never;
         post?: never;
@@ -964,6 +1399,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download the catalog import template
+         * @description Streams a one-row example workbook with the exact column headers `POST /catalog/import` expects, so a spreadsheet built from it is accepted without guessing. Raw file download, not a JSON envelope.
+         */
         get: operations["CatalogIoController_template"];
         put?: never;
         post?: never;
@@ -982,6 +1421,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Import the catalog from a spreadsheet
+         * @description Each row is one product variant (SKU): known SKUs are updated (price, attributes, active flag and stock adjusted as a movement), rows carrying a `productId` add a variant to that product, and rows without one create the product plus its variant. The file is validated completely before anything is written — if a single row is invalid the response comes back with `applied: false`, the row numbers and the i18n reasons, and nothing is changed. Accepted: .xlsx, .xls, .csv up to 5 MB.
+         */
         post: operations["CatalogIoController_import"];
         delete?: never;
         options?: never;
@@ -996,7 +1439,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Anasayfa önerileri: categories, brands, forYou, trending, newArrivals */
+        /**
+         * Get the homepage recommendation sections
+         * @description Returns categories, brands, forYou, trending, newArrivals and discounted in one call. A signed-in CLIENT gets personalised `forYou` results built from its interaction history; guests and users without history get the most popular products. `isWishlisted` is only resolved for clients.
+         */
         get: operations["RecommendationsController_getHome"];
         put?: never;
         post?: never;
@@ -1013,7 +1459,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Sayfalanmış kişisel öneri ürünleri (misafir: popülerlik fallback) */
+        /**
+         * List recommended products
+         * @description The "View all" page behind `forYou`. For a signed-in CLIENT it pages through the full personalised ranking; for guests and cold-start users it falls back to popularity.
+         */
         get: operations["RecommendationsController_getProducts"];
         put?: never;
         post?: never;
@@ -1030,8 +1479,51 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Ürün detayı benzer ürünler */
+        /**
+         * List products similar to a given product
+         * @description Active products from the same category, scored by content profile similarity and filtered to the ones that are actually sellable. The seed product itself is never included.
+         */
         get: operations["RecommendationsController_getSimilar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/reverse-geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve coordinates into an address
+         * @description Turns a GPS fix into a human-readable address for the checkout / delivery form. The lookup is fail-soft: when the provider has no match or errors out the answer is `result: null` instead of an error, so the client can keep the coordinates it already has and let the customer type the address manually. Results are cached per rounded coordinate pair.
+         */
+        post: operations["LocationsController_reverseGeocode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search addresses by text
+         * @description Type-ahead lookup for the address field, used to pre-fill the delivery form from a partial string. An empty `results` array means "nothing found" rather than a failure, so the client can fall back to free-form input.
+         */
+        get: operations["LocationsController_search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1044,6 +1536,146 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApiErrorEnvelopeDto: {
+            /**
+             * @description Always false on an error response
+             * @example false
+             */
+            success: boolean;
+            /**
+             * @description i18n message key — translate it on the client with the same locale used in the request
+             * @example errors.product_not_found
+             */
+            message: string;
+            /**
+             * @description When the error was thrown
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            timestamp: string;
+            /**
+             * @description HTTP status text
+             * @example Not Found
+             */
+            error?: string;
+            /**
+             * @description HTTP status code
+             * @example 404
+             */
+            statusCode?: number;
+        };
+        ApiSuccessEnvelopeDto: {
+            /**
+             * @description Always true on a successful response
+             * @example true
+             */
+            success: boolean;
+            /** @description The actual payload */
+            data: Record<string, never>;
+        };
+        AuditLogResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description The staff or client account that performed the action
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            actorId: string;
+            /**
+             * @description Dotted action name, e.g. `user.create`, `product.update`, `order.status_update`
+             * @example order.status_update
+             */
+            action: string;
+            /**
+             * @description Model name the action was performed on, e.g. `User`, `Product`, `Category`, `Banner`, `Order`, `Coupon`
+             * @example Order
+             */
+            entity: string;
+            /**
+             * @description Primary key of the affected row inside `entity`
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            entityId: string;
+            /**
+             * @description Relevant field values BEFORE the change. Not every action records a snapshot — null when it does not apply.
+             * @example {
+             *       "fullName": "Old Name",
+             *       "email": "old@example.com"
+             *     }
+             */
+            oldValue?: Record<string, never> | null;
+            /**
+             * @description Relevant field values AFTER the change — the counterpart of `oldValue`
+             * @example {
+             *       "fullName": "Jane Doe",
+             *       "email": "jane@example.com"
+             *     }
+             */
+            newValue?: Record<string, never> | null;
+            /**
+             * @description Client IP of the request. Null when the audit call had no request context to read it from.
+             * @example 10.0.0.14
+             */
+            ip?: Record<string, never> | null;
+            /**
+             * @description User agent of the request, used to tell automated and manual changes apart
+             * @example Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+             */
+            userAgent?: Record<string, never> | null;
+            /**
+             * @description Extra context beyond old/new values (e.g. the role assigned, the order total, the status transition)
+             * @example {
+             *       "role": "OPERATOR"
+             *     }
+             */
+            metadata?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @description When the audited action happened — the list is ordered newest first
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+        };
+        AuditLogPaginationMetaDto: {
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            limit: number;
+            /** @example 57 */
+            total: number;
+            /** @example 3 */
+            totalPages: number;
+        };
+        AuditLogListResponseDto: {
+            items: components["schemas"]["AuditLogResponseDto"][];
+            meta: components["schemas"]["AuditLogPaginationMetaDto"];
+        };
+        AuthUserResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example jane@example.com */
+            email: string;
+            /**
+             * @description A self-registered account is always created with the CLIENT role
+             * @example CLIENT
+             * @enum {string}
+             */
+            role: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
+            /** @example Jane Doe */
+            fullName?: Record<string, never> | null;
+        };
+        AuthSessionResponseDto: {
+            /**
+             * @description Short-lived JWT, send it as `Authorization: Bearer <token>`
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            accessToken: string;
+            /**
+             * @description Long-lived JWT, also set as an httpOnly cookie by the server
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            refreshToken: string;
+            user: components["schemas"]["AuthUserResponseDto"];
+        };
         RegisterDto: {
             /** @example customer@example.com */
             email: string;
@@ -1058,9 +1690,58 @@ export interface components {
             /** @example ChangeMe123! */
             password: string;
         };
+        TokenPairResponseDto: {
+            /**
+             * @description Short-lived JWT, send it as `Authorization: Bearer <token>`
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            accessToken: string;
+            /**
+             * @description Long-lived JWT, also set as an httpOnly cookie by the server
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            refreshToken: string;
+        };
         RefreshTokenDto: {
             /** @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... */
             refreshToken: string;
+        };
+        LogoutResponseDto: {
+            /** @example true */
+            loggedOut: boolean;
+        };
+        UserResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example jane@example.com */
+            email: string;
+            /** @example Jane Doe */
+            fullName: string;
+            /**
+             * @example OPERATOR
+             * @enum {string}
+             */
+            role: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
+            /**
+             * @description False on a soft-deleted account: the row is kept for audit traceability but can no longer log in
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description The admin who created this account. Null for accounts created by seed or before the field existed; drives the ownership check for non-SUPER_ADMIN admins.
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            createdById?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
         };
         CreateUserDto: {
             /** @example operator1@example.com */
@@ -1075,6 +1756,20 @@ export interface components {
              */
             role: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
         };
+        UserPaginationMetaDto: {
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            limit: number;
+            /** @example 57 */
+            total: number;
+            /** @example 3 */
+            totalPages: number;
+        };
+        UserListResponseDto: {
+            items: components["schemas"]["UserResponseDto"][];
+            meta: components["schemas"]["UserPaginationMetaDto"];
+        };
         UpdateUserDto: {
             /** @example operator1@example.com */
             email?: string;
@@ -1087,6 +1782,222 @@ export interface components {
             role?: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
             /** @example true */
             isActive?: boolean;
+        };
+        UserDeletedResponseDto: {
+            /**
+             * @description The account is now deactivated (isActive = false), not physically removed
+             * @example true
+             */
+            deleted: boolean;
+        };
+        CategoryTranslationResponseDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Electronics */
+            name: string;
+            /**
+             * @description URL segment for this locale, unique across every category
+             * @example electronics
+             */
+            slug: string;
+            /**
+             * @description Falls back to `name` when the client does not send one
+             * @example Electronics - Best Deals & Prices
+             */
+            metaTitle?: string | null;
+            /**
+             * @description Falls back to a truncated `name` when the client does not send one
+             * @example Browse phones, laptops and accessories in one place.
+             */
+            metaDescription?: string | null;
+        };
+        CategoryChildrenCountResponseDto: {
+            /**
+             * @description Number of direct sub-categories
+             * @example 3
+             */
+            children: number;
+        };
+        CategoryListItemResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive category is hidden from the storefront but keeps its rows and its URL
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Listing thumbnail; the client falls back to a placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            imageUrl?: string | null;
+            /**
+             * @description Parent category id, null for a root category
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            parentId?: string | null;
+            /**
+             * @description Staff account that created the category — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["CategoryTranslationResponseDto"][];
+            _count: components["schemas"]["CategoryChildrenCountResponseDto"];
+        };
+        PaginationMetaDto: {
+            /**
+             * @description Current page, 1-based
+             * @example 1
+             */
+            page: number;
+            /**
+             * @description Page size actually applied (capped at 100)
+             * @example 20
+             */
+            limit: number;
+            /**
+             * @description Total number of rows matching the filter
+             * @example 57
+             */
+            total: number;
+            /**
+             * @description Number of pages `total` rows are spread over
+             * @example 3
+             */
+            totalPages: number;
+        };
+        CategoryListResponseDto: {
+            items: components["schemas"]["CategoryListItemResponseDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        CategoryTreeNodeResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive category is hidden from the storefront but keeps its rows and its URL
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Listing thumbnail; the client falls back to a placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            imageUrl?: string | null;
+            /**
+             * @description Parent category id, null for a root category
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            parentId?: string | null;
+            /**
+             * @description Staff account that created the category — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["CategoryTranslationResponseDto"][];
+            /** @description Active direct children, nested recursively in the tree endpoint */
+            children: components["schemas"]["CategoryTreeNodeResponseDto"];
+        };
+        CategoryResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive category is hidden from the storefront but keeps its rows and its URL
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Listing thumbnail; the client falls back to a placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            imageUrl?: string | null;
+            /**
+             * @description Parent category id, null for a root category
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            parentId?: string | null;
+            /**
+             * @description Staff account that created the category — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["CategoryTranslationResponseDto"][];
+        };
+        CategoryDetailResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive category is hidden from the storefront but keeps its rows and its URL
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Listing thumbnail; the client falls back to a placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            imageUrl?: string | null;
+            /**
+             * @description Parent category id, null for a root category
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            parentId?: string | null;
+            /**
+             * @description Staff account that created the category — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["CategoryTranslationResponseDto"][];
+            /** @description Parent category with its own translations, null for a root category */
+            parent?: components["schemas"]["CategoryResponseDto"] | null;
+            /** @description Direct children including inactive ones — the admin panel needs them to fix visibility problems */
+            children: components["schemas"]["CategoryTreeNodeResponseDto"][];
+            _count: components["schemas"]["CategoryChildrenCountResponseDto"];
         };
         CategoryTranslationDto: {
             /**
@@ -1178,6 +2089,111 @@ export interface components {
              */
             translations?: components["schemas"]["CategoryTranslationDto"][];
         };
+        CategoryDeletedResponseDto: {
+            /**
+             * @description Always true — the row itself is kept and only `isActive` is set to false
+             * @example true
+             */
+            deleted: boolean;
+        };
+        BrandTranslationResponseDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Apple */
+            name: string;
+            /**
+             * @description URL segment for this locale, unique across every brand
+             * @example apple
+             */
+            slug: string;
+            /**
+             * @description Falls back to `name` when the client does not send one
+             * @example Apple - Official Store
+             */
+            metaTitle?: string | null;
+            /**
+             * @description Falls back to a truncated `name` when the client does not send one
+             * @example Shop Apple products with warranty and fast delivery.
+             */
+            metaDescription?: string | null;
+        };
+        BrandProductsCountResponseDto: {
+            /**
+             * @description Number of products currently linked to this brand
+             * @example 12
+             */
+            products: number;
+        };
+        BrandDetailResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive brand disappears from the storefront filters but keeps its existing products
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Logo image; the client falls back to a text placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            logoUrl?: string | null;
+            /**
+             * @description Staff account that created the brand — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["BrandTranslationResponseDto"][];
+            _count: components["schemas"]["BrandProductsCountResponseDto"];
+        };
+        BrandListResponseDto: {
+            items: components["schemas"]["BrandDetailResponseDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        BrandResponseDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description An inactive brand disappears from the storefront filters but keeps its existing products
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Logo image; the client falls back to a text placeholder when null
+             * @example http://localhost:9200/product-images/x.webp
+             */
+            logoUrl?: string | null;
+            /**
+             * @description Staff account that created the brand — needed to attribute catalog changes in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per configured locale */
+            translations: components["schemas"]["BrandTranslationResponseDto"][];
+        };
         BrandTranslationDto: {
             /**
              * @example en
@@ -1264,6 +2280,13 @@ export interface components {
              */
             translations?: components["schemas"]["BrandTranslationDto"][];
         };
+        BrandDeletedResponseDto: {
+            /**
+             * @description Always true — the row is hard-deleted
+             * @example true
+             */
+            deleted: boolean;
+        };
         CategoryBriefTranslationDto: {
             /**
              * @example en
@@ -1292,7 +2315,7 @@ export interface components {
         BrandBriefResponseDto: {
             /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
             id: string;
-            /** @example brands/apple.webp */
+            /** @example http://localhost:9200/brands/apple.webp */
             logoUrl?: Record<string, never> | null;
             /** @example true */
             isActive: boolean;
@@ -1307,34 +2330,74 @@ export interface components {
             /** @example Wireless Headphones */
             name: string;
             /** @example Over-ear wireless headphones with noise cancellation. */
-            description?: Record<string, never>;
-            /** @example wireless-headphones */
+            description?: Record<string, never> | null;
+            /**
+             * @description Auto-generated from the name when not provided
+             * @example wireless-headphones
+             */
             slug: string;
-            /** @example Wireless Headphones - Buy Online */
+            /**
+             * @description Auto-generated from the name when not provided
+             * @example Wireless Headphones - Buy Online
+             */
             metaTitle: string;
-            /** @example Shop premium wireless headphones with ANC and 30-hour battery life. */
+            /**
+             * @description Auto-generated from the description (or the name) when not provided
+             * @example Shop premium wireless headphones with ANC and 30-hour battery life.
+             */
             metaDescription: string;
         };
         ProductImageResponseDto: {
             /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
             id: string;
             /**
-             * @description 400x400 — ürün kartı/liste görünümü için
-             * @example http://localhost:9000/product-images/{productId}/{imageId}/card.webp
+             * @description 400x400 — product card / listing thumbnail
+             * @example http://localhost:9200/product-images/{productId}/{imageId}/card.webp
              */
             cardUrl: string;
             /**
-             * @description 1200x1200 — ürün detay sayfası için
-             * @example http://localhost:9000/product-images/{productId}/{imageId}/detail.webp
+             * @description 1200x1200 — product detail page
+             * @example http://localhost:9200/product-images/{productId}/{imageId}/detail.webp
              */
             detailUrl: string;
             /**
-             * @description 2000x2000 — zoom/lightbox için
-             * @example http://localhost:9000/product-images/{productId}/{imageId}/original.webp
+             * @description 2000x2000 — zoom / lightbox
+             * @example http://localhost:9200/product-images/{productId}/{imageId}/original.webp
              */
             originalUrl: string;
             /**
-             * @description Bir üründe en fazla bir görsel isPrimary=true olabilir
+             * @description At most one image per product can be the primary one
+             * @example true
+             */
+            isPrimary: boolean;
+            /** @example 0 */
+            order: number;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+        };
+        VariantImageResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description 400x400 — product card / listing thumbnail
+             * @example http://localhost:9200/product-images/{variantId}/{imageId}/card.webp
+             */
+            cardUrl: string;
+            /**
+             * @description 1200x1200 — product detail page
+             * @example http://localhost:9200/product-images/{variantId}/{imageId}/detail.webp
+             */
+            detailUrl: string;
+            /**
+             * @description 2000x2000 — zoom / lightbox
+             * @example http://localhost:9200/product-images/{variantId}/{imageId}/original.webp
+             */
+            originalUrl: string;
+            /**
+             * @description At most one image per variant can be the primary one
              * @example true
              */
             isPrimary: boolean;
@@ -1348,17 +2411,17 @@ export interface components {
         };
         InventoryResponseDto: {
             /**
-             * @description Fiziksel olarak sahip olunan toplam adet
+             * @description Total number of units physically owned
              * @example 42
              */
             quantity: number;
             /**
-             * @description Bekleyen siparişler için ayrılmış (henüz kargolanmamış) adet
+             * @description Units held for pending orders (not shipped yet)
              * @example 5
              */
             reservedQuantity: number;
             /**
-             * @description Bu eşiğin altına düşünce "düşük stok" sayılır
+             * @description Below this threshold the variant counts as "low stock"
              * @example 5
              */
             lowStockThreshold: number;
@@ -1371,15 +2434,20 @@ export interface components {
             /** @example 299.99 */
             price: number;
             /**
-             * @description İndirimsiz orijinal/üstü çizili liste fiyatı
+             * @description Original list price the customer sees struck through — set it above `price` to mark the variant as discounted
              * @example 349.99
              */
             compareAtPrice?: Record<string, never> | null;
             /**
-             * @description Yüzdelik indirim oranı (compareAtPrice > price ise)
+             * @description Discount percentage derived from compareAtPrice > price, otherwise null
              * @example 14
              */
             discountPercent?: Record<string, never> | null;
+            /**
+             * @description Units still buyable right now (quantity - reservedQuantity), 0 means out of stock
+             * @example 37
+             */
+            availableQuantity: number;
             /**
              * @example {
              *       "color": "Red",
@@ -1387,10 +2455,15 @@ export interface components {
              *     }
              */
             attributes: Record<string, never>;
-            /** @example true */
+            /** @description Images belonging to this variant. On the product detail page the gallery switches to these when this variant is selected; empty when the variant has no own images. */
+            images: components["schemas"]["VariantImageResponseDto"][];
+            /**
+             * @description A deactivated variant is still returned, but never counted as stock or as a discount
+             * @example true
+             */
             isActive: boolean;
-            /** @description null ise bu varyant için henüz Inventory kaydı oluşmamıştır (olağanüstü bir durum) */
-            inventory?: components["schemas"]["InventoryResponseDto"];
+            /** @description null when no Inventory row has been created for this variant yet (should not normally happen) */
+            inventory?: components["schemas"]["InventoryResponseDto"] | null;
         };
         ProductResponseDto: {
             /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
@@ -1398,29 +2471,50 @@ export interface components {
             /** @example true */
             isActive: boolean;
             /**
-             * @description Sadece giriş yapmış CLIENT bu endpoint'i çağırdığında anlamlıdır — anonim istekte her zaman false döner.
+             * @description Only meaningful when a signed-in CLIENT calls this endpoint — always false for anonymous requests.
              * @example false
              */
             isWishlisted: boolean;
             /**
-             * @description Ürün detay sayfası görüntülenme sayısı
+             * @description Product detail page view count
              * @example 1024
              */
             viewCount: number;
+            /**
+             * @description True when at least one active variant has compareAtPrice > price. Lets a listing card show the discount badge without opening the product.
+             * @example true
+             */
+            hasDiscount: boolean;
+            /**
+             * @description Highest discount percentage among the active variants, null when the product is not discounted
+             * @example 14
+             */
+            discountPercent?: Record<string, never> | null;
+            /**
+             * @description Units still buyable right now, summed over the active variants
+             * @example 37
+             */
+            availableQuantity: number;
+            /**
+             * @description False when every active variant is out of stock — use it to render the "out of stock" state
+             * @example true
+             */
+            isInStock: boolean;
             /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
             categoryId: string;
-            /** @description Kategorinin tüm dillerdeki isim çevirileri dahil (categoryId ile aynı kategoriyi ifade eder) */
+            /** @description The same category as `categoryId`, including its name in every locale */
             category: components["schemas"]["CategoryBriefResponseDto"];
             /**
-             * @description Ürünün marka referansı (Brand tablosuna FK) — null ise ürünün markası yok
+             * @description Brand reference (FK to the Brand table) — null when the product has no brand
              * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
              */
             brandId?: Record<string, never> | null;
-            /** @description Marka detayı (tüm dillerdeki çeviriler dahil) */
+            /** @description Brand details including its translations */
             brand?: components["schemas"]["BrandBriefResponseDto"] | null;
             translations: components["schemas"]["ProductTranslationResponseDto"][];
+            /** @description Ordered with the primary image first */
             images: components["schemas"]["ProductImageResponseDto"][];
-            /** @description Her ürünün en az bir varyantı vardır — SKU/fiyat/stok artık burada, ürün seviyesinde değil */
+            /** @description SKU, price, stock and discount live here rather than on the product itself. Inactive variants are still listed but excluded from the product level totals. */
             variants: components["schemas"]["ProductVariantResponseDto"][];
             /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
             createdById: string;
@@ -1460,17 +2554,17 @@ export interface components {
             /** @example Over-ear wireless headphones with active noise cancellation. */
             description?: string;
             /**
-             * @description Boş bırakılırsa name alanından otomatik üretilir
+             * @description Leave empty to auto-generate from name
              * @example wireless-headphones
              */
             slug?: string;
             /**
-             * @description Boş bırakılırsa name kullanılır
+             * @description Leave empty to use name
              * @example Wireless Headphones - Buy Online
              */
             metaTitle?: string;
             /**
-             * @description Boş bırakılırsa description (yoksa name) alanından otomatik üretilir
+             * @description Leave empty to auto-generate from description (or name if missing)
              * @example Shop premium wireless headphones with ANC and 30-hour battery life.
              */
             metaDescription?: string;
@@ -1481,12 +2575,12 @@ export interface components {
             /** @example 299.99 */
             price: number;
             /**
-             * @description İndirimsiz orijinal/üstü çizili liste fiyatı
+             * @description Original/list price (compare-at price)
              * @example 349.99
              */
             compareAtPrice?: number;
             /**
-             * @description Başlangıç stok miktarı (Inventory.quantity)
+             * @description Initial stock quantity (Inventory.quantity)
              * @example 50
              */
             initialStock: number;
@@ -1498,7 +2592,7 @@ export interface components {
              */
             attributes?: Record<string, never>;
             /**
-             * @description Bu eşiğin altına düşünce "düşük stok" sayılır
+             * @description When below this threshold "low stock" is considered low stock
              * @default 5
              * @example 5
              */
@@ -1511,7 +2605,7 @@ export interface components {
         };
         ProductImageRefDto: {
             /**
-             * @description POST /media/uploads?context=PRODUCT_IMAGE çağrısından dönen id
+             * @description ID returned from POST /media/uploads?context=PRODUCT_IMAGE
              * @example 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
              */
             mediaId: string;
@@ -1525,7 +2619,7 @@ export interface components {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId: string;
             /**
-             * @description Brand tablosundaki bir markanın UUID'si
+             * @description UUID of a brand'si
              * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
              */
             brandId?: string;
@@ -1565,7 +2659,7 @@ export interface components {
              */
             variants: components["schemas"]["CreateProductVariantDto"][];
             /**
-             * @description Önce POST /media/uploads?context=PRODUCT_IMAGE ile yüklenip alınan mediaId listesi. Boş bırakılırsa ürün görselsiz oluşturulur, sonradan POST /products/:id/images ile eklenebilir.
+             * @description List of mediaId values returned from POST /media/uploads?context=PRODUCT_IMAGE. If empty, product created without images; images can be added later via POST /products/:id/images.
              * @example [
              *       {
              *         "mediaId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
@@ -1579,7 +2673,7 @@ export interface components {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             categoryId?: string;
             /**
-             * @description Brand tablosundaki bir markanın UUID'si
+             * @description UUID of a brand'si
              * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
              */
             brandId?: string;
@@ -1619,7 +2713,7 @@ export interface components {
              */
             variants?: components["schemas"]["CreateProductVariantDto"][];
             /**
-             * @description Önce POST /media/uploads?context=PRODUCT_IMAGE ile yüklenip alınan mediaId listesi. Boş bırakılırsa ürün görselsiz oluşturulur, sonradan POST /products/:id/images ile eklenebilir.
+             * @description List of mediaId values returned from POST /media/uploads?context=PRODUCT_IMAGE. If empty, product created without images; images can be added later via POST /products/:id/images.
              * @example [
              *       {
              *         "mediaId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
@@ -1628,6 +2722,142 @@ export interface components {
              *     ]
              */
             images?: components["schemas"]["ProductImageRefDto"][];
+        };
+        ProductDeletedResponseDto: {
+            /** @example true */
+            deleted: boolean;
+        };
+        ProductVariantCreatedResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productId: string;
+            /** @example WH-1000XM5-RED-L */
+            sku: string;
+            /** @example 299.99 */
+            price: number;
+            /**
+             * @description Original list price — set it above `price` to mark the variant as discounted
+             * @example 349.99
+             */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @example {
+             *       "color": "Red",
+             *       "size": "L"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /** @example true */
+            isActive: boolean;
+            /** @description The Inventory row created together with the variant, initialised with `initialStock` */
+            inventory: components["schemas"]["InventoryResponseDto"];
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        ProductVariantUpdatedResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example WH-1000XM5-RED-L */
+            sku: string;
+            /** @example 299.99 */
+            price: number;
+            /**
+             * @description Original list price — set it above `price` to mark the variant as discounted
+             * @example 349.99
+             */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @example {
+             *       "color": "Red",
+             *       "size": "L"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /** @description Images of this variant — empty when the variant has no own images */
+            images: components["schemas"]["VariantImageResponseDto"][];
+            /** @example true */
+            isActive: boolean;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        VariantImageRefDto: {
+            /**
+             * @description ID returned from POST /media/uploads?context=VARIANT_IMAGE
+             * @example 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+             */
+            mediaId: string;
+            /**
+             * @default false
+             * @example false
+             */
+            isPrimary: boolean;
+        };
+        UpdateProductVariantDto: {
+            /** @example WH-1000XM5-RED-L */
+            sku?: string;
+            /** @example 299.99 */
+            price?: number;
+            /**
+             * @description Original/list price (compare-at price)
+             * @example 349.99
+             */
+            compareAtPrice?: number;
+            /**
+             * @example {
+             *       "color": "Red",
+             *       "size": "L"
+             *     }
+             */
+            attributes?: Record<string, never>;
+            /** @example true */
+            isActive?: boolean;
+            /** @description Optionally claim new variant images in the same request */
+            images?: components["schemas"]["VariantImageRefDto"][];
+        };
+        StockAdjustmentResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productVariantId: string;
+            /**
+             * @description Total units owned after the adjustment
+             * @example 42
+             */
+            quantity: number;
+            /**
+             * @description Units held for pending orders
+             * @example 5
+             */
+            reservedQuantity: number;
+            /** @example 5 */
+            lowStockThreshold: number;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
         };
         StockAdjustmentDto: {
             /**
@@ -1640,8 +2870,91 @@ export interface components {
              * @example 20
              */
             quantity: number;
-            /** @example Yeni sevkiyat teslim alındı */
+            /** @example New shipment received */
             reason?: string;
+        };
+        StockMovementResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            inventoryId: string;
+            /**
+             * @description Always a positive number — the direction is encoded in the type. RESERVE and RELEASE are written by the order flow, never manually.
+             * @example OUT
+             * @enum {string}
+             */
+            type: "IN" | "OUT" | "RESERVE" | "RELEASE" | "ADJUSTMENT" | "RETURN";
+            /**
+             * @description Always positive; the direction comes from `type`
+             * @example 3
+             */
+            quantity: number;
+            /** @example Damaged in transit */
+            reason?: Record<string, never> | null;
+            /**
+             * @description Set when the movement was caused by an order
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            relatedOrderId?: Record<string, never> | null;
+            /**
+             * @description The staff member who performed it, null for automatic order movements
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            performedById?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+        };
+        StockMovementListResponseDto: {
+            /** @description Newest movement first */
+            items: components["schemas"]["StockMovementResponseDto"][];
+            meta: components["schemas"]["ProductPaginationMetaDto"];
+        };
+        BannerResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description 1920x600 WebP variant, linked straight from the `banners` bucket
+             * @example http://localhost:9200/banners/x.webp
+             */
+            desktopUrl: string;
+            /**
+             * @description 768x400 WebP variant — pick it with a `srcset`/`media` switch instead of resizing on the client
+             * @example http://localhost:9200/banners/x.webp
+             */
+            mobileUrl: string;
+            /**
+             * @description Destination the banner opens. null means the banner is not clickable and the client should render it as a plain image
+             * @example https://example.com/summer-sale
+             */
+            linkUrl?: Record<string, never> | null;
+            /**
+             * @description An inactive banner disappears from the storefront carousel but the row and its MinIO objects are kept
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Ascending display order — the carousel shows the lowest value first
+             * @example 0
+             */
+            order: number;
+            /**
+             * @description Staff account that created the banner, so the admin panel can attribute catalog changes
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
         };
         CreateBannerDto: {
             /**
@@ -1683,62 +2996,12 @@ export interface components {
              */
             order: number;
         };
-        CreateOrderItemDto: {
+        BannerDeletedResponseDto: {
             /**
-             * @description ProductVariant id — Product id değil. Fiyat/stok artık variant seviyesinde tutulur.
-             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
+             * @description Always true — the row is hard-deleted together with its two MinIO objects
+             * @example true
              */
-            productVariantId: string;
-            /** @example 2 */
-            quantity: number;
-        };
-        CreateOrderDto: {
-            /**
-             * @description CASH = kapıda nakit, CARD = kapıda/online kart
-             * @example CASH
-             * @enum {string}
-             */
-            paymentMethod: "CASH" | "CARD";
-            /**
-             * @default DELIVERY
-             * @example DELIVERY
-             * @enum {string}
-             */
-            fulfillmentType: "DELIVERY" | "PICKUP";
-            /**
-             * @description İndirim kuponu kodu (opsiyonel)
-             * @example SUMMER20
-             */
-            couponCode?: string;
-            /**
-             * @description Kayıtlı profil adresinin id'si. DELIVERY siparişte recipient alanları yerine (veya onları doldurmak için) kullanılır.
-             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
-             */
-            savedAddressId?: string;
-            /**
-             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
-             * @example Ayşe Demir
-             */
-            recipientName?: string;
-            /**
-             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
-             * @example +993 12 345678
-             */
-            recipientPhone?: string;
-            /**
-             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
-             * @example Görogly köçesi 12, Aşgabat
-             */
-            shippingAddress?: string;
-            /**
-             * @example [
-             *       {
-             *         "productVariantId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-             *         "quantity": 2
-             *       }
-             *     ]
-             */
-            items: components["schemas"]["CreateOrderItemDto"][];
+            deleted: boolean;
         };
         OrderCouponResponseDto: {
             /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
@@ -1882,6 +3145,14 @@ export interface components {
             recipientPhone?: Record<string, never> | null;
             /** @example Görogly köçesi 12, Aşgabat */
             shippingAddress?: Record<string, never> | null;
+            /** @example 37.9601 */
+            shippingLatitude?: Record<string, never> | null;
+            /** @example 58.3261 */
+            shippingLongitude?: Record<string, never> | null;
+            /** @enum {string|null} */
+            shippingLocationSource?: "MANUAL" | "MAP" | "SEARCH" | "CURRENT_LOCATION" | null;
+            /** @example Giriş arka tarafta */
+            shippingDeliveryNote?: Record<string, never> | null;
             items: components["schemas"]["OrderItemResponseDto"][];
             statusHistory: components["schemas"]["OrderStatusHistoryResponseDto"][];
             /**
@@ -1894,6 +3165,83 @@ export interface components {
              * @example 2026-09-10T12:00:00.000Z
              */
             updatedAt: string;
+        };
+        CreateOrderItemDto: {
+            /**
+             * @description ProductVariant id — Product id değil. Fiyat/stok artık variant seviyesinde tutulur.
+             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
+             */
+            productVariantId: string;
+            /** @example 2 */
+            quantity: number;
+        };
+        CreateOrderDto: {
+            /**
+             * @description CASH = kapıda nakit, CARD = kapıda/online kart
+             * @example CASH
+             * @enum {string}
+             */
+            paymentMethod: "CASH" | "CARD";
+            /**
+             * @default DELIVERY
+             * @example DELIVERY
+             * @enum {string}
+             */
+            fulfillmentType: "DELIVERY" | "PICKUP";
+            /**
+             * @description İndirim kuponu kodu (opsiyonel)
+             * @example SUMMER20
+             */
+            couponCode?: string;
+            /**
+             * @description Kayıtlı profil adresinin id'si. DELIVERY siparişte recipient alanları yerine (veya onları doldurmak için) kullanılır.
+             * @example 3fa85f64-5717-4562-b3fc-2c963f66afa6
+             */
+            savedAddressId?: string;
+            /**
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
+             * @example Ayşe Demir
+             */
+            recipientName?: string;
+            /**
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
+             * @example +993 12 345678
+             */
+            recipientPhone?: string;
+            /**
+             * @description fulfillmentType=DELIVERY ve savedAddressId yoksa zorunlu
+             * @example Görogly köçesi 12, Aşgabat
+             */
+            shippingAddress?: string;
+            /**
+             * @description Teslimat enlemi [-90, 90] — opsiyonel snapshot
+             * @example 37.9601
+             */
+            shippingLatitude?: number;
+            /**
+             * @description Teslimat boylamı [-180, 180] — opsiyonel snapshot
+             * @example 58.3261
+             */
+            shippingLongitude?: number;
+            /**
+             * @description Teslimat konumunun kaynağı — opsiyonel snapshot
+             * @enum {string}
+             */
+            shippingLocationSource?: "MANUAL" | "MAP" | "SEARCH" | "CURRENT_LOCATION";
+            /**
+             * @description Teslimat notu — opsiyonel snapshot
+             * @example Giriş arka tarafta
+             */
+            shippingDeliveryNote?: string;
+            /**
+             * @example [
+             *       {
+             *         "productVariantId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+             *         "quantity": 2
+             *       }
+             *     ]
+             */
+            items: components["schemas"]["CreateOrderItemDto"][];
         };
         OrderPaginationMetaDto: {
             /** @example 1 */
@@ -1920,6 +3268,92 @@ export interface components {
              * @example Customer requested cancellation
              */
             reason?: string;
+        };
+        CouponScopeProductDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productId: string;
+        };
+        CouponScopeCategoryDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            categoryId: string;
+        };
+        CouponResponseDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description Unique code, stored and compared uppercased and trimmed
+             * @example SUMMER20
+             */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            type: "PERCENTAGE" | "FIXED";
+            /**
+             * @description Percentage points when `type` is PERCENTAGE (max 100), otherwise the fixed amount to subtract
+             * @example 20
+             */
+            value: number;
+            /**
+             * @description Minimum cart total required; null means the coupon applies to any cart
+             * @example 500
+             */
+            minOrderAmount?: number | null;
+            /**
+             * @description Ceiling for the computed discount on percentage coupons; null means uncapped
+             * @example 200
+             */
+            maxDiscount?: number | null;
+            /**
+             * @description System-wide redemption cap; null means unlimited
+             * @example 100
+             */
+            usageLimit?: number | null;
+            /**
+             * @description Redemptions recorded so far, incremented when an order is placed — compared against `usageLimit`
+             * @example 42
+             */
+            usedCount: number;
+            /**
+             * @description Redemption cap per user; null means the same user may redeem it without limit
+             * @example 1
+             */
+            perUserLimit?: number | null;
+            /**
+             * Format: date-time
+             * @description Coupon is rejected before this instant; null means it is already active
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            startsAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Coupon is rejected after this instant; null means it never expires
+             * @example 2026-08-31T23:59:59.000Z
+             */
+            expiresAt?: string | null;
+            /**
+             * @description An inactive coupon is kept for history but rejected by every validation
+             * @example true
+             */
+            isActive: boolean;
+            products: components["schemas"]["CouponScopeProductDto"][];
+            categories: components["schemas"]["CouponScopeCategoryDto"][];
+            /**
+             * @description Staff account that created the coupon — needed to attribute the change in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            updatedAt: string;
         };
         CreateCouponDto: {
             /**
@@ -1982,6 +3416,101 @@ export interface components {
              */
             categoryIds?: string[];
         };
+        CouponListResponseDto: {
+            items: components["schemas"]["CouponResponseDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        CouponUsageCountsResponseDto: {
+            /**
+             * @description How many times this coupon has been applied to an order
+             * @example 42
+             */
+            usages: number;
+            /**
+             * @description How many orders currently reference this coupon
+             * @example 42
+             */
+            orders: number;
+        };
+        CouponDetailResponseDto: {
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description Unique code, stored and compared uppercased and trimmed
+             * @example SUMMER20
+             */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            type: "PERCENTAGE" | "FIXED";
+            /**
+             * @description Percentage points when `type` is PERCENTAGE (max 100), otherwise the fixed amount to subtract
+             * @example 20
+             */
+            value: number;
+            /**
+             * @description Minimum cart total required; null means the coupon applies to any cart
+             * @example 500
+             */
+            minOrderAmount?: number | null;
+            /**
+             * @description Ceiling for the computed discount on percentage coupons; null means uncapped
+             * @example 200
+             */
+            maxDiscount?: number | null;
+            /**
+             * @description System-wide redemption cap; null means unlimited
+             * @example 100
+             */
+            usageLimit?: number | null;
+            /**
+             * @description Redemptions recorded so far, incremented when an order is placed — compared against `usageLimit`
+             * @example 42
+             */
+            usedCount: number;
+            /**
+             * @description Redemption cap per user; null means the same user may redeem it without limit
+             * @example 1
+             */
+            perUserLimit?: number | null;
+            /**
+             * Format: date-time
+             * @description Coupon is rejected before this instant; null means it is already active
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            startsAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Coupon is rejected after this instant; null means it never expires
+             * @example 2026-08-31T23:59:59.000Z
+             */
+            expiresAt?: string | null;
+            /**
+             * @description An inactive coupon is kept for history but rejected by every validation
+             * @example true
+             */
+            isActive: boolean;
+            products: components["schemas"]["CouponScopeProductDto"][];
+            categories: components["schemas"]["CouponScopeCategoryDto"][];
+            /**
+             * @description Staff account that created the coupon — needed to attribute the change in the audit log
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            updatedAt: string;
+            _count: components["schemas"]["CouponUsageCountsResponseDto"];
+        };
         UpdateCouponDto: {
             /** @enum {string} */
             type?: "PERCENTAGE" | "FIXED";
@@ -2002,6 +3531,82 @@ export interface components {
             /** @example false */
             isActive?: boolean;
         };
+        CouponDeletedResponseDto: {
+            /**
+             * @description Always true — the coupon and its usages are hard-deleted
+             * @example true
+             */
+            deleted: boolean;
+        };
+        CouponUsageResponseDto: {
+            /** @example u1v2w3x4-5678-4abc-9def-1234567890ab */
+            id: string;
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            couponId: string;
+            /**
+             * @description Client who redeemed the coupon — the counter behind `perUserLimit`
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            userId: string;
+            /**
+             * @description Order the discount was granted on; the row cascades away with the order
+             * @example d4e5f6a7-8901-4abc-9def-1234567890ab
+             */
+            orderId: string;
+            /**
+             * @description Amount actually subtracted from this order, which may be lower than the coupon `value`
+             * @example 120
+             */
+            discountAmount: number;
+            /**
+             * Format: date-time
+             * @example 2026-06-01T00:00:00.000Z
+             */
+            createdAt: string;
+        };
+        CouponUsageListResponseDto: {
+            /** @description Redemptions recorded when an order was placed — a preview does not create a row here */
+            items: components["schemas"]["CouponUsageResponseDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        CouponValidationResultDto: {
+            /**
+             * @description Always true — an invalid coupon answers 400 instead
+             * @example true
+             */
+            valid: boolean;
+            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
+            couponId: string;
+            /** @example SUMMER20 */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            type: "PERCENTAGE" | "FIXED";
+            /** @example 20 */
+            value: number;
+            /**
+             * @description Discount that would be granted, already rounded to two decimals and capped by `maxDiscount`
+             * @example 120
+             */
+            discountAmount: number;
+            /**
+             * @description Cart total of the validated items before the discount
+             * @example 600
+             */
+            subtotal: number;
+            /**
+             * @description Amount the client would actually pay — `subtotal - discountAmount`
+             * @example 480
+             */
+            newTotal: number;
+            /**
+             * @description Number of units covered by the coupon scope — the discount is calculated over exactly these
+             * @example 2
+             */
+            eligibleItemCount: number;
+        };
         ValidateCouponItemDto: {
             /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
             productVariantId: string;
@@ -2017,6 +3622,151 @@ export interface components {
             /** @description Siparişteki ürün kalemleri. Boş bırakılırsa kullanıcının güncel sepeti kullanılır. */
             items?: components["schemas"]["ValidateCouponItemDto"][];
         };
+        CartProductDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @example true */
+            isActive: boolean;
+            /**
+             * @description Product detail view count. Only informational here — reading a cart never increments it.
+             * @example 1024
+             */
+            viewCount: number;
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            categoryId: string;
+            /** @description The same category as `categoryId`, including its name in every locale */
+            category: components["schemas"]["CategoryBriefResponseDto"];
+            /**
+             * @description Brand reference (FK to the Brand table) — null when the product has no brand
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: Record<string, never> | null;
+            /** @description Brand details including its translations */
+            brand?: components["schemas"]["BrandBriefResponseDto"] | null;
+            translations: components["schemas"]["ProductTranslationResponseDto"][];
+            /** @description Ordered with the primary image first, so `images[0]` is the thumbnail to render */
+            images: components["schemas"]["ProductImageResponseDto"][];
+            /**
+             * @description Account that created the product — kept so staff screens can show who owns the catalog entry
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        CartProductVariantDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description The product this variant belongs to
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            productId: string;
+            /** @example WH-1000XM5-RED-L */
+            sku: string;
+            /**
+             * @description Live price, re-read on every cart response
+             * @example 299.99
+             */
+            price: number;
+            /**
+             * @description Struck-through list price — set it above `price` to mark the variant as discounted
+             * @example 349.99
+             */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @example {
+             *       "color": "Red",
+             *       "size": "L"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /**
+             * @description A deactivated variant stays in the cart but can no longer be ordered
+             * @example true
+             */
+            isActive: boolean;
+            /** @description The product this variant belongs to, with everything the cart line displays */
+            product: components["schemas"]["CartProductDto"];
+            /** @description null when no Inventory row has been created for this variant yet (should not normally happen) */
+            inventory?: components["schemas"]["InventoryResponseDto"] | null;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+        };
+        CartItemResponseDto: {
+            /**
+             * @description Cart line id — the `:id` parameter of `PATCH /cart/items/:id` and `DELETE /cart/items/:id`
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            id: string;
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            productVariantId: string;
+            /** @example 2 */
+            quantity: number;
+            /**
+             * @description Price captured when the line was added. Informational only — checkout re-reads the live price and that is what gets charged.
+             * @example 279.99
+             */
+            priceSnapshot: number;
+            /**
+             * @description Live variant price; `subtotal` and the eventual charge are computed from this
+             * @example 299.99
+             */
+            currentPrice: number;
+            /**
+             * @description True when the live price differs from `priceSnapshot` — lets the cart show a "price changed" warning
+             * @example true
+             */
+            priceChanged: boolean;
+            /**
+             * @description False when the available units no longer cover `quantity`, i.e. this line cannot be checked out right now
+             * @example false
+             */
+            inStock: boolean;
+            /**
+             * @description Units of this variant still buyable right now (quantity - reservedQuantity)
+             * @example 37
+             */
+            availableQuantity: number;
+            /**
+             * @description The client already wishlisted this product, so the cart can render the heart state without another request
+             * @example true
+             */
+            isWishlisted: boolean;
+            productVariant: components["schemas"]["CartProductVariantDto"];
+        };
+        CartResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /** @description Ordered oldest line first */
+            items: components["schemas"]["CartItemResponseDto"][];
+            /**
+             * @description Sum of `currentPrice * quantity` over every line, recomputed on each request — never a stored value
+             * @example 599.98
+             */
+            subtotal: number;
+            /**
+             * @description Total number of units across all lines, not the number of lines
+             * @example 2
+             */
+            itemCount: number;
+        };
         AddCartItemDto: {
             /** @example 3fa85f64-5717-4562-b3fc-2c963f66afa6 */
             productVariantId: string;
@@ -2025,10 +3775,14 @@ export interface components {
         };
         UpdateCartItemDto: {
             /**
-             * @description Yeni toplam adet (mevcut adete eklenmez, üzerine yazar)
+             * @description New total quantity (overwrites current, does not add)
              * @example 3
              */
             quantity: number;
+        };
+        CartClearedResponseDto: {
+            /** @example true */
+            cleared: boolean;
         };
         CheckoutDto: {
             /**
@@ -2068,6 +3822,220 @@ export interface components {
              * @example Görogly köçesi 12, Aşgabat
              */
             shippingAddress?: string;
+            /**
+             * @description Teslimat enlemi [-90, 90] — opsiyonel snapshot
+             * @example 37.9601
+             */
+            shippingLatitude?: number;
+            /**
+             * @description Teslimat boylamı [-180, 180] — opsiyonel snapshot
+             * @example 58.3261
+             */
+            shippingLongitude?: number;
+            /**
+             * @description Teslimat konumunun kaynağı — opsiyonel snapshot
+             * @enum {string}
+             */
+            shippingLocationSource?: "MANUAL" | "MAP" | "SEARCH" | "CURRENT_LOCATION";
+            /**
+             * @description Teslimat notu — opsiyonel snapshot
+             * @example Giriş arka tarafta
+             */
+            shippingDeliveryNote?: string;
+        };
+        StockSubscribedResponseDto: {
+            /**
+             * @description Always true once the subscription is in the waiting state
+             * @example true
+             */
+            subscribed: boolean;
+        };
+        StockUnsubscribedResponseDto: {
+            /**
+             * @description Always true — matching subscriptions were removed if any existed
+             * @example true
+             */
+            unsubscribed: boolean;
+        };
+        StockNotificationTranslationDto: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            locale: "en" | "ru" | "tk";
+            /** @example Wireless Headphones */
+            name: string;
+            /**
+             * @description URL segment of the product page in this locale
+             * @example wireless-headphones
+             */
+            slug: string;
+            /**
+             * @description Long description; not needed to render the notification but returned because the whole row is included
+             * @example Over-ear wireless headphones with noise cancellation.
+             */
+            description?: Record<string, never> | null;
+        };
+        StockNotificationProductDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description An inactive product keeps its subscription row but the variant can no longer be bought
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * @description Brand reference (FK to the Brand table); null when the product has no brand
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: Record<string, never> | null;
+            /**
+             * @description Needed to re-check stock through the category-scoped product list
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            categoryId: string;
+            /** @example 1024 */
+            viewCount: number;
+            /**
+             * @description Staff account that created the product
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            createdById: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description One entry per locale so the client can render the name in the user language */
+            translations: components["schemas"]["StockNotificationTranslationDto"][];
+        };
+        StockNotificationVariantDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description Id of the owning product
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            productId: string;
+            /** @example WH-1000XM5-RED-L */
+            sku: string;
+            /** @example 299.99 */
+            price: number;
+            /**
+             * @description Original list price shown struck through; null when the variant is not discounted
+             * @example 349.99
+             */
+            compareAtPrice?: Record<string, never> | null;
+            /**
+             * @description Free-form option pairs, so the card can say which variant is back
+             * @example {
+             *       "color": "Red",
+             *       "size": "L"
+             *     }
+             */
+            attributes: Record<string, never>;
+            /**
+             * @description A deactivated variant can no longer be subscribed to, but existing subscription rows survive
+             * @example true
+             */
+            isActive: boolean;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /** @description The product this variant belongs to, with all of its translations */
+            product: components["schemas"]["StockNotificationProductDto"];
+        };
+        StockNotificationResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description The subscribed ProductVariant id — the value to pass to the unsubscribe endpoint
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            productVariantId: string;
+            /**
+             * @description Owner of the subscription. Always the signed-in client, so the UI can tell subscriptions apart after a logout/login on another account
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            clientId: string;
+            /**
+             * @description When the variant became buyable again, set automatically by InventoryService. null = still waiting; a value here is the signal to show the "back in stock" notice, and re-subscribing after a second sell-out resets it to null
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            readyAt?: Record<string, never> | null;
+            /**
+             * @description When the client acknowledged this notification (opened the card/panel). null = still unread, which is what the header badge counts. Only meaningful once `readyAt` is set.
+             * @example 2026-08-14T10:05:00.000Z
+             */
+            readAt?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @description When the subscription was created
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            /** @description The subscribed variant and its product, inlined so the list needs no follow-up request */
+            productVariant: components["schemas"]["StockNotificationVariantDto"];
+        };
+        StockNotificationListResponseDto: {
+            /** @description Newest subscriptions first */
+            items: components["schemas"]["StockNotificationResponseDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        StockNotificationsReadResponseDto: {
+            /**
+             * @description Always true once the matching rows were acknowledged
+             * @example true
+             */
+            marked: boolean;
+            /**
+             * @description How many previously unread notifications were newly marked as read
+             * @example 3
+             */
+            count: number;
+        };
+        MarkStockNotificationsReadDto: {
+            /**
+             * @description Limit the mark-as-read to one subscribed variant; omit to acknowledge every ready notification
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            productVariantId?: string;
+        };
+        MediaUploadResponseDto: {
+            /**
+             * @description PendingMedia id — send it as `mediaId`/`imageId` in a product, banner, brand or category request
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            id: string;
+            /**
+             * @description Which entity the upload is destined for. Fixes the bucket and the generated presets, and it must be the same context when the media is claimed
+             * @example PRODUCT_IMAGE
+             * @enum {string}
+             */
+            context: "PRODUCT_IMAGE" | "VARIANT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
+            /**
+             * @description Processed variant preset name to public URL. The keys come from the preset list of `context` (see CONTEXT_PRESETS), so a BANNER_IMAGE upload returns BANNER_DESKTOP/BANNER_MOBILE instead
+             * @example {
+             *       "PRODUCT_CARD": "http://localhost:9200/product-images/x.webp",
+             *       "PRODUCT_DETAIL": "http://localhost:9200/product-images/x.webp",
+             *       "PRODUCT_ORIGINAL": "http://localhost:9200/product-images/x.webp"
+             *     }
+             */
+            urls: {
+                [key: string]: string;
+            };
         };
         UploadMediaDto: {
             /**
@@ -2075,6 +4043,227 @@ export interface components {
              * @description JPEG, PNG veya WebP — max 10MB
              */
             file: string;
+        };
+        PendingMediaResponseDto: {
+            /**
+             * @description PendingMedia id, still claimable while this row exists
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            id: string;
+            /**
+             * @example BANNER_IMAGE
+             * @enum {string}
+             */
+            context: "PRODUCT_IMAGE" | "VARIANT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
+            /**
+             * @description Processed variant preset name to public URL, same shape as the upload response
+             * @example {
+             *       "BANNER_DESKTOP": "http://localhost:9200/banners/x.webp",
+             *       "BANNER_MOBILE": "http://localhost:9200/banners/x.webp"
+             *     }
+             */
+            urls: {
+                [key: string]: string;
+            };
+            /**
+             * Format: date-time
+             * @description When the file was uploaded; the cleanup TTL is measured from here
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+        };
+        MediaDeletedResponseDto: {
+            /**
+             * @description Always true — the PendingMedia row and all of its MinIO objects are removed
+             * @example true
+             */
+            deleted: boolean;
+        };
+        MediaCleanupBucketResultDto: {
+            /**
+             * @example PRODUCT_IMAGE
+             * @enum {string}
+             */
+            context: "PRODUCT_IMAGE" | "VARIANT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
+            /**
+             * @description MinIO bucket the scan walked
+             * @example product-images
+             */
+            bucket: string;
+            /**
+             * @description Objects present in the bucket
+             * @example 128
+             */
+            totalObjects: number;
+            /**
+             * @description Objects matched to a ProductImage/Banner/Brand/Category/PendingMedia row
+             * @example 120
+             */
+            referenced: number;
+            /**
+             * @description Objects no database row refers to — the deletion candidates
+             * @example 8
+             */
+            orphaned: number;
+            /**
+             * @description Objects actually deleted; always 0 while `dryRun` is true
+             * @example 0
+             */
+            deleted: number;
+        };
+        MediaCleanupResultDto: {
+            /**
+             * @description True when the request only scanned; false when orphaned objects were physically deleted
+             * @example true
+             */
+            dryRun: boolean;
+            /**
+             * @description Total orphaned objects found across every scanned bucket
+             * @example 8
+             */
+            totalOrphaned: number;
+            /**
+             * @description Total objects deleted; 0 for a dry run
+             * @example 0
+             */
+            totalDeleted: number;
+            /** @description One entry per scanned bucket */
+            buckets: components["schemas"]["MediaCleanupBucketResultDto"][];
+        };
+        SearchCategoryResultDto: {
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            id: string;
+            /**
+             * @description Slug in the requested locale
+             * @example electronics
+             */
+            slug: string;
+            /**
+             * @description Name in the requested locale
+             * @example Electronics
+             */
+            name: string;
+        };
+        SearchResponseDto: {
+            /** @description Matching products, ordered by name match first and description-only matches last */
+            products: components["schemas"]["ProductResponseDto"][];
+            /** @description Matching categories */
+            categories: components["schemas"]["SearchCategoryResultDto"][];
+        };
+        StatsOverviewResponseDto: {
+            /**
+             * @description Products with `isActive = true`; deactivated products are not counted
+             * @example 128
+             */
+            totalActiveProducts: number;
+            /**
+             * @description Sum of `Inventory.quantity` over the active variants of active products. This is the physical stock, so units reserved for pending orders are still included
+             * @example 3420
+             */
+            totalStockRemaining: number;
+            /**
+             * @description Every order in every status, cancelled ones included
+             * @example 57
+             */
+            totalOrders: number;
+            /**
+             * @description Order count per status. Every member of the OrderStatus enum is always present, defaulted to 0, so a dashboard can render its status columns without null checks.
+             * @example {
+             *       "PENDING": 4,
+             *       "CONFIRMED": 2,
+             *       "PROCESSING": 1,
+             *       "SHIPPED": 3,
+             *       "DELIVERED": 40,
+             *       "CANCELLED": 5,
+             *       "RETURN_REQUESTED": 1,
+             *       "RETURNED": 1
+             *     }
+             */
+            ordersByStatus: {
+                [key: string]: number;
+            };
+            /**
+             * @description Sum of `OrderItem.quantity` over all orders that are not CANCELLED — cancelled orders are excluded because their units were never really sold
+             * @example 214
+             */
+            totalUnitsSold: number;
+        };
+        ProductsByOperatorEntryDto: {
+            /**
+             * @description User id the products are grouped by
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            operatorId: string;
+            /**
+             * @description Email of the grouping user, or the literal `unknown` when the user row can no longer be read
+             * @example jane@example.com
+             */
+            operatorEmail: string;
+            /**
+             * @description Full name of the grouping user, or the literal `unknown` when the user row can no longer be read
+             * @example Jane Doe
+             */
+            operatorFullName: string;
+            /**
+             * @description Number of products this user created, any status; the report is sorted by this value descending
+             * @example 12
+             */
+            productCount: number;
+        };
+        MostViewedProductEntryDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description Name in the requested `locale`, or the literal `Unknown` when that locale has no translation yet
+             * @example Wireless Headphones
+             */
+            name: string;
+            /**
+             * @description Value of `Product.viewCount`, incremented by the public product detail endpoints only
+             * @example 1024
+             */
+            viewCount: number;
+        };
+        MostSearchedTermEntryDto: {
+            /**
+             * @description Trimmed, lower-cased search term
+             * @example wireless headphones
+             */
+            term: string;
+            /**
+             * @description How many times the term was searched
+             * @example 31
+             */
+            searchCount: number;
+        };
+        WishlistItemResponseDto: {
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
+            id: string;
+            /**
+             * @description The wishlist this row belongs to. Rows are addressed by `productId`, not by this id.
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            wishlistId: string;
+            /**
+             * @description The wishlisted product
+             * @example b3f1c2a0-1234-4abc-9def-1234567890ab
+             */
+            productId: string;
+            /**
+             * Format: date-time
+             * @description When the client added it — the list is ordered newest first
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            createdAt: string;
+            product: components["schemas"]["ProductResponseDto"];
+        };
+        WishlistAddedResponseDto: {
+            /** @example true */
+            added: boolean;
+        };
+        WishlistRemovedResponseDto: {
+            /** @example true */
+            removed: boolean;
         };
         AddressResponseDto: {
             /** @example a1b2c3d4-5678-4abc-9def-1234567890ab */
@@ -2087,6 +4276,22 @@ export interface components {
             recipientPhone: string;
             /** @example Görogly köçesi 12, Aşgabat */
             addressLine: string;
+            /** @example 37.9601 */
+            latitude?: Record<string, never> | null;
+            /** @example 58.3261 */
+            longitude?: Record<string, never> | null;
+            /**
+             * @example MANUAL
+             * @enum {string}
+             */
+            locationSource?: "MANUAL" | "MAP" | "SEARCH" | "CURRENT_LOCATION";
+            /**
+             * @description GPS accuracy in metres
+             * @example 8
+             */
+            locationAccuracy?: Record<string, never> | null;
+            /** @example Giriş arka tarafta */
+            deliveryNote?: Record<string, never> | null;
             /** @example true */
             isDefault: boolean;
             /**
@@ -2146,19 +4351,36 @@ export interface components {
              * @example true
              */
             isDefault: boolean;
+            /**
+             * @description Latitude [-90, 90]
+             * @example 37.9601
+             */
+            latitude?: number;
+            /**
+             * @description Longitude [-180, 180]
+             * @example 58.3261
+             */
+            longitude?: number;
+            /**
+             * @default MANUAL
+             * @example MANUAL
+             * @enum {string}
+             */
+            locationSource: "MANUAL" | "MAP" | "SEARCH" | "CURRENT_LOCATION";
+            /**
+             * @description GPS accuracy in metres (only filled in by the current-location method)
+             * @example 8
+             */
+            locationAccuracy?: number;
+            /**
+             * @description Delivery note — for informal address directions (e.g. "Berkarar-yň öňi")
+             * @example Giriş arka tarafta
+             */
+            deliveryNote?: string;
         };
-        VisualSearchUploadDto: {
-            /**
-             * Format: binary
-             * @description JPEG, PNG veya WebP — max 10MB. Kalıcı saklanmaz, sadece arama anında embedding üretilir.
-             */
-            image: string;
-            /**
-             * @description Maksimum sonuç sayısı (1-50)
-             * @default 20
-             * @example 20
-             */
-            limit: number;
+        AddressDeletedResponseDto: {
+            /** @example true */
+            deleted: boolean;
         };
         VisualSearchResultItemDto: {
             /** @description Ürünün mevcut public response DTO şekli (çeviriler, görseller, varyantlar, kategori dahil) */
@@ -2173,6 +4395,19 @@ export interface components {
             items: components["schemas"]["VisualSearchResultItemDto"][];
             /** @example 7 */
             total: number;
+        };
+        VisualSearchUploadDto: {
+            /**
+             * Format: binary
+             * @description JPEG, PNG veya WebP — max 10MB. Kalıcı saklanmaz, sadece arama anında embedding üretilir.
+             */
+            image: string;
+            /**
+             * @description Maksimum sonuç sayısı (1-50)
+             * @default 20
+             * @example 20
+             */
+            limit: number;
         };
         ReindexFailedImageDto: {
             id: string;
@@ -2209,6 +4444,37 @@ export interface components {
             /** @description true = embedding ilk kez üretildi; false = zaten indexlenmişti (idempotent skip). */
             indexed: boolean;
         };
+        CatalogImportErrorDto: {
+            /**
+             * @description 1-based row number in the uploaded sheet (row 1 is the header); 0 means a file-level problem such as duplicate SKUs
+             * @example 4
+             */
+            row: number;
+            /**
+             * @description i18n message key — translate it on the client with the locale used in the request
+             * @example errors.catalog_import_missing_names
+             */
+            message: string;
+        };
+        CatalogImportResultDto: {
+            /**
+             * @description False when any row was rejected — nothing was written and the file must be fixed and re-uploaded
+             * @example true
+             */
+            applied: boolean;
+            /**
+             * @description Product variants created during this run (0 when `applied` is false)
+             * @example 12
+             */
+            created: number;
+            /**
+             * @description Existing product variants updated during this run (0 when `applied` is false)
+             * @example 30
+             */
+            updated: number;
+            /** @description Always empty on a successful import */
+            errors: components["schemas"]["CatalogImportErrorDto"][];
+        };
         RecommendedCategoryTranslationDto: {
             /** @example ct1d2e3f4-5678-4abc-9def-1234567890ab */
             id: string;
@@ -2238,135 +4504,142 @@ export interface components {
                 slug?: string;
             }[];
         };
-        RecommendationProductTranslationDto: {
-            /** @example t1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example en */
-            locale: string;
-            /** @example Wireless Headphones */
-            name: string;
-            /** @example wireless-headphones */
-            slug: string;
-            /** @example High quality headphones */
-            description: Record<string, never> | null;
-        };
-        RecommendationCategoryTranslationDto: {
-            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example en */
-            locale: string;
-            /** @example Electronics */
-            name: string;
-        };
-        RecommendationCategoryLiteDto: {
-            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            translations: components["schemas"]["RecommendationCategoryTranslationDto"][];
-        };
-        RecommendationBrandTranslationDto: {
-            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example en */
-            locale: string;
-            /** @example Acme */
-            name: string;
-            /** @example acme */
-            slug?: string;
-        };
-        RecommendationBrandLiteDto: {
-            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example https://localhost:9200/brands/acme-logo.webp */
-            logoUrl: Record<string, never> | null;
-            /** @example true */
-            isActive: boolean;
-            translations: components["schemas"]["RecommendationBrandTranslationDto"][];
-        };
-        RecommendationProductImageDto: {
-            /** @example i1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example https://localhost:9200/product-images/x-card.webp */
-            cardUrl: string;
-            /** @example https://localhost:9200/product-images/x-detail.webp */
-            detailUrl: string;
-            /** @example https://localhost:9200/product-images/x-original.webp */
-            originalUrl: string;
-            /** @example true */
-            isPrimary: boolean;
-            /** @example 1 */
-            order: number;
-        };
-        RecommendationVariantInventoryDto: {
-            /** @example 12 */
-            quantity: number;
-            /** @example 2 */
-            reservedQuantity: number;
-            /** @example 3 */
-            lowStockThreshold: Record<string, never> | null;
-        };
-        RecommendationVariantDto: {
-            /** @example v1d2e3f4-5678-4abc-9def-1234567890ab */
-            id: string;
-            /** @example WH-1000XM5-BLACK */
-            sku: string;
-            /** @example 299.99 */
-            price: number;
-            /** @example 349.99 */
-            compareAtPrice: Record<string, never> | null;
-            /**
-             * @example {
-             *       "color": "Black"
-             *     }
-             */
-            attributes: Record<string, never>;
-            /** @example true */
-            isActive: boolean;
-            inventory: components["schemas"]["RecommendationVariantInventoryDto"] | null;
-        };
         RecommendationProductDto: {
-            /** @example p1d2e3f4-5678-4abc-9def-1234567890ab */
+            /** @example b3f1c2a0-1234-4abc-9def-1234567890ab */
             id: string;
             /** @example true */
             isActive: boolean;
-            /** @example c1d2e3f4-5678-4abc-9def-1234567890ab */
-            categoryId: string;
-            /** @example b1d2e3f4-5678-4abc-9def-1234567890ab */
-            brandId: Record<string, never> | null;
-            /** @example 142 */
+            /**
+             * @description Only meaningful when a signed-in CLIENT calls this endpoint — always false for anonymous requests.
+             * @example false
+             */
+            isWishlisted: boolean;
+            /**
+             * @description Product detail page view count
+             * @example 1024
+             */
             viewCount: number;
             /**
+             * @description True when at least one active variant has compareAtPrice > price. Lets a listing card show the discount badge without opening the product.
+             * @example true
+             */
+            hasDiscount: boolean;
+            /**
+             * @description Highest discount percentage among the active variants, null when the product is not discounted
+             * @example 14
+             */
+            discountPercent?: Record<string, never> | null;
+            /**
+             * @description Units still buyable right now, summed over the active variants
+             * @example 37
+             */
+            availableQuantity: number;
+            /**
+             * @description False when every active variant is out of stock — use it to render the "out of stock" state
+             * @example true
+             */
+            isInStock: boolean;
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            categoryId: string;
+            /** @description The same category as `categoryId`, including its name in every locale */
+            category: components["schemas"]["CategoryBriefResponseDto"];
+            /**
+             * @description Brand reference (FK to the Brand table) — null when the product has no brand
+             * @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678
+             */
+            brandId?: Record<string, never> | null;
+            /** @description Brand details including its translations */
+            brand?: components["schemas"]["BrandBriefResponseDto"] | null;
+            translations: components["schemas"]["ProductTranslationResponseDto"][];
+            /** @description Ordered with the primary image first */
+            images: components["schemas"]["ProductImageResponseDto"][];
+            /** @description SKU, price, stock and discount live here rather than on the product itself. Inactive variants are still listed but excluded from the product level totals. */
+            variants: components["schemas"]["ProductVariantResponseDto"][];
+            /** @example a1b2c3d4-5678-4abc-9def-a1b2c3d45678 */
+            createdById: string;
+            /**
              * Format: date-time
-             * @example 2026-09-01T12:00:00.000Z
+             * @example 2026-08-14T10:00:00.000Z
              */
             createdAt: string;
-            translations: components["schemas"]["RecommendationProductTranslationDto"][];
-            category: components["schemas"]["RecommendationCategoryLiteDto"];
-            brand: components["schemas"]["RecommendationBrandLiteDto"] | null;
-            images: components["schemas"]["RecommendationProductImageDto"][];
-            variants: components["schemas"]["RecommendationVariantDto"][];
             /**
-             * @description Bu ürünü öneren baskın motor
+             * Format: date-time
+             * @example 2026-08-14T10:00:00.000Z
+             */
+            updatedAt: string;
+            /**
+             * @description Which engine produced this recommendation
              * @example behavior
              * @enum {string}
              */
             recommendationReason: "behavior" | "content" | "collaborative" | "popularity" | "freshness";
         };
         HomeRecommendationsResponseDto: {
-            /** @description İlgi/önerilen kategoriler (misafir: popüler) */
+            /** @description Popular categories, or the personalised ones for a signed-in CLIENT */
             categories: components["schemas"]["RecommendedCategoryItemDto"][];
-            /** @description İlgi/önerilen markalar (misafir: popüler) */
+            /** @description Popular brands, or the personalised ones for a signed-in CLIENT */
             brands: components["schemas"]["RecommendedBrandItemDto"][];
-            /** @description Kişisel öneriler (V1+V2+V3 hibrit) */
+            /** @description Personalised picks for a CLIENT, most popular products for a guest */
             forYou: components["schemas"]["RecommendationProductDto"][];
-            /** @description En çok görüntülenenler */
+            /** @description Most viewed products */
             trending: components["schemas"]["RecommendationProductDto"][];
-            /** @description En yeni ürünler */
+            /** @description Most recently added products */
             newArrivals: components["schemas"]["RecommendationProductDto"][];
+            /** @description Discounted products, highest discount first */
+            discounted: components["schemas"]["RecommendationProductDto"][];
         };
         RecommendationProductListResponseDto: {
-            /** @description Sayfa içeriği (sıralama = skor sırası) */
+            /** @description Page contents, ordered by score */
             items: components["schemas"]["RecommendationProductDto"][];
             meta: components["schemas"]["ProductPaginationMetaDto"];
+        };
+        GeocodingResultDto: {
+            /**
+             * @description Single-line formatted address — the only field guaranteed to be present
+             * @example Bitarap Turkmenistan shayoly, Ashgabat, Turkmenistan
+             */
+            addressLine: string;
+            /** @example 37.9601 */
+            latitude: number;
+            /** @example 58.3261 */
+            longitude: number;
+            /**
+             * @description Null when the provider cannot resolve a city
+             * @example Ashgabat
+             */
+            city?: string | null;
+            /** @example Bitarap Turkmenistan shayoly */
+            district?: string | null;
+            /**
+             * @description Street name without the house number
+             * @example Bitarap Turkmenistan shayoly
+             */
+            street?: string | null;
+            /**
+             * @description House or building number
+             * @example 12
+             */
+            building?: string | null;
+        };
+        ReverseGeocodeResponseDto: {
+            /** @description Null when the provider finds no address or errors out (fail-soft) — the client keeps its own coordinates */
+            result: components["schemas"]["GeocodingResultDto"] | null;
+        };
+        ReverseGeocodeDto: {
+            /**
+             * @description Latitude [-90, 90]
+             * @example 37.9601
+             */
+            latitude: number;
+            /**
+             * @description Longitude [-180, 180]
+             * @example 58.3261
+             */
+            longitude: number;
+        };
+        SearchLocationsResponseDto: {
+            /** @description Provider hits, already capped — an empty list means "nothing found", not a failure */
+            results: components["schemas"]["GeocodingResultDto"][];
         };
     };
     responses: never;
@@ -2386,11 +4659,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AuditLogListResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only SUPER_ADMIN can read the audit log */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2407,11 +4703,34 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AuthSessionResponseDto"];
+                    };
+                };
+            };
+            /** @description Email is already registered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2428,11 +4747,34 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AuthSessionResponseDto"];
+                    };
+                };
+            };
+            /** @description Wrong email/password or deactivated account */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2449,11 +4791,34 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["TokenPairResponseDto"];
+                    };
+                };
+            };
+            /** @description Refresh token is invalid, expired or already used */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2470,20 +4835,25 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["LogoutResponseDto"];
+                    };
+                };
             };
         };
     };
     UsersController_findAll: {
         parameters: {
             query?: {
-                /** @description E-posta veya tam ad üzerinde contains araması (locale-bağımsız). */
+                /** @description Contains search on email or full name (locale-independent). */
                 search?: string;
-                /** @description Role filtresi. */
+                /** @description Role filter. */
                 role?: "SUPER_ADMIN" | "ADMIN" | "OPERATOR" | "CLIENT";
                 page?: number;
                 limit?: number;
@@ -2494,11 +4864,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["UserListResponseDto"];
+                    };
+                };
+            };
+            /** @description Invalid query parameters — `limit` outside 1-50, `page` below 1 or an unknown `role` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2515,11 +4908,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` when the caller may not create the requested role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.email_already_exists` — the email is already registered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2534,11 +4968,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.user_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2553,11 +5010,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["UserDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for the target role, or `errors.not_resource_owner` when the caller did not create it */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.user_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2576,11 +5065,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for the target role, or `errors.not_resource_owner` when the caller did not create it */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.user_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.email_already_exists` when the new email belongs to another account */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2593,11 +5132,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryListResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2614,11 +5167,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation, or the requested parent would exceed the depth limit / point at itself */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Parent category or pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2627,18 +5230,43 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                locale: string;
+                /** @description Locale of the slug to look up */
+                locale: "en" | "ru" | "tk";
+                /** @description Slug generated from the category name when none was supplied */
                 slug: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryTreeNodeResponseDto"];
+                    };
+                };
+            };
+            /** @description No category has this locale/slug combination */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2651,11 +5279,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryTreeNodeResponseDto"][];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2670,11 +5312,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2689,11 +5354,61 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Category still has sub-categories and cannot be deleted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2712,28 +5427,95 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CategoryResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation, or the new parent would create a cycle / exceed the depth limit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Category, parent category or pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     BrandsController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only return brands that have at least one product in this category or its sub-categories */
+                categoryId?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandListResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2750,11 +5532,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2763,18 +5595,43 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                locale: string;
+                /** @description Locale of the slug to look up */
+                locale: "en" | "ru" | "tk";
+                /** @description Slug generated from the brand name when none was supplied */
                 slug: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description No brand has this locale/slug combination */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2789,11 +5646,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Brand not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2808,11 +5688,61 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Brand not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Brand is still linked to products and cannot be deleted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -2831,30 +5761,80 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BrandResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Brand or pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     ProductsController_findAll: {
         parameters: {
             query?: {
-                /** @description Kategori ID — alt ağacı da kapsar (getSubtreeIds). */
+                /** @description Category ID — includes subtree (getSubtreeIds) */
                 categoryId?: string;
-                /** @description Marka ID — ürünleri markaya göre daraltır. */
+                /** @description Brand ID */
                 brandId?: string;
-                /** @description Arama terimi (birincil) — ürün adında contains araması. */
+                /** @description Search term (primary) */
                 q?: string;
-                /** @description Arama terimi alias'ı (q önceliklidir). */
-                search?: string;
-                /** @description Şu an servis tarafından kullanılmaz; whitelist uyumluluğu için kabul edilir. */
+                /** @description Not used by service; kept for whitelisting compatibility */
+                search?: "en" | "ru" | "tk";
+                /** @description Not used by service; kept for whitelisting compatibility */
                 locale?: "en" | "ru" | "tk";
-                /** @description Min fiyat — şu an no-op (fiyat filtreleme kapsam dışı). */
+                /** @description Min price — no-op (out of scope) */
                 minPrice?: number;
-                /** @description Max fiyat — şu an no-op. */
+                /** @description Max price — no-op */
                 maxPrice?: number;
                 page?: number;
                 limit?: number;
@@ -2865,12 +5845,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductListResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductListResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -2888,12 +5880,51 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Duplicate SKU or duplicate slug in this locale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -2901,19 +5932,19 @@ export interface operations {
     ProductsController_findDiscounted: {
         parameters: {
             query?: {
-                /** @description Kategori ID — alt ağacı da kapsar (getSubtreeIds). */
+                /** @description Category ID — includes subtree (getSubtreeIds) */
                 categoryId?: string;
-                /** @description Marka ID — ürünleri markaya göre daraltır. */
+                /** @description Brand ID */
                 brandId?: string;
-                /** @description Arama terimi (birincil) — ürün adında contains araması. */
+                /** @description Search term (primary) */
                 q?: string;
-                /** @description Arama terimi alias'ı (q önceliklidir). */
-                search?: string;
-                /** @description Şu an servis tarafından kullanılmaz; whitelist uyumluluğu için kabul edilir. */
+                /** @description Not used by service; kept for whitelisting compatibility */
+                search?: "en" | "ru" | "tk";
+                /** @description Not used by service; kept for whitelisting compatibility */
                 locale?: "en" | "ru" | "tk";
-                /** @description Min fiyat — şu an no-op (fiyat filtreleme kapsam dışı). */
+                /** @description Min price — no-op (out of scope) */
                 minPrice?: number;
-                /** @description Max fiyat — şu an no-op. */
+                /** @description Max price — no-op */
                 maxPrice?: number;
                 page?: number;
                 limit?: number;
@@ -2924,12 +5955,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductListResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductListResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -2946,12 +5989,33 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description No product with this slug in this locale */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -2967,12 +6031,33 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Product not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -2988,11 +6073,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3011,12 +6128,60 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product, image or pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Duplicate SKU or duplicate slug in this locale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3034,12 +6199,33 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponseDto"][];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductResponseDto"][];
+                    };
+                };
+            };
+            /** @description Product not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3056,11 +6242,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Image not found on this product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3079,11 +6297,188 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductVariantCreatedResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description This SKU is already taken */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    ProductsController_updateVariant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                variantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProductVariantDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductVariantUpdatedResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product, variant or pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description This SKU is already taken by another variant */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    ProductsController_removeVariantImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                variantId: string;
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product, variant or image not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3103,11 +6498,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockAdjustmentResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed or the adjustment would make the stock negative */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed, or RESERVE/RELEASE is not allowed manually */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product, variant or inventory not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3123,11 +6559,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockMovementListResponseDto"];
+                    };
+                };
+            };
+            /** @description Invalid pagination */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product, variant or inventory not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3140,11 +6617,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BannerResponseDto"][];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3161,11 +6652,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BannerResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage banners, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Pending media not found, or it was uploaded with a context other than BANNER_IMAGE */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3180,11 +6721,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BannerResponseDto"];
+                    };
+                };
+            };
+            /** @description Banner not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3199,11 +6763,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BannerDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage banners */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Banner not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3222,11 +6827,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["BannerResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage banners, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Banner not found, or pending media not found for the given context */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3239,12 +6894,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderListResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["OrderListResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3262,12 +6929,42 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["OrderResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed, `errors.product_variant_not_found`, `errors.insufficient_stock`, a coupon rejected as `errors.coupon_*`, `errors.profile_address_not_found` or `errors.delivery_details_required` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can place an order */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3283,11 +6980,41 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description The invoice PDF as a file download */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.not_resource_owner` when a CLIENT requests an order that is not theirs */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.order_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3302,12 +7029,42 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["OrderResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.not_resource_owner` when a CLIENT requests an order that is not theirs */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.order_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3327,30 +7084,106 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["OrderResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed or `errors.invalid_order_status_transition` for the current status */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description CLIENT accounts cannot change an order status */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.order_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
     };
     CouponsController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Case-insensitive substring match on the code */
+                search?: unknown;
+                /** @description Filter by the active flag */
+                isActive?: "true" | "false";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponListResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3367,11 +7200,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation, or a percentage coupon has a value above 100 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description A coupon with this code already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3386,11 +7269,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3405,11 +7329,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3428,11 +7393,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponResponseDto"];
+                    };
+                };
+            };
+            /** @description Payload failed validation, or a percentage coupon has a value above 100 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3448,11 +7463,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3468,11 +7524,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3488,11 +7585,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3508,11 +7646,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponDetailResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3527,11 +7706,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponUsageListResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage coupons */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Coupon not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3548,11 +7768,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CouponValidationResultDto"];
+                    };
+                };
+            };
+            /** @description Coupon cannot be used for this cart, or no items were given and the cart is empty */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts may preview a coupon */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3565,11 +7826,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3582,11 +7866,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CartClearedResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3603,11 +7910,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed, or `errors.product_out_of_stock` when existing + requested quantity exceeds available units */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.product_variant_not_found` — unknown variant, or its variant/product is inactive */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3622,11 +7970,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.cart_item_not_found` — no such line in the caller's own cart */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3645,11 +8025,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed, or `errors.product_out_of_stock` when the requested quantity exceeds available units */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a cart */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.cart_item_not_found` — no such line in the caller's own cart */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3666,12 +8087,42 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["OrderResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed, `errors.cart_empty`, `errors.product_variant_not_found`, `errors.insufficient_stock`, a coupon rejected as `errors.coupon_*`, `errors.profile_address_not_found` or `errors.delivery_details_required` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can check out */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3687,11 +8138,70 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockSubscribedResponseDto"];
+                    };
+                };
+            };
+            /** @description The variant is still in stock, so there is nothing to wait for */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can use stock notifications */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Variant not found, or the variant/product is inactive */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Already subscribed and still waiting for restock */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3706,35 +8216,158 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockUnsubscribedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can use stock notifications */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     NotificationsController_listMine: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description true returns only subscriptions that are restocked (`readyAt` set) AND not yet acknowledged (`readAt` null) */
+                unreadOnly?: unknown;
+                /** @description true returns only subscriptions whose `readyAt` is set, false/omitted returns every subscription */
+                onlyReady?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockNotificationListResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can use stock notifications */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkStockNotificationsReadDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StockNotificationsReadResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts can use stock notifications */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     MediaController_upload: {
         parameters: {
             query: {
-                context: "PRODUCT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
+                /** @description Target entity — decides the bucket and the generated presets, and must match the context used when claiming the media */
+                context: "PRODUCT_IMAGE" | "VARIANT_IMAGE" | "BANNER_IMAGE" | "BRAND_IMAGE" | "CATEGORY_IMAGE";
             };
             header?: never;
             path?: never;
@@ -3746,11 +8379,61 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["MediaUploadResponseDto"];
+                    };
+                };
+            };
+            /** @description Unknown `context`, no file sent, unsupported mime type, or the image could not be processed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description File larger than 10485760 bytes */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3763,11 +8446,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["PendingMediaResponseDto"][];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3782,18 +8497,59 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["MediaDeletedResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog, or the pending media belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Pending media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     MediaController_cleanupOrphaned: {
         parameters: {
             query?: {
-                /** @description true = sadece tara (varsayılan), false = sil */
+                /** @description true (default) only scans and reports, false deletes the orphaned objects */
                 dryRun?: unknown;
             };
             header?: never;
@@ -3802,11 +8558,110 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["MediaCleanupResultDto"];
+                    };
+                };
+            };
+            /** @description `dryRun` is not a boolean */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to manage the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    SeoController_sitemap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A `urlset` XML document as `application/xml` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    SeoController_robots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The robots.txt rules as `text/plain` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3824,11 +8679,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["SearchResponseDto"];
+                    };
+                };
+            };
+            /** @description Query validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3841,11 +8719,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["StatsOverviewResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to read statistics */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3858,19 +8768,53 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProductsByOperatorEntryDto"][];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to read statistics */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     StatsController_getMostViewedProducts: {
         parameters: {
-            query: {
-                limit: number;
-                locale: string;
+            query?: {
+                /** @description How many rows to return (defaults to 10); no upper bound is enforced */
+                limit?: number;
+                /** @description Locale of the product name to return; defaults to `tk`. No validation is applied, an unknown locale yields `Unknown` names */
+                locale?: string;
             };
             header?: never;
             path?: never;
@@ -3878,18 +8822,60 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["MostViewedProductEntryDto"][];
+                    };
+                };
+            };
+            /** @description `limit` is not an integer */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to read statistics */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
     StatsController_getMostSearchedTerms: {
         parameters: {
-            query: {
-                limit: number;
+            query?: {
+                /** @description How many rows to return (defaults to 10); no upper bound is enforced */
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -3897,11 +8883,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["MostSearchedTermEntryDto"][];
+                    };
+                };
+            };
+            /** @description `limit` is not an integer */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to read statistics */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3914,11 +8941,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["WishlistItemResponseDto"][];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a wishlist */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3933,11 +8983,52 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["WishlistAddedResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a wishlist */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.product_not_found` — unknown or inactive product */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.wishlist_item_already_exists` — the product is already wishlisted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3952,11 +9043,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["WishlistRemovedResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Only CLIENT accounts have a wishlist */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.wishlist_item_not_found` — the product is not on the caller's wishlist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -3969,12 +9092,42 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProfileResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for a non-CLIENT account */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.user_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -3992,12 +9145,51 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ProfileResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for a non-CLIENT account */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.user_not_found` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4015,12 +9207,42 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AddressResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AddressResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed, `errors.invalid_coordinates` when only one of latitude/longitude is sent, or `errors.profile_address_limit_reached` once the address limit is hit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for a non-CLIENT account */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4036,15 +9258,42 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @example true */
-                        deleted?: boolean;
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AddressDeletedResponseDto"];
                     };
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for a non-CLIENT account */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.profile_address_not_found` — no such address, or it belongs to another client */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4064,12 +9313,51 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AddressResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["AddressResponseDto"];
+                    };
+                };
+            };
+            /** @description Validation failed or `errors.invalid_coordinates` when only one of latitude/longitude is sent */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.insufficient_permissions` for a non-CLIENT account */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description `errors.profile_address_not_found` — no such address, or it belongs to another client */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4096,12 +9384,42 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VisualSearchResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["VisualSearchResponseDto"];
+                    };
+                };
+            };
+            /** @description Missing or unsupported image file */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Image larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4115,12 +9433,33 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReindexResultDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ReindexResultDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4130,19 +9469,48 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description ProductImage id */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GenerateEmbeddingResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["GenerateEmbeddingResponseDto"];
+                    };
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Product image not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4158,11 +9526,55 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description XLSX (default) or CSV workbook as a file attachment */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "text/csv": string;
+                };
+            };
+            /** @description Unsupported `format` value */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to export the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -4177,11 +9589,55 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description XLSX (default) or CSV template as a file attachment */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "text/csv": string;
+                };
+            };
+            /** @description Unsupported `format` value */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to export the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiErrorEnvelopeDto"];
+                    "text/csv": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -4201,11 +9657,52 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["CatalogImportResultDto"];
+                    };
+                };
+            };
+            /** @description File missing, not a readable xlsx/xls/csv, sheet empty, or more rows than the import limit allows */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Role is not allowed to import the catalog */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };
@@ -4220,12 +9717,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HomeRecommendationsResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["HomeRecommendationsResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4242,12 +9751,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecommendationProductListResponseDto"];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["RecommendationProductListResponseDto"];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
                 };
             };
         };
@@ -4265,20 +9786,123 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecommendationProductDto"][];
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["RecommendationProductDto"][];
+                    };
                 };
             };
-            /** @description errors.product_not_found */
+            /** @description Seed product not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    LocationsController_reverseGeocode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReverseGeocodeDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["ReverseGeocodeResponseDto"];
+                    };
+                };
+            };
+            /** @description Latitude or longitude is outside the valid range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded (30 requests per minute) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+        };
+    };
+    LocationsController_search: {
+        parameters: {
+            query: {
+                /** @description Address search query (2+ characters) */
+                q: string;
+                /** @description Number of results to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSuccessEnvelopeDto"] & {
+                        data?: components["schemas"]["SearchLocationsResponseDto"];
+                    };
+                };
+            };
+            /** @description Query is shorter than the 2 character minimum */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
+            };
+            /** @description Rate limit exceeded (30 requests per minute) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelopeDto"];
+                };
             };
         };
     };

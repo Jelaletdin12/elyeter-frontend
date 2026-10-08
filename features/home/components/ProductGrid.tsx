@@ -9,24 +9,17 @@ import { useTranslations } from 'next-intl';
 import { ProductCard } from './ProductCard';
 
 import { useAuthStore } from '@/stores/auth-store';
-import { wishlistOptions } from '@/features/wishlist/api/queries';
+import { WishlistItem, wishlistOptions } from '@/features/wishlist/api/queries';
 
 import type { Product } from '@/features/products/types';
+
+const EMPTY_WISHLIST: WishlistItem[] = [];
 
 interface ProductGridProps {
   products: Product[];
   locale: string;
   title?: React.ReactNode;
-  /**
-   * Sağ üstte "View all" bağlantısı gösterir (bkz. forYou → /recommendations).
-   * Verilmezse mevcut gibi ürün sayısı metni görünür.
-   */
   viewAllHref?: string;
-  /**
-   * Ürün kartları üzerinde gösterilecek "Neden önerildi?" rozetleri —
-   * productId → label. Yalnızca öneri bölümleri doldurur, diğer grid'ler
-   * doldurmadığında kartlar değişmez (geriyedönük uyumlu).
-   */
   reasonLabels?: Record<string, string>;
 }
 
@@ -41,7 +34,7 @@ export function ProductGrid({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const t = useTranslations('home');
 
-  const { data: wishlist = [] } = useQuery({
+  const { data: wishlist = EMPTY_WISHLIST } = useQuery({
     ...wishlistOptions(storeId),
     enabled: isAuthenticated,
   });
@@ -57,7 +50,7 @@ export function ProductGrid({
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
           <p className="text-muted-foreground mb-1 text-xs font-medium tracking-[0.18em] uppercase">
-            Just added
+            {t('justAdded')}
           </p>
 
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
@@ -66,7 +59,7 @@ export function ProductGrid({
         {viewAllHref ? (
           <Link
             href={viewAllHref}
-            className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+            className="group border-border bg-background text-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200"
           >
             <span>{t('viewAll')}</span>
             <ArrowRight

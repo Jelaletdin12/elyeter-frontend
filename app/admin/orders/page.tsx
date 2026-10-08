@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Eye, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Eye, ShoppingCart } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { adminOrderListOptions } from '@/features/orders/api/admin-queries';
@@ -11,26 +11,53 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from '@/features/orders/types
 import type { Order } from '@/features/orders/types';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 /**
- * Admin sipariş listesi — GET /orders (staff için tüm siparişler, createdAt
- * desc). Backend'de durum filtreleme YOK (?status= okunmuyor, findAll sadece
- * PaginationQuery) — kontroller backend'e eklenene kadar sadece sayfalama var.
+ * Admin sipariş listesi — GET /orders (staff için tüm siparişler, createdAt desc).
+ * Backend'de durum filtreleme YOK (?status= okunmuyor, findAll sadece
+ * PaginationQuery) — şimdilik sadece sayfalama var.
  *
  * Response'ta müşteri adı/email'i yok (sadece clientId) — "Customer" hücresi
- * kısa clientId gösterir. Durum güncelleme detay sayfasında
- * (updateStatus sadece staff'a açık), listeden detaya açılır.
+ * kısa clientId gösterir. Durum güncelleme detay sayfasında yapılır.
+ *
+ * Sıralama client-side ve YALNIZCA geçerli sayfa üzerindedir.
  */
+
+const getRowId = (row: Order) => row.id;
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+function formatMoney(value: string | number) {
+  const n = Number(value);
+  return Number.isFinite(n)
+    ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : String(value);
+}
+
 export default function AdminOrdersPage() {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const { can } = useAuth();
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery(adminOrderListOptions(storeId, page));
+  // Store değişince 1. sayfaya dön.
+  useEffect(() => {
+    setPage(1);
+  }, [storeId]);
+
+  const { data, isLoading, isFetching } = useQuery({
+    ...adminOrderListOptions(storeId, page),
+    // Sayfa değişiminde tablo skeleton'a düşmesin, eski veri kalsın.
+    placeholderData: keepPreviousData,
+  });
 
   const orders = data?.items ?? [];
   const meta = data?.meta;
+  const canView = can('order.viewAll') || can('order.updateStatus');
 
   return (
     <div>
@@ -39,27 +66,48 @@ export default function AdminOrdersPage() {
         <p className="text-muted-foreground mt-1 text-sm">{meta?.total ?? 0} orders</p>
       </div>
 
-      <div className="mt-6">
+      <div
+        className={`mt-6 transition-opacity ${isFetching && !isLoading ? 'opacity-70' : 'opacity-100'}`}
+      >
         <DataTable<Order>
           isLoading={isLoading}
           rows={orders}
-          getRowId={(row) => row.id}
+          getRowId={getRowId}
           emptyTitle="No orders yet"
           emptyDescription="Orders placed through the storefront will show up here."
           emptyIcon={ShoppingCart}
+          enableRowSelection
+          currentPage={meta?.page ?? page}
+          totalPages={meta?.totalPages ?? 1}
+          totalCount={meta?.total}
+          onPageChange={setPage}
           columns={[
             {
+              id: 'order',
               header: 'Order',
+              sortValue: (row) => new Date(row.createdAt).getTime(),
               cell: (row) => (
                 <div>
-                  <p className="text-foreground font-mono text-xs">#{row.id.slice(0, 8)}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {new Date(row.createdAt).toLocaleString()}
+                  {canView ? (
+                    <Link
+                      href={`/admin/orders/${row.id}`}
+                      className="text-foreground hover:text-sidebar-primary font-mono text-xs font-medium transition-colors"
+                    >
+                      #{row.id.slice(0, 8)}
+                    </Link>
+                  ) : (
+                    <p className="text-foreground font-mono text-xs font-medium">
+                      #{row.id.slice(0, 8)}
+                    </p>
+                  )}
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {dateFormatter.format(new Date(row.createdAt))}
                   </p>
                 </div>
               ),
             },
             {
+              id: 'customer',
               header: 'Customer',
               cell: (row) => (
                 <span className="text-muted-foreground font-mono text-xs">
@@ -68,26 +116,39 @@ export default function AdminOrdersPage() {
               ),
             },
             {
+              id: 'items',
               header: 'Items',
+              sortValue: (row) => row.items.length,
               cell: (row) => (
                 <span className="text-muted-foreground text-sm">{row.items.length}</span>
               ),
             },
             {
+              id: 'fulfillment',
               header: 'Fulfillment',
               cell: (row) => (
-                <div className="text-muted-foreground text-xs">
-                  <p>{row.fulfillmentType}</p>
-                  <p className="uppercase">{row.paymentMethod}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="text-xs font-normal">
+                    {row.fulfillmentType}
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs font-normal uppercase">
+                    {row.paymentMethod}
+                  </Badge>
                 </div>
               ),
             },
             {
+              id: 'total',
               header: 'Total',
-              cell: (row) => <span className="text-foreground font-serif italic">{row.total}</span>,
+              sortValue: (row) => Number(row.total),
+              cell: (row) => (
+                <span className="text-foreground font-serif italic">{formatMoney(row.total)}</span>
+              ),
             },
             {
+              id: 'status',
               header: 'Status',
+              sortValue: (row) => ORDER_STATUS_LABELS[row.status],
               cell: (row) => (
                 <StatusBadge tone={ORDER_STATUS_TONES[row.status]}>
                   {ORDER_STATUS_LABELS[row.status]}
@@ -97,47 +158,20 @@ export default function AdminOrdersPage() {
             {
               header: '',
               className: 'text-right',
-              cell: (row) => (
-                <div className="flex justify-end gap-1">
-                  {can('order.viewAll') || can('order.updateStatus') ? (
+              cell: (row) =>
+                canView ? (
+                  <div className="flex justify-end">
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/admin/orders/${row.id}`}>
                         <Eye size={14} /> View
                       </Link>
                     </Button>
-                  ) : null}
-                </div>
-              ),
+                  </div>
+                ) : null,
             },
           ]}
         />
       </div>
-
-      {(meta?.totalPages ?? 0) > 1 && (
-        <div className="text-muted-foreground mt-4 flex items-center justify-between text-sm">
-          <p>
-            Page {meta?.page} of {meta?.totalPages}
-          </p>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-            >
-              <ChevronLeft size={14} /> Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= (meta?.totalPages ?? 1)}
-            >
-              Next <ChevronRight size={14} />
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

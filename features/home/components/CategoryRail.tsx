@@ -1,5 +1,6 @@
 ﻿import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ArrowUpRight } from 'lucide-react';
 
 /**
@@ -14,35 +15,25 @@ export type CategoryRailItem = {
   translations: { locale: string; name: string; slug: string }[];
 };
 
-export function CategoryRail({ categories, locale }: { categories: CategoryRailItem[]; locale: string }) {
+export function CategoryRail({
+  categories,
+  locale,
+}: {
+  categories: CategoryRailItem[];
+  locale: string;
+}) {
+  const t = useTranslations('header');
   if (categories.length === 0) return null;
   const visibleCategories = categories.slice(0, 6);
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-16 sm:pt-20">
+    <section className="mx-auto max-w-7xl px-4 pt-8 sm:pt-20">
       {/* Header */}
-      <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <span className="bg-primary size-1.5 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.7)]" />
-            <span className="text-primary text-[11px] font-semibold tracking-[0.18em] uppercase">
-              Explore
-            </span>
-          </div>
-
-          <h2 className="text-foreground text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">
-            Shop by category
-          </h2>
-
-          <p className="text-muted-foreground mt-1.5 text-sm">
-            Find the products that fit your world.
-          </p>
-        </div>
-
+      <div className="mb-2 flex items-end justify-end gap-4">
         <Link
           href={`/${locale}/categories`}
           className="group border-border bg-card/70 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary hidden shrink-0 items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold transition-all duration-200 sm:flex"
         >
-          View all
+          {t('viewAll')}
           <ArrowUpRight
             size={14}
             className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
@@ -62,7 +53,7 @@ export function CategoryRail({ categories, locale }: { categories: CategoryRailI
             <Link
               key={category.id}
               href={`/${locale}/${translation.slug}`}
-              className="group border-border/70 bg-card hover:border-primary/30 dark:bg-card/90 relative overflow-hidden rounded-2xl border shadow-[0_4px_18px_rgba(15,42,68,0.045)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,42,68,0.10)] dark:shadow-[0_5px_22px_rgba(0,0,0,0.16)] dark:hover:shadow-[0_14px_35px_rgba(0,0,0,0.28)]"
+              className="group border-border/70 bg-card hover:border-primary/30 dark:bg-card/90 relative overflow-hidden rounded-md border shadow-[0_4px_18px_rgba(15,42,68,0.045)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,42,68,0.10)] dark:shadow-[0_5px_22px_rgba(0,0,0,0.16)] dark:hover:shadow-[0_14px_35px_rgba(0,0,0,0.28)]"
             >
               {/* Image */}
               <div className="bg-muted relative aspect-[1.15/1] overflow-hidden">
@@ -86,19 +77,6 @@ export function CategoryRail({ categories, locale }: { categories: CategoryRailI
                     <div className="border-primary/20 bg-primary/10 absolute bottom-4 left-4 size-10 rounded-xl border backdrop-blur-sm" />
                   </div>
                 )}
-
-                {/* Image overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
-
-                {/* Number */}
-                <span className="absolute top-3 left-3 flex size-7 items-center justify-center rounded-lg border border-white/15 bg-black/20 text-[10px] font-semibold text-white/80 backdrop-blur-md">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-
-                {/* Arrow */}
-                <span className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white/80 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100">
-                  <ArrowUpRight size={13} />
-                </span>
               </div>
 
               {/* Content */}
@@ -107,10 +85,6 @@ export function CategoryRail({ categories, locale }: { categories: CategoryRailI
                   <h3 className="text-foreground group-hover:text-primary truncate text-sm font-semibold tracking-[-0.015em] transition-colors">
                     {translation.name}
                   </h3>
-
-                  <span className="text-muted-foreground/60 mt-0.5 block text-[10px] font-medium tracking-[0.12em] uppercase">
-                    Explore
-                  </span>
                 </div>
 
                 <span className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-full transition-all duration-300 group-hover:rotate-45">
@@ -125,9 +99,9 @@ export function CategoryRail({ categories, locale }: { categories: CategoryRailI
       {/* Mobile view all */}
       <Link
         href={`/${locale}/categories`}
-        className="group border-border bg-card/70 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary mt-5 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-semibold transition-all sm:hidden"
+        className="group border-border bg-card/70 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary mt-5 flex items-center justify-center gap-2 rounded-md border px-4 py-3 text-xs font-semibold transition-all sm:hidden"
       >
-        View all categories
+        {t('viewAllCategories')}
         <ArrowUpRight
           size={14}
           className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

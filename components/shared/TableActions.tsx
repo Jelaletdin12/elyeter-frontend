@@ -1,12 +1,12 @@
 ﻿'use client';
 
 import { Eye, Pencil, Trash2, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /**
- * Tablo satırı ikon aksiyonları — tbbank-admin'in tableActions.tsx
- * mantığı (FRONTEND_AGENTS.md #16). Icon-only, hover state'li; opsiyonel
- * `extraActions` ekstra ikonlar (örn. görüntüleme) tanımlar. Menü onayı
- * (onDelete -> ConfirmDialog) sayfa tarafında yapılır.
+ * Tablo satır aksiyonları — tbbank-admin'in tableActions.tsx'inden uyarlandı
+ * (FRONTEND_AGENTS.md #16). View/Edit/Delete + ekstra ikon aksiyonları tek
+ * bileşende toplanır; her admin sayfası aksiyon hücresini elle yazmaz.
  */
 export type TableAction = {
   icon: LucideIcon;
@@ -25,8 +25,6 @@ type TableActionsProps = {
   extraActions?: TableAction[];
 };
 
-const baseClass = 'text-muted-foreground p-1.5 rounded transition-colors disabled:opacity-50';
-
 export function TableActions({
   onView,
   onEdit,
@@ -38,58 +36,44 @@ export function TableActions({
   return (
     <div className="flex items-center justify-end gap-0.5">
       {extraActions?.map((action, i) => (
-        <button
+        <Button
           key={i}
-          type="button"
+          variant="ghost"
+          size="icon"
           onClick={action.onClick}
           disabled={action.disabled}
-          title={action.title}
           aria-label={action.title}
-          className={`${baseClass} ${
-            action.destructive
-              ? 'hover:bg-destructive/10 hover:text-destructive'
-              : 'hover:bg-background hover:text-foreground'
-          }`}
+          title={action.title}
+          className={action.destructive ? 'text-destructive hover:bg-destructive/10' : undefined}
         >
           <action.icon size={15} />
-        </button>
+        </Button>
       ))}
 
       {onView && (
-        <button
-          type="button"
-          onClick={onView}
-          title="View"
-          aria-label="View"
-          className="text-muted-foreground hover:bg-background hover:text-foreground rounded p-1.5 transition-colors"
-        >
+        <Button variant="ghost" size="icon" onClick={onView} aria-label="View" title="View">
           <Eye size={15} />
-        </button>
+        </Button>
       )}
 
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          title="Edit"
-          aria-label="Edit"
-          className="text-muted-foreground hover:bg-background hover:text-foreground rounded p-1.5 transition-colors"
-        >
+        <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit" title="Edit">
           <EditIcon size={15} />
-        </button>
+        </Button>
       )}
 
       {onDelete && (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onDelete}
           disabled={isDeleting}
-          title="Delete"
           aria-label="Delete"
-          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded p-1.5 transition-colors disabled:opacity-50"
+          title="Delete"
+          className="text-destructive hover:bg-destructive/10"
         >
           <Trash2 size={15} />
-        </button>
+        </Button>
       )}
     </div>
   );

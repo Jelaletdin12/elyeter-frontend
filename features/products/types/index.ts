@@ -24,6 +24,7 @@ export type ProductTranslation = Omit<
   description?: string;
 };
 export type ProductImage = components['schemas']['ProductImageResponseDto'];
+export type VariantImage = components['schemas']['VariantImageResponseDto'];
 export type ProductInventory = components['schemas']['InventoryResponseDto'];
 
 export type ProductVariant = Omit<
@@ -58,7 +59,9 @@ export type ProductListResponse = Omit<components['schemas']['ProductListRespons
 };
 export type ProductPaginationMeta = components['schemas']['ProductPaginationMetaDto'];
 
-export type CreateProductInput = components['schemas']['CreateProductDto'];
+export type CreateProductInput = Omit<components['schemas']['CreateProductDto'], 'variants'> & {
+  variants: CreateProductVariantInput[];
+};
 export type UpdateProductInput = Omit<components['schemas']['UpdateProductDto'], 'isActive'> & {
   isActive?: boolean;
 };
@@ -67,6 +70,20 @@ export type CreateProductVariantInput = Omit<
   components['schemas']['CreateProductVariantDto'],
   'attributes'
 > & { attributes?: Record<string, string> };
+
+export type UpdateProductVariantInput = Omit<
+  components['schemas']['UpdateProductVariantDto'],
+  'attributes'
+> & { attributes?: Record<string, string> };
+
+export type ProductVariantUpdated = Omit<
+  components['schemas']['ProductVariantUpdatedResponseDto'],
+  'attributes' | 'compareAtPrice'
+> & {
+  attributes: Record<string, string>;
+  compareAtPrice?: number | null;
+  images: VariantImage[];
+};
 
 export type StockAdjustmentInput = components['schemas']['StockAdjustmentDto'];
 

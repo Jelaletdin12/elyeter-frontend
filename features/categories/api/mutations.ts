@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAuthorizedFetch } from '@/lib/auth/admin-authorized-fetch';
 import { queryKeys, dataCacheTags } from '@/lib/api/query-keys';
+import { revalidatePublicTags } from '@/lib/api/revalidate';
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from '../types';
 
 /**
@@ -9,14 +10,6 @@ import type { Category, CreateCategoryInput, UpdateCategoryInput } from '../type
  * hem public kategori sayfası (ve o kategorideki ürün listesi, çünkü ürün
  * kartlarında kategori adı görünebilir) revalidate edilir.
  */
-
-async function revalidatePublicTags(tags: string[]) {
-  await fetch('/api/revalidate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tags }),
-  });
-}
 
 export function useCreateCategoryMutation(storeId: string) {
   const queryClient = useQueryClient();

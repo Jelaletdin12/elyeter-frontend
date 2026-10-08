@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { orderListOptions } from '../api/queries';
@@ -25,9 +25,13 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'neutr
 
 export function OrderHistoryList() {
   const locale = useLocale();
+  const t = useTranslations('orders');
+  const tStatus = useTranslations('notifications.status');
   const storeId = useAuthStore((s) => s.activeStoreId);
   const [page, setPage] = useState(1);
   const { data, isLoading, isPlaceholderData } = useQuery(orderListOptions(storeId, page));
+
+  const statusLabel = (status: string) => tStatus(status as Parameters<typeof tStatus>[0]);
 
   if (isLoading) {
     return (
@@ -41,11 +45,7 @@ export function OrderHistoryList() {
 
   if (!data || data.items.length === 0) {
     return (
-      <EmptyState
-        icon={Package}
-        title="Henüz siparişiniz yok"
-        description="İlk siparişinizi verdiğinizde geçmişiniz burada görünecek."
-      />
+      <EmptyState icon={Package} title={t('emptyTitle')} description={t('emptyDescription')} />
     );
   }
 
@@ -60,15 +60,15 @@ export function OrderHistoryList() {
             >
               <div className="min-w-0">
                 <p className="text-foreground text-sm font-medium">
-                  Sipariş #{order.id.slice(0, 8)}
+                  {t('orderNumber', { id: order.id.slice(0, 8) })}
                 </p>
                 <p className="text-muted-foreground mt-0.5 text-xs">
-                  {new Date(order.createdAt).toLocaleDateString()}
+                  {new Date(order.createdAt).toLocaleDateString(locale)}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <StatusBadge tone={STATUS_TONE[order.status] ?? 'neutral'}>
-                  {order.status}
+                  {statusLabel(order.status)}
                 </StatusBadge>
                 <span className="text-foreground font-serif text-sm italic">{order.total}</span>
                 <ChevronRight size={16} className="text-muted-foreground" />

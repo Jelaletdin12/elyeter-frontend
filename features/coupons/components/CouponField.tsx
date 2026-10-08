@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { BadgePercent, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ type CouponFieldProps = {
 };
 
 export function CouponField({ coupon, onChange }: CouponFieldProps) {
+  const t = useTranslations('checkout');
   const validate = useValidateCouponMutation();
   const [code, setCode] = useState('');
   const [inlineError, setInlineError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
         onChange(result);
         setCode('');
       } else {
-        setInlineError('This code does not apply to your order.');
+        setInlineError(t('couponInvalid'));
       }
     } catch {
       // Hata global onError'da toast ile gösterilir (mutation error → mutationCache).
@@ -45,9 +47,9 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
             <p className="text-foreground text-sm font-medium">{coupon.code}</p>
             <p className="text-sidebar-primary text-xs">
               {coupon.type === 'PERCENTAGE' && coupon.value
-                ? `${coupon.value}% off`
+                ? t('percentOff', { value: coupon.value })
                 : coupon.type === 'FIXED' && coupon.value
-                  ? `${coupon.value} off`
+                  ? t('fixedOff', { value: coupon.value })
                   : ''}{' '}
               · −{discount.toFixed(2)}
             </p>
@@ -56,7 +58,7 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
         <button
           type="button"
           onClick={() => onChange(null)}
-          aria-label="Remove coupon"
+          aria-label={t('removeCoupon')}
           className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
         >
           <X size={16} />
@@ -79,7 +81,7 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
               handleApply();
             }
           }}
-          placeholder="Coupon code (e.g. SUMMER20)"
+          placeholder={t('couponPlaceholder')}
           className="uppercase"
         />
         <Button
@@ -88,7 +90,7 @@ export function CouponField({ coupon, onChange }: CouponFieldProps) {
           onClick={handleApply}
           disabled={validate.isPending || !code.trim()}
         >
-          {validate.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Apply'}
+          {validate.isPending ? <Loader2 size={14} className="animate-spin" /> : t('apply')}
         </Button>
       </div>
       {inlineError && <p className="text-destructive text-xs">{inlineError}</p>}

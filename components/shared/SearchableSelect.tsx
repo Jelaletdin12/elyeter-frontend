@@ -1,18 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, CornerDownRight } from 'lucide-react';
 
-/**
- * Arama kutusu içeren açılır select — Radix Select + Command yerine
- * DataTableToolbar'daki backdrop-dropdown deseninin bir variesyonu
- * (FRONTEND_AGENTS.md: bağımlılık eklenmez, basit dropdown kullanılır).
- * Çok sayıda seçenekli listeler için (örn. kategori marka seçimi,
- * admin brand filtre kategori listesi).
- */
+import { cn } from '@/lib/utils';
+
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 export type SearchableOption = {
   value: string;
   label: string;
+  disabled?: boolean;
+
+  /** 0 = root, 1 = child, 2 = nested child */
+  depth?: number;
+
+  hasChildren?: boolean;
+  isParent?: boolean;
+
+  /** Parent option's `value`. Required for expand/collapse. */
+  parentId?: string | null;
+};
+
+type SearchableSelectProps = {
+  value: string;
+  onValueChange: (value: string) => void;
+
+  options: SearchableOption[];
+
+  id?: string;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+
+  className?: string;
+  label?: string;
+
   disabled?: boolean;
 };
 
@@ -20,116 +52,249 @@ export function SearchableSelect({
   value,
   onValueChange,
   options,
+  id,
   placeholder = 'Select…',
   searchPlaceholder = 'Search…',
   emptyText = 'No results',
-  className = '',
+  className,
   label,
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-  options: SearchableOption[];
-  placeholder?: string;
-  searchPlaceholder?: string;
-  emptyText?: string;
-  className?: string;
-  label?: string;
-}) {
+  disabled = false,
+}: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const selected = options.find((opt) => opt.value === value);
-  const filtered = query.trim()
-    ? options.filter((opt) => opt.label.toLowerCase().includes(query.trim().toLowerCase()))
-    : options;
+  const selected = useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value],
+  );
 
-  function close() {
-    setOpen(false);
-    setQuery('');
+  const optionById = useMemo(() => new Map(options.map((o) => [o.value, o])), [options]);
+
+  const isSearching = search.trim() !== '';
+
+  const visibleOptions = useMemo(() => {
+    // Aramada hiyerarşi yok sayılır, cmdk filtreler.
+    if (isSearching) return options;
+
+    return options.filter((option) => {
+      let parentId = option.parentId ?? null;
+      while (parentId) {
+        if (!expanded.has(parentId)) return false;
+        parentId = optionById.get(parentId)?.parentId ?? null;
+      }
+      return true;
+    });
+  }, [options, optionById, expanded, isSearching]);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    setSearch('');
+
+    if (next && value) {
+      // Seçili kategorinin atalarını aç.
+      setExpanded((prev) => {
+        const nextSet = new Set(prev);
+        let parentId = optionById.get(value)?.parentId ?? null;
+        while (parentId) {
+          nextSet.add(parentId);
+          parentId = optionById.get(parentId)?.parentId ?? null;
+        }
+        return nextSet;
+      });
+    }
+  }
+
+  function toggleExpanded(optionValue: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(optionValue)) next.delete(optionValue);
+      else next.add(optionValue);
+      return next;
+    });
   }
 
   return (
-    <div className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={label ?? placeholder}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={`flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-colors focus:border-ring focus:ring-3 focus:ring-ring/50 focus:outline-none ${
-          open ? 'border-sidebar-primary' : ''
-        } ${selected ? 'text-foreground' : 'text-muted-foreground'}`}
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-label={label ?? placeholder}
+          disabled={disabled}
+          className={cn(
+            'h-10 w-full justify-between',
+            'rounded-lg',
+            'border-input',
+            'bg-input-background',
+            'px-3',
+            'font-normal',
+            'text-sm',
+            'shadow-[0_1px_2px_rgba(15,42,68,0.03)]',
+            'transition-all duration-200',
+            'hover:border-slate-300',
+            'hover:bg-input-background',
+            'focus-visible:border-primary',
+            'focus-visible:ring-2',
+            'focus-visible:ring-primary/15',
+            !selected && 'text-muted-foreground',
+            className,
+          )}
+        >
+          <span className="min-w-0 flex-1 truncate text-left">
+            {selected?.label ?? placeholder}
+          </span>
+
+          <ChevronDown
+            className={cn(
+              'text-muted-foreground ml-2 size-4 shrink-0',
+              'transition-transform duration-200',
+              open && 'rotate-180',
+            )}
+          />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className={cn(
+          'w-[var(--radix-popover-trigger-width)]',
+          'min-w-[280px]',
+          'overflow-hidden',
+          'rounded-xl',
+          'border-border',
+          'bg-card',
+          'p-0',
+          'shadow-xl',
+        )}
       >
-        <span className="line-clamp-1 text-left">
-          {selected ? selected.label : placeholder}
-        </span>
-        <ChevronDown size={14} className="shrink-0 opacity-50" />
-      </button>
+        <Command className="bg-card" loop>
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder={searchPlaceholder}
+            className={cn(
+              'h-11',
+              'border-0',
+              'bg-input-background',
+              'text-foreground',
+              'placeholder:text-muted-foreground/70',
+              'focus:ring-0',
+            )}
+          />
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={close} />
-          <div className="rounded-md border-border bg-card absolute right-0 z-50 mt-1.5 w-full min-w-56 border shadow-lg">
-            <div className="relative border-b border-border p-2">
-              <Search
-                size={13}
-                className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                type="text"
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="border-border bg-background placeholder:text-muted-foreground/60 h-8 w-full rounded-md border py-0 pr-7 pl-7 text-sm focus:border-sidebar-primary focus:outline-none"
-              />
-              {query && (
-                <button
-                  type="button"
-                  aria-label="Clear"
-                  onClick={() => setQuery('')}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+          <CommandList className="max-h-72 p-1.5">
+            <CommandEmpty className="text-muted-foreground px-3 py-8 text-center text-sm">
+              {emptyText}
+            </CommandEmpty>
 
-            <ul
-              role="listbox"
-              className="max-h-64 overflow-y-auto p-1"
-            >
-              {filtered.length === 0 ? (
-                <li className="text-muted-foreground px-3 py-2 text-sm">{emptyText}</li>
-              ) : (
-                filtered.map((opt) => {
-                  const isSelected = opt.value === value;
-                  return (
-                    <li key={opt.value} role="option" aria-selected={isSelected}>
-                      <button
-                        type="button"
-                        disabled={opt.disabled}
-                        onClick={() => {
-                          onValueChange(opt.value);
-                          close();
-                        }}
-                        className={`relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm text-left select-none disabled:pointer-events-none disabled:opacity-50 ${
-                          isSelected
-                            ? 'bg-sidebar-primary/10 text-foreground font-medium'
-                            : 'text-foreground hover:bg-background'
-                        }`}
+            <CommandGroup>
+              {visibleOptions.map((option) => {
+                const isSelected = option.value === value;
+                const depth = isSearching ? 0 : (option.depth ?? 0);
+                const hasChildren = option.hasChildren ?? false;
+                const isParent = option.isParent ?? depth === 0;
+                const isExpanded = expanded.has(option.value);
+
+                return (
+                  <CommandItem
+                    key={option.value}
+                    // id'yi value'ya kat: aynı isimli kategoriler çakışmasın.
+                    value={`${option.label} ${option.value}`}
+                    disabled={option.disabled}
+                    onSelect={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    className={cn(
+                      'relative',
+                      'min-h-9',
+                      'cursor-pointer',
+                      'rounded-lg',
+                      'px-2.5',
+                      'py-2',
+                      'text-sm',
+                      'transition-colors duration-150',
+
+                      // cmdk v1: data-disabled="false" da yazılır, "=true" kullan.
+                      'data-[disabled=true]:pointer-events-none',
+                      'data-[disabled=true]:opacity-40',
+
+                      isSelected
+                        ? 'bg-primary/10 text-foreground'
+                        : 'text-foreground hover:bg-muted',
+                    )}
+                  >
+                    <span
+                      className="flex min-w-0 flex-1 items-center"
+                      style={{ paddingLeft: `${depth * 20}px` }}
+                    >
+                      {/* Expand/collapse: aramada gizli */}
+                      {!isSearching &&
+                        (hasChildren ? (
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                            aria-expanded={isExpanded}
+                            onPointerDown={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpanded(option.value);
+                            }}
+                            className="hover:bg-muted-foreground/10 mr-1 flex size-5 shrink-0 items-center justify-center rounded"
+                          >
+                            <ChevronRight
+                              aria-hidden="true"
+                              className={cn(
+                                'text-muted-foreground size-4 transition-transform duration-150',
+                                isExpanded && 'rotate-90',
+                              )}
+                            />
+                          </span>
+                        ) : (
+                          <span className="mr-1 size-5 shrink-0" aria-hidden="true" />
+                        ))}
+
+                      {depth > 0 && (
+                        <CornerDownRight
+                          aria-hidden="true"
+                          className="text-border mr-1.5 size-3.5 shrink-0"
+                          strokeWidth={1.6}
+                        />
+                      )}
+
+                      <span
+                        className={cn(
+                          'min-w-0 truncate',
+                          isParent && depth === 0 && 'text-foreground font-medium',
+                          depth > 0 && 'text-muted-foreground font-normal',
+                          isSelected && 'text-foreground font-medium',
+                        )}
                       >
-                        <span className="flex-1 truncate">{opt.label}</span>
-                        {isSelected && <Check size={15} className="text-sidebar-primary" />}
-                      </button>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
+                        {option.label}
+                      </span>
+                    </span>
+
+                    {isSelected && (
+                      <Check
+                        aria-hidden="true"
+                        className="text-primary ml-2 size-4 shrink-0"
+                        strokeWidth={2.2}
+                      />
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

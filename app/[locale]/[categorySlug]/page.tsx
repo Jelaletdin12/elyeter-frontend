@@ -8,18 +8,6 @@ import { getCategoryBySlug } from '@/features/categories/api/queries';
 import { categoryTranslation } from '@/features/categories/types';
 import { ProductBrowser } from '@/features/products/components/ProductBrowser';
 
-/**
- * STANDARDS.md #4: ISR (temel liste) + filtreler client'ta.
- * `generateStaticParams` KULLANILMAZ (STANDARDS.md #11) — katalog büyüdükçe
- * build süresi patlar; slug'lar `dynamicParams: true` ile ilk istekte
- * ISR'a girer (Next.js varsayılanı zaten budur, elle kapatılmaz).
- *
- * Alt kategori şeridi: findBySlug artık aktif children'ı döner
- * (backend categories.service.ts, 2026-09-14) — tek istek, ayrı query yok.
- * Filtre kategori ağacı için GET /categories/tree'den gelen tüm aktif
- * kategorileri kullanır.
- */
-
 async function getCategory(locale: string, slug: string) {
   try {
     return await getCategoryBySlug(locale, slug);
@@ -33,10 +21,6 @@ async function getBaseProductList(
   locale: string,
   categoryId: string,
 ): Promise<ProductListResponse> {
-  // Bu, temel/varsayılan sıralamayla ISR'lanan listedir. Kullanıcı arama/marka
-  // filtresi değiştirdiğinde ProductBrowser (Client Component) kendi TanStack
-  // query'siyle devralır — search param kombinasyonları Next Data Cache'e
-  // GİRMEZ (aksi halde cache anlamsız şişer, bkz. STANDARDS.md #4).
   return apiFetch<ProductListResponse>(`/products?locale=${locale}&categoryId=${categoryId}`, {
     next: {
       revalidate: 300,
@@ -72,13 +56,6 @@ export default async function CategoryPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      {category.imageUrl ? (
-        <div className="relative mb-6 aspect-[21/9] w-full overflow-hidden rounded-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
-        </div>
-      ) : null}
-
       <h1 className="text-foreground font-serif text-2xl italic">{translation?.name}</h1>
 
       {category.children && category.children.length > 0 && (

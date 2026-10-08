@@ -14,18 +14,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { CreateProductVariantInput } from '../types';
 
-/** attributes serbest key-value (renk/beden gibi sabit alan isimleri hardcode edilmiyor). */
+interface AddVariantDialogProps {
+  open: boolean;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmit: (input: CreateProductVariantInput) => void;
+}
+
+/** attributes freeform key-value pairs (color/size etc). */
 export function AddVariantDialog({
   open,
   isSubmitting,
   onCancel,
   onSubmit,
-}: {
-  open: boolean;
-  isSubmitting: boolean;
-  onCancel: () => void;
-  onSubmit: (input: CreateProductVariantInput) => void;
-}) {
+}: AddVariantDialogProps) {
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
   const [compareAtPrice, setCompareAtPrice] = useState('');
@@ -42,7 +44,7 @@ export function AddVariantDialog({
     }
 
     onSubmit({
-      sku,
+      sku: sku.trim(),
       price: Number(price),
       compareAtPrice: compareAtPrice !== '' ? Number(compareAtPrice) : undefined,
       initialStock: Number(initialStock),
@@ -60,33 +62,40 @@ export function AddVariantDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New variant</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">New variant</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="variant-sku">SKU</Label>
-            <Input id="variant-sku" required value={sku} onChange={(e) => setSku(e.target.value)} />
+            <Label htmlFor="variant-sku">SKU *</Label>
+            <Input
+              id="variant-sku"
+              required
+              placeholder="e.g. PRD-BLK-M"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="variant-price">Price</Label>
+              <Label htmlFor="variant-price">Price *</Label>
               <Input
                 id="variant-price"
                 type="number"
                 step="0.01"
                 min="0"
                 required
+                placeholder="0.00"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="variant-compare-price">
-                Compare-at price <span className="text-muted-foreground">(optional)</span>
+                Compare-at price <span className="text-muted-foreground text-xs">(opt)</span>
               </Label>
               <Input
                 id="variant-compare-price"
@@ -101,61 +110,72 @@ export function AddVariantDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="variant-stock">Initial stock</Label>
+            <Label htmlFor="variant-stock">Initial stock *</Label>
             <Input
               id="variant-stock"
               type="number"
               min="0"
               required
+              placeholder="0"
               value={initialStock}
               onChange={(e) => setInitialStock(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Attributes</Label>
-            {attributePairs.map((pair, i) => (
-              <div key={i} className="flex gap-2">
-                <Input
-                  placeholder="color"
-                  value={pair.key}
-                  onChange={(e) =>
-                    setAttributePairs((prev) =>
-                      prev.map((p, idx) => (idx === i ? { ...p, key: e.target.value } : p)),
-                    )
-                  }
-                />
-                <Input
-                  placeholder="Red"
-                  value={pair.value}
-                  onChange={(e) =>
-                    setAttributePairs((prev) =>
-                      prev.map((p, idx) => (idx === i ? { ...p, value: e.target.value } : p)),
-                    )
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setAttributePairs((prev) => prev.filter((_, idx) => idx !== i))}
-                  aria-label="Remove attribute"
-                >
-                  <X size={14} />
-                </Button>
-              </div>
-            ))}
+            <Label className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+              Attributes
+            </Label>
+            <div className="space-y-2">
+              {attributePairs.map((pair, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    placeholder="Attribute (e.g. Color)"
+                    value={pair.key}
+                    onChange={(e) =>
+                      setAttributePairs((prev) =>
+                        prev.map((p, idx) => (idx === i ? { ...p, key: e.target.value } : p)),
+                      )
+                    }
+                  />
+                  <Input
+                    placeholder="Value (e.g. Red)"
+                    value={pair.value}
+                    onChange={(e) =>
+                      setAttributePairs((prev) =>
+                        prev.map((p, idx) => (idx === i ? { ...p, value: e.target.value } : p)),
+                      )
+                    }
+                  />
+                  {attributePairs.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() =>
+                        setAttributePairs((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                      aria-label="Remove attribute"
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setAttributePairs((prev) => [...prev, { key: '', value: '' }])}
+              className="mt-1 gap-1 text-xs"
             >
-              <Plus size={14} /> Add attribute
+              <Plus className="size-3.5" /> Add attribute
             </Button>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>

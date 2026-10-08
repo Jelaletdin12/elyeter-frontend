@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Heart, Loader2, Minus, Plus, ShoppingCart } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from '@/components/ui/sonner';
 
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem } from '@/componen
 import { cn } from '@/lib/utils';
 
 import { useAuthStore } from '@/stores/auth-store';
-import {
-  useAddCartItemMutation,
-  useRemoveCartItemMutation,
-  useUpdateCartItemMutation,
-} from '@/features/cart/api/mutations';
-import { cartOptions } from '@/features/cart/api/queries';
+import { useCartItemQuantity } from '@/features/cart/hooks/useCartItemQuantity';
 import { useToggleWishlistMutation } from '@/features/wishlist/api/mutations';
 
 import type { Product } from '@/features/products/types';
@@ -56,14 +51,19 @@ export function ProductCard({
   const storeId = useAuthStore((state) => state.activeStoreId);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrating = useAuthStore((state) => state.isHydrating);
+  const t = useTranslations('common');
 
   const [api, setApi] = useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (!api) return;
-    setActiveIndex(api.selectedScrollSnap());
-    api.on('select', () => setActiveIndex(api.selectedScrollSnap()));
+    const onSelect = () => setActiveIndex(api.selectedScrollSnap());
+    onSelect();
+    api.on('select', onSelect);
+    return () => {
+      api.off('select', onSelect);
+    };
   }, [api]);
 
   const translation =
@@ -71,47 +71,62 @@ export function ProductCard({
 
   const images = product.images.length > 0 ? product.images : [];
 
-  const firstVariant = product.variants[0];
+  // Temsilci varyant: önce STOKLU + en ucuz aktif varyant; stoklu yoksa
+  // en ucuz aktif varyant; o da yoksa ilk varyant. Yalnızca variants[0]'a
+  // bakmak, varyantları fiyat/stok bakımından sırasız gelen aramalarda
+  // stoklu ürünü yanlışlıkla "Out of stock" göstermeye yol açar (Redmi
+  // örneği: 128GB stok 0, 256GB stok 30 — ilki önde olurdu).
+  const activeVariants = product.variants.filter((variant) => variant.isActive);
+  const sellableVariants = activeVariants.filter(
+    (variant) =>
+      variant.inventory != null &&
+      variant.inventory.quantity - variant.inventory.reservedQuantity > 0,
+  );
+  const cheapest = (variants: typeof product.variants) =>
+    [...variants].sort((a, b) => Number(a.price) - Number(b.price))[0];
+  const representativeVariant =
+    cheapest(sellableVariants) ?? cheapest(activeVariants) ?? product.variants[0];
 
-  const availableQuantity = firstVariant?.inventory
-    ? firstVariant.inventory.quantity - firstVariant.inventory.reservedQuantity
+  const availableQuantity = representativeVariant?.inventory
+    ? representativeVariant.inventory.quantity - representativeVariant.inventory.reservedQuantity
     : 0;
 
   const inStock = availableQuantity > 0;
 
-  const price = firstVariant ? Number(firstVariant.price) : 0;
-  const compareAtPrice = firstVariant?.compareAtPrice ? Number(firstVariant.compareAtPrice) : null;
+  const price = representativeVariant ? Number(representativeVariant.price) : 0;
+  const compareAtPrice = representativeVariant?.compareAtPrice
+    ? Number(representativeVariant.compareAtPrice)
+    : null;
   const discountPercent =
-    (typeof firstVariant?.discountPercent === 'number' ? firstVariant.discountPercent : null) ??
+    (typeof representativeVariant?.discountPercent === 'number'
+      ? representativeVariant.discountPercent
+      : null) ??
     (compareAtPrice && compareAtPrice > price
       ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
       : null);
 
   const toggleWishlist = useToggleWishlistMutation(storeId);
-  const addToCart = useAddCartItemMutation(storeId);
-  const updateCartItem = useUpdateCartItemMutation(storeId);
-  const removeCartItem = useRemoveCartItemMutation(storeId);
 
-  // Sepet cart endpoinden reel-time okunur (TanStack aynı queryKey'i dedupe
-  // eder — gridde N tane kart olsa bile tek fetch). Bu, "sepetten dönünce kart
-  // hâlâ Add to cart gösteriyor" hatasını kökten çözer: adet state değil,
-  // backend'in sepetinden türer.
-  const { data: cart } = useQuery({
-    ...cartOptions(storeId),
-    enabled: isAuthenticated,
+  // Debounced ve optimistik sepet miktar yönetimi — her tıklamada istek gitmez,
+  // ekstra GET isteklerini önler, UI 0ms gecikmeyle anında tepki verir.
+  const {
+    quantity,
+    increment,
+    decrement,
+    isPending: isCartMutating,
+    canIncrement,
+    canDecrement,
+  } = useCartItemQuantity({
+    variantId: representativeVariant?.id ?? '',
+    availableQuantity,
+    onAuthRequired: () => toast.error(t('signInToCart')),
   });
-
-  const cartItem = cart?.items.find((item) => item.productVariantId === firstVariant?.id);
-  const quantity = cartItem?.quantity ?? 0;
-
-  const isCartMutating =
-    addToCart.isPending || updateCartItem.isPending || removeCartItem.isPending;
 
   const productHref = `/${locale}/products/${translation?.slug}`;
 
   function handleWishlist() {
     if (!isAuthenticated) {
-      toast.error('Sign in to save products.');
+      toast.error(t('signInToSave'));
       return;
     }
 
@@ -121,52 +136,16 @@ export function ProductCard({
     });
   }
 
-  function handleAddToCart() {
-    if (!isAuthenticated) {
-      toast.error('Sign in to add products to your cart.');
-      return;
-    }
-
-    if (!firstVariant || !inStock || quantity > 0) return;
-
-    addToCart.mutate(
-      { productVariantId: firstVariant.id, quantity: 1 },
-      {
-        onSuccess: () => {
-          toast.success('Added to cart.');
-        },
-        onError: () => {
-          toast.error('Could not add product to cart.');
-        },
-      },
-    );
-  }
-
-  function handleQuantityChange(nextQuantity: number) {
-    if (!firstVariant || !cartItem) return;
-
-    if (nextQuantity > availableQuantity) return;
-
-    if (nextQuantity <= 0) {
-      // 1'den eksiye düşmek sepetten çıkarır (DELETE /cart/items/:id).
-      removeCartItem.mutate(cartItem.id);
-      return;
-    }
-
-    // PATCH /cart/items/:id — miktarı üzerine yazar (eklemez).
-    updateCartItem.mutate({ cartItemId: cartItem.id, quantity: nextQuantity });
-  }
-
-  if (!translation || !firstVariant) return null;
+  if (!translation || !representativeVariant) return null;
 
   return (
-    <article className="group bg-card relative min-w-0 overflow-hidden rounded-2xl border">
+    <article className="group bg-card relative min-w-0 overflow-hidden rounded-md border">
       {/* IMAGE / CAROUSEL */}
       <div className="bg-muted relative aspect-square overflow-hidden">
         <Link
           href={productHref}
           className="absolute inset-0 z-10"
-          aria-label={`View ${translation.name}`}
+          aria-label={t('viewProduct', { name: translation.name })}
         />
 
         {images.length > 0 ? (
@@ -189,7 +168,7 @@ export function ProductCard({
           </Carousel>
         ) : (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            No image
+            {t('noImage')}
           </div>
         )}
 
@@ -207,7 +186,7 @@ export function ProductCard({
           size="icon"
           onClick={handleWishlist}
           disabled={toggleWishlist.isPending}
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-label={isWishlisted ? t('removeFromList') : t('addToList')}
           className="bg-background/90 pointer-events-auto absolute top-3 right-3 z-30 size-9 rounded-full shadow-sm backdrop-blur-md transition hover:scale-105"
         >
           {toggleWishlist.isPending ? (
@@ -216,7 +195,8 @@ export function ProductCard({
             <Heart
               className={cn(
                 'size-4 transition-colors',
-                isWishlisted && 'fill-foreground text-foreground dark:fill-primary dark:text-primary',
+                isWishlisted &&
+                  'fill-foreground text-foreground dark:fill-primary dark:text-primary',
               )}
             />
           )}
@@ -224,14 +204,14 @@ export function ProductCard({
 
         {!inStock && (
           <span className="bg-background/90 text-foreground pointer-events-none absolute bottom-3 left-3 z-20 rounded-md px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur">
-            Out of stock
+            {t('outOfStock')}
           </span>
         )}
 
         {/* "NASIL BULUNDU?" rozeti — sadece öneri grid'lerinde. Öneri motoru
             satılamayanı önermediği için stok pill'iyle çakışmaz. */}
         {reasonLabel && (
-          <span className="bg-primary/90 text-white pointer-events-none absolute bottom-3 left-3 z-20 rounded-md px-2.5 py-1.5 text-[11px] font-semibold shadow-sm backdrop-blur">
+          <span className="bg-primary/90 pointer-events-none absolute bottom-3 left-3 z-20 rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
             {reasonLabel}
           </span>
         )}
@@ -263,9 +243,9 @@ export function ProductCard({
           <h3 className="text-foreground hover:text-foreground/70 line-clamp-2 text-sm leading-5 font-medium transition-colors">
             {translation.name}
           </h3>
-          {product.brand && brandTranslation(product.brand, 'en')?.name && (
+          {product.brand && brandTranslation(product.brand, locale)?.name && (
             <p className="text-muted-foreground mt-0.5 text-xs">
-              {brandTranslation(product.brand, 'en')?.name}
+              {brandTranslation(product.brand, locale)?.name}
             </p>
           )}
         </Link>
@@ -279,62 +259,83 @@ export function ProductCard({
           )}
         </div>
 
-        {/* CTA */}
+        {/* CTA — Add to cart butonu kaldırıldı, her zaman inc/dec stepper kullanılıyor */}
+        {/* CTA — quantity 0 ise "Add to cart", sepette varsa +/- stepper */}
         {!inStock ? (
           <Button
             type="button"
             variant="secondary"
             disabled
-            className="mt-3 h-10 w-full "
+            className="mt-3 h-10 w-full rounded-md text-xs font-medium"
           >
-            Out of stock
+            {t('outOfStock')}
           </Button>
-        ) : quantity > 0 ? (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-md border p-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => handleQuantityChange(quantity - 1)}
-              disabled={isCartMutating}
-            >
-              <Minus className="size-4" />
-            </Button>
-            <span className="text-sm font-medium">{quantity}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8 "
-              onClick={() => handleQuantityChange(quantity + 1)}
-              disabled={isCartMutating || quantity >= availableQuantity}
-            >
-              {isCartMutating ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-            </Button>
-          </div>
         ) : isHydrating ? (
-          <Button disabled className="mt-3 h-10 w-full">
+          <Button disabled className="mt-3 h-10 w-full rounded-md">
             <Loader2 className="size-4 animate-spin" />
           </Button>
-        ) : (
+        ) : quantity === 0 ? (
           <Button
             type="button"
-            onClick={handleAddToCart}
-            disabled={addToCart.isPending || isCartMutating}
-            className="mt-3 h-10 w-full text-white"
+            variant="default"
+            className="mt-3 h-10 w-full rounded-md text-xs font-bold transition-all active:scale-[0.98]"
+            onClick={increment}
+            disabled={isCartMutating}
           >
-            {addToCart.isPending ? (
+            {isCartMutating ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <ShoppingCart className="size-4" />
+              <>
+                <ShoppingCart className="size-3.5" />
+                {t('addToCart')}
+              </>
             )}
-            Add to cart
           </Button>
+        ) : (
+          <div className="border-border/80 bg-muted/30 hover:border-border mt-3 flex h-10 w-full items-center justify-between rounded-xl border p-1 transition-colors">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'size-8 rounded-md transition-all',
+                !canDecrement
+                  ? 'cursor-not-allowed opacity-30'
+                  : 'text-foreground hover:bg-background hover:shadow-xs active:scale-95',
+              )}
+              onClick={decrement}
+              disabled={!canDecrement || isCartMutating}
+              aria-label={t('decreaseQuantity')}
+            >
+              <Minus className="size-3.5" />
+            </Button>
+
+            <div className="flex items-center gap-1.5 px-2">
+              <span className="text-foreground min-w-[2ch] text-center text-sm font-semibold tabular-nums">
+                {quantity}
+              </span>
+              {isCartMutating && (
+                <span className="bg-primary size-1.5 animate-pulse rounded-full" />
+              )}
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'size-8 rounded-md transition-all',
+                !canIncrement
+                  ? 'cursor-not-allowed opacity-30'
+                  : 'text-foreground hover:bg-background hover:shadow-xs active:scale-95',
+              )}
+              onClick={increment}
+              disabled={!canIncrement}
+              aria-label={t('increaseQuantity')}
+            >
+              <Plus className="size-3.5" />
+            </Button>
+          </div>
         )}
       </div>
     </article>

@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import {
   ChevronLeft,
@@ -21,6 +22,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+import { useVariantSelection } from './VariantSelectionProvider';
+
 import type { ProductImage } from '../types';
 
 interface ProductGalleryProps {
@@ -33,6 +36,20 @@ const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.5;
 
 export function ProductGallery({ images, alt }: ProductGalleryProps) {
+  const { selectedVariant } = useVariantSelection();
+  const t = useTranslations('products');
+
+  // Seçili varyantın kendi görselleri varsa galeri tamamen onlara geçer (PDP
+  // varyant görselleri); yoksa ürün görselleri gösterilir.
+  // `?? []` savunması: ISR/Router Cache'te varyant-images alanından ÖNCE
+  // üretilmiş eski bir RSC payload servis edilirse `images` undefined gelir
+  // ve bu memo runtime'da patlardı (TypeError: reading 'length').
+  const galleryImages: ProductImage[] = useMemo(() => {
+    const variantImages = selectedVariant?.images ?? [];
+    if (variantImages.length > 0) return variantImages;
+    return images ?? [];
+  }, [images, selectedVariant]);
+
   const [api, setApi] = useState<CarouselApi>();
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -55,10 +72,10 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
   });
 
   const primaryIndex = useMemo(() => {
-    const index = images.findIndex((image) => image.isPrimary);
+    const index = galleryImages.findIndex((image) => image.isPrimary);
 
     return index >= 0 ? index : 0;
-  }, [images]);
+  }, [galleryImages]);
 
   /*
    * =========================================================
@@ -83,19 +100,19 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
   }, [api]);
 
   useEffect(() => {
-    if (!api || images.length === 0) return;
+    if (!api || galleryImages.length === 0) return;
 
     api.scrollTo(primaryIndex, true);
-  }, [api, primaryIndex, images.length]);
+  }, [api, primaryIndex, galleryImages.length]);
 
-function goToImage(index: number) {
-  if (images.length === 0) return;
+  function goToImage(index: number) {
+    if (galleryImages.length === 0) return;
 
-  const nextIndex = (index + images.length) % images.length;
+    const nextIndex = (index + galleryImages.length) % galleryImages.length;
 
-  setLightboxIndex(nextIndex);
-  resetZoom();
-}
+    setLightboxIndex(nextIndex);
+    resetZoom();
+  }
 
   function nextImage() {
     goToImage(lightboxIndex + 1);
@@ -298,17 +315,17 @@ function goToImage(index: number) {
    */
 
   function openLightbox(index: number = activeIndex, initialZoom = MIN_ZOOM) {
-  setLightboxIndex(index);
-  setZoom(initialZoom);
+    setLightboxIndex(index);
+    setZoom(initialZoom);
 
-  setPosition({
-    x: 0,
-    y: 0,
-  });
+    setPosition({
+      x: 0,
+      y: 0,
+    });
 
-  setIsDragging(false);
-  setIsLightboxOpen(true);
-}
+    setIsDragging(false);
+    setIsLightboxOpen(true);
+  }
 
   function closeLightbox() {
     setIsLightboxOpen(false);
@@ -320,8 +337,8 @@ function goToImage(index: number) {
    * EMPTY STATE
    * =========================================================
    */
-const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
-  if (images.length === 0) {
+  const currentLightboxImage = galleryImages[lightboxIndex] ?? galleryImages[0]!;
+  if (galleryImages.length === 0) {
     return (
       <div className="bg-muted/40 flex aspect-square w-full items-center justify-center rounded-3xl border">
         <div className="text-muted-foreground flex flex-col items-center gap-3">
@@ -329,7 +346,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
             <ImageIcon className="size-6" />
           </div>
 
-          <span className="text-sm">No image available</span>
+          <span className="text-sm">{t('galleryNoImage')}</span>
         </div>
       </div>
     );
@@ -348,19 +365,19 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
           <Carousel
             setApi={setApi}
             opts={{
-              loop: images.length > 1,
+              loop: galleryImages.length > 1,
               align: 'start',
             }}
             className="w-full"
           >
             <CarouselContent className="ml-0">
-              {images.map((image, index) => (
+              {galleryImages.map((image, index) => (
                 <CarouselItem key={image.id} className="basis-full pl-0">
                   <button
                     type="button"
                     onClick={() => openLightbox(index)}
                     className="relative flex aspect-square w-full cursor-zoom-in items-center justify-center overflow-hidden p-5 sm:p-8 md:p-10"
-                    aria-label={`Open product image ${index + 1}`}
+                    aria-label={t('openProductImage', { index: index + 1 })}
                   >
                     <Image
                       src={image.detailUrl}
@@ -398,7 +415,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                 'transition-all duration-300',
                 'hover:scale-105 hover:bg-black/65',
               )}
-              aria-label="Zoom product image"
+              aria-label={t('zoomImage')}
             >
               <Plus className="size-4" />
             </Button>
@@ -418,7 +435,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                 'transition-all duration-300',
                 'hover:scale-105 hover:bg-black/65',
               )}
-              aria-label="Open image gallery"
+              aria-label={t('openGallery')}
             >
               <Expand className="size-4" />
             </Button>
@@ -426,17 +443,17 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
 
           {/* IMAGE COUNTER */}
 
-          {images.length > 1 && (
+          {galleryImages.length > 1 && (
             <div className="absolute bottom-4 left-4 z-20">
               <div className="rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-xs font-medium text-white shadow-xl backdrop-blur-xl">
-                {activeIndex + 1} / {images.length}
+                {activeIndex + 1} / {galleryImages.length}
               </div>
             </div>
           )}
 
           {/* DESKTOP ARROWS */}
 
-          {images.length > 1 && (
+          {galleryImages.length > 1 && (
             <>
               <Button
                 type="button"
@@ -452,7 +469,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                   'hover:bg-black/65',
                   'md:flex',
                 )}
-                aria-label="Previous image"
+                aria-label={t('prevImage')}
               >
                 <ChevronLeft className="size-5" />
               </Button>
@@ -471,7 +488,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                   'hover:bg-black/65',
                   'md:flex',
                 )}
-                aria-label="Next image"
+                aria-label={t('nextImage')}
               >
                 <ChevronRight className="size-5" />
               </Button>
@@ -480,14 +497,14 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
 
           {/* MOBILE DOTS */}
 
-          {images.length > 1 && (
+          {galleryImages.length > 1 && (
             <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-1.5 md:hidden">
-              {images.map((image, index) => (
+              {galleryImages.map((image, index) => (
                 <button
                   key={image.id}
                   type="button"
                   onClick={() => api?.scrollTo(index)}
-                  aria-label={`Go to image ${index + 1}`}
+                  aria-label={t('goToImage', { index: index + 1 })}
                   className={cn(
                     'h-1.5 rounded-full transition-all duration-300',
                     index === activeIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/40',
@@ -502,9 +519,9 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
             THUMBNAILS
         ==================================================== */}
 
-        {images.length > 1 && (
+        {galleryImages.length > 1 && (
           <div className="flex scrollbar-none gap-2.5 overflow-x-auto pb-1">
-            {images.map((image, index) => (
+            {galleryImages.map((image, index) => (
               <button
                 key={image.id}
                 type="button"
@@ -516,7 +533,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                     ? 'border-primary ring-primary/20 ring-2'
                     : 'border-border hover:border-foreground/30',
                 )}
-                aria-label={`Select image ${index + 1}`}
+                aria-label={t('selectImage', { index: index + 1 })}
               >
                 <Image
                   src={image.cardUrl}
@@ -569,7 +586,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
             'backdrop-blur-xl',
           )}
         >
-          <DialogTitle className="sr-only">Product image gallery</DialogTitle>
+          <DialogTitle className="sr-only">{t('galleryTitle')}</DialogTitle>
 
           <div className="relative h-full w-full overflow-hidden">
             {/* =====================================================
@@ -580,7 +597,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
               {/* COUNTER */}
 
               <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl">
-                {lightboxIndex + 1} / {images.length}
+                {lightboxIndex + 1} / {galleryImages.length}
               </div>
 
               {/* CONTROLS */}
@@ -603,7 +620,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                     'disabled:pointer-events-none',
                     'disabled:opacity-30',
                   )}
-                  aria-label="Zoom out"
+                  aria-label={t('zoomOut')}
                 >
                   <Minus className="size-4" />
                 </Button>
@@ -647,7 +664,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                     'disabled:pointer-events-none',
                     'disabled:opacity-30',
                   )}
-                  aria-label="Zoom in"
+                  aria-label={t('zoomIn')}
                 >
                   <Plus className="size-4" />
                 </Button>
@@ -667,7 +684,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                     'hover:bg-white/20',
                     'sm:flex',
                   )}
-                  aria-label="Reset zoom"
+                  aria-label={t('resetZoom')}
                 >
                   <RotateCcw className="size-4" />
                 </Button>
@@ -686,7 +703,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                     'backdrop-blur-xl',
                     'hover:bg-white/20',
                   )}
-                  aria-label="Close gallery"
+                  aria-label={t('closeGallery')}
                 >
                   <X className="size-5" />
                 </Button>
@@ -714,18 +731,18 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
               onPointerCancel={handlePointerUp}
             >
               <div className="relative h-full w-full">
-              <Image
-  key={currentLightboxImage.id}
-  src={currentLightboxImage.detailUrl}
-  alt={alt}
-  fill
-  sizes="100vw"
-  quality={95}
-  priority
-  draggable={false}
-  className="pointer-events-none object-contain select-none"
-  style={{
-    transform: `
+                <Image
+                  key={currentLightboxImage.id}
+                  src={currentLightboxImage.detailUrl}
+                  alt={alt}
+                  fill
+                  sizes="100vw"
+                  quality={95}
+                  priority
+                  draggable={false}
+                  className="pointer-events-none object-contain select-none"
+                  style={{
+                    transform: `
       translate3d(
         ${position.x}px,
         ${position.y}px,
@@ -733,11 +750,11 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
       )
       scale(${zoom})
     `,
-    transition: isDragging
-      ? 'none'
-      : 'transform 250ms cubic-bezier(0.22, 1, 0.36, 1)',
-  }}
-/>
+                    transition: isDragging
+                      ? 'none'
+                      : 'transform 250ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                />
               </div>
             </div>
 
@@ -745,7 +762,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
           PREVIOUS
       ====================================================== */}
 
-            {images.length > 1 && (
+            {galleryImages.length > 1 && (
               <Button
                 type="button"
                 variant="secondary"
@@ -763,7 +780,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                   'hover:bg-white/20',
                   'sm:left-6',
                 )}
-                aria-label="Previous image"
+                aria-label={t('prevImage')}
               >
                 <ChevronLeft className="size-5" />
               </Button>
@@ -773,7 +790,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
           NEXT
       ====================================================== */}
 
-            {images.length > 1 && (
+            {galleryImages.length > 1 && (
               <Button
                 type="button"
                 variant="secondary"
@@ -791,7 +808,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                   'hover:bg-white/20',
                   'sm:right-6',
                 )}
-                aria-label="Next image"
+                aria-label={t('nextImage')}
               >
                 <ChevronRight className="size-5" />
               </Button>
@@ -809,10 +826,10 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
           THUMBNAILS
       ====================================================== */}
 
-            {images.length > 1 && (
+            {galleryImages.length > 1 && (
               <div className="absolute inset-x-0 bottom-0 z-40 overflow-x-auto p-4 sm:p-6">
                 <div className="mx-auto flex w-max gap-2">
-                  {images.map((image, index) => (
+                  {galleryImages.map((image, index) => (
                     <button
                       key={image.id}
                       type="button"
@@ -828,7 +845,7 @@ const currentLightboxImage = images[lightboxIndex] ?? images[0]!;
                           ? 'scale-105 border-white shadow-xl'
                           : 'border-transparent opacity-50 hover:opacity-100',
                       )}
-                      aria-label={`View image ${index + 1}`}
+                      aria-label={t('viewImage', { index: index + 1 })}
                     >
                       <Image
                         src={image.cardUrl}

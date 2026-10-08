@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { useUiStore } from '@/stores/ui-store';
 import { useLoginMutation } from '../api/mutations';
 
 export function LoginForm({ locale }: { locale: string }) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const login = useLoginMutation();
   const authRedirect = useUiStore((s) => s.authRedirect);
@@ -35,7 +37,7 @@ export function LoginForm({ locale }: { locale: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
@@ -46,7 +48,7 @@ export function LoginForm({ locale }: { locale: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t('password')}</Label>
         <Input
           id="password"
           type="password"
@@ -58,12 +60,12 @@ export function LoginForm({ locale }: { locale: string }) {
 
       {login.isError && (
         <p className="text-destructive text-sm">
-          {login.error instanceof Error ? login.error.message : 'Something went wrong.'}
+          {login.error instanceof Error ? login.error.message : t('genericError')}
         </p>
       )}
 
       <Button type="submit" disabled={login.isPending} className="w-full">
-        {login.isPending ? 'Signing in…' : 'Sign in'}
+        {login.isPending ? t('signingIn') : t('signIn')}
       </Button>
     </form>
   );

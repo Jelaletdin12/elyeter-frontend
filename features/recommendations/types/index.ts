@@ -49,6 +49,7 @@ export type HomeRecommendations = {
   forYou: RecommendedProduct[];
   trending: RecommendedProduct[];
   newArrivals: RecommendedProduct[];
+  discounted: RecommendedProduct[];
 };
 
 /** GET /recommendations/products — sayfalanmış öneri listesi (meta: ürün listesiyle aynı şekil). */

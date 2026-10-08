@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Heart } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
@@ -15,6 +15,7 @@ import type { Product } from '@/features/products/types';
 
 export function WishlistView() {
   const locale = useLocale();
+  const t = useTranslations('wishlist');
   const storeId = useAuthStore((s) => s.activeStoreId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthDialog = useUiStore((s) => s.openAuthDialog);
@@ -34,14 +35,14 @@ export function WishlistView() {
     return (
       <EmptyState
         icon={Heart}
-        title="Favorilerinizi görmek için giriş yapın"
+        title={t('signInTitle')}
         action={
           <button
             type="button"
             onClick={() => openAuthDialog('login')}
             className="text-sm underline"
           >
-            Giriş yap
+            {t('signIn')}
           </button>
         }
       />
@@ -62,11 +63,11 @@ export function WishlistView() {
     return (
       <EmptyState
         icon={Heart}
-        title="Favori listeniz boş"
-        description="Beğendiğiniz ürünlerdeki kalp ikonuna dokunarak buraya ekleyin."
+        title={t('emptyTitle')}
+        description={t('emptyDescription')}
         action={
           <Link href={`/${locale}`} className="text-sm underline">
-            Ürünlere göz at
+            {t('browseProducts')}
           </Link>
         }
       />

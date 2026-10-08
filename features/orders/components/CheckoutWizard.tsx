@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   Check,
@@ -29,15 +29,13 @@ import { cartOptions } from '@/features/cart/api/queries';
 import { useCheckoutMutation, type CheckoutInput } from '@/features/cart/api/mutations';
 import { profileOptions } from '@/features/profile/api/queries';
 import { CouponField } from '@/features/coupons/components/CouponField';
+import { LocationInput } from '@/features/locations/components/LocationInput';
 import type { ValidateCouponResponse } from '@/features/coupons/types';
+import type { LocationPoint } from '@/features/locations/types';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-
-/* -------------------------------------------------------------------------- */
-/* Schema                                                                     */
-/* -------------------------------------------------------------------------- */
 
 const checkoutSchema = z
   .object({
@@ -47,6 +45,10 @@ const checkoutSchema = z
     recipientName: z.string().optional(),
     recipientPhone: z.string().optional(),
     shippingAddress: z.string().optional(),
+    shippingLatitude: z.number().optional(),
+    shippingLongitude: z.number().optional(),
+    shippingLocationSource: z.enum(['MANUAL', 'MAP', 'SEARCH', 'CURRENT_LOCATION']).optional(),
+    shippingDeliveryNote: z.string().optional(),
   })
   .refine(
     (data) =>
@@ -54,14 +56,10 @@ const checkoutSchema = z
       !!data.savedAddressId ||
       Boolean(data.recipientName && data.recipientPhone && data.shippingAddress),
     {
-      message: 'Kayıtlı bir adres seçin ya da teslimat bilgilerini doldurun.',
+      message: 'addressRequired',
       path: ['shippingAddress'],
     },
   );
-
-/* -------------------------------------------------------------------------- */
-/* Small UI components                                                        */
-/* -------------------------------------------------------------------------- */
 
 function SectionHeader({
   number,
@@ -145,13 +143,12 @@ function OptionCard({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Main                                                                       */
-/* -------------------------------------------------------------------------- */
-
 export function CheckoutWizard() {
   const locale = useLocale();
   const router = useRouter();
+  const t = useTranslations('checkout');
+  const tCart = useTranslations('cart');
+  const tCommon = useTranslations('common');
 
   const storeId = useAuthStore((s) => s.activeStoreId);
 
@@ -184,8 +181,22 @@ export function CheckoutWizard() {
   const fulfillmentType = watch('fulfillmentType');
   const savedAddressId = watch('savedAddressId');
   const paymentMethod = watch('paymentMethod');
+  const shippingLatitude = watch('shippingLatitude');
+  const shippingLongitude = watch('shippingLongitude');
+  const shippingLocationSource = watch('shippingLocationSource');
+  const shippingDeliveryNote = watch('shippingDeliveryNote');
 
   const selectedAddress = addresses.find((address) => address.id === savedAddressId);
+
+  const shippingLocationPoint: LocationPoint | null =
+    typeof shippingLatitude === 'number' && typeof shippingLongitude === 'number'
+      ? {
+          latitude: shippingLatitude,
+          longitude: shippingLongitude,
+          source: shippingLocationSource ?? 'MANUAL',
+          accuracy: undefined,
+        }
+      : null;
 
   useEffect(() => {
     if (defaultAddress && !savedAddressId) {
@@ -243,14 +254,12 @@ export function CheckoutWizard() {
           <Package className="text-muted-foreground" size={24} />
         </div>
 
-        <h1 className="mt-4 text-xl font-semibold">Sepetiniz boş</h1>
+        <h1 className="mt-4 text-xl font-semibold">{t('emptyTitle')}</h1>
 
-        <p className="text-muted-foreground mt-1 text-sm">
-          Checkout'a devam etmek için sepetinize ürün ekleyin.
-        </p>
+        <p className="text-muted-foreground mt-1 text-sm">{t('emptyDescription')}</p>
 
         <Button asChild className="mt-6">
-          <Link href={`/${locale}`}>Alışverişe devam et</Link>
+          <Link href={`/${locale}`}>{tCart('continueShopping')}</Link>
         </Button>
       </div>
     );
@@ -258,10 +267,6 @@ export function CheckoutWizard() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <Link
@@ -269,57 +274,43 @@ export function CheckoutWizard() {
             className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
           >
             <ArrowLeft size={14} />
-            Sepete dön
+            {t('backToCart')}
           </Link>
 
           <h1 className="text-foreground text-2xl font-semibold tracking-tight sm:text-3xl">
-            Siparişinizi tamamlayın
+            {t('title')}
           </h1>
 
-          <p className="text-muted-foreground mt-1 text-sm">
-            Teslimat ve ödeme bilgilerinizi kontrol ederek siparişinizi tamamlayın.
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm">{t('description')}</p>
         </div>
 
         <div className="hidden items-center gap-2 text-right sm:flex">
           <ShieldCheck size={18} className="text-muted-foreground" />
 
           <div>
-            <p className="text-foreground text-xs font-medium">Güvenli ödeme</p>
-            <p className="text-muted-foreground text-[11px]">Bilgileriniz korunur</p>
+            <p className="text-foreground text-xs font-medium">{t('securePayment')}</p>
+            <p className="text-muted-foreground text-[11px]">{t('securePaymentNote')}</p>
           </div>
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Main grid                                                          */}
-      {/* ------------------------------------------------------------------ */}
-
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* ================================================================ */}
-        {/* LEFT                                                              */}
-        {/* ================================================================ */}
-
         <div className="space-y-6">
-          {/* ---------------------------------------------------------------- */}
-          {/* Delivery                                                         */}
-          {/* ---------------------------------------------------------------- */}
-
           <section className="border-border bg-card rounded-2xl border p-5 shadow-sm sm:p-6">
             <SectionHeader
               number="01"
               icon={Truck}
-              title="Teslimat"
-              description="Siparişinizi nasıl almak istersiniz?"
+              title={t('shipping')}
+              description={t('deliveryDescription')}
             />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <OptionCard
                 selected={fulfillmentType === 'DELIVERY'}
                 icon={Truck}
-                title="Teslimat"
-                description="Adresinize gönderelim"
-                badge="1–3 iş günü"
+                title={t('deliveryOption')}
+                description={t('deliveryOptionDescription')}
+                badge={t('deliveryBadge')}
                 onClick={() =>
                   setValue('fulfillmentType', 'DELIVERY', {
                     shouldValidate: true,
@@ -330,9 +321,9 @@ export function CheckoutWizard() {
               <OptionCard
                 selected={fulfillmentType === 'PICKUP'}
                 icon={Store}
-                title="Mağazadan al"
-                description="Mağazadan teslim alın"
-                badge="Aynı gün"
+                title={t('pickupTitle')}
+                description={t('pickupDescription')}
+                badge={t('pickupBadge')}
                 onClick={() =>
                   setValue('fulfillmentType', 'PICKUP', {
                     shouldValidate: true,
@@ -344,11 +335,11 @@ export function CheckoutWizard() {
             {fulfillmentType === 'DELIVERY' && (
               <div className="mt-6">
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-foreground text-sm font-medium">Teslimat adresi</h3>
+                  <h3 className="text-foreground text-sm font-medium">{t('deliveryAddress')}</h3>
 
                   {addresses.length > 0 && (
                     <span className="text-muted-foreground text-xs">
-                      {addresses.length} kayıtlı adres
+                      {t('savedAddressCount', { count: addresses.length })}
                     </span>
                   )}
                 </div>
@@ -386,12 +377,12 @@ export function CheckoutWizard() {
                             <MapPin size={14} className="text-muted-foreground" />
 
                             <span className="text-foreground text-sm font-semibold">
-                              {address.label ?? 'Adres'}
+                              {address.label ?? t('addressFallback')}
                             </span>
 
                             {address.isDefault && (
                               <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium">
-                                Varsayılan
+                                {tCommon('default')}
                               </span>
                             )}
                           </span>
@@ -410,14 +401,13 @@ export function CheckoutWizard() {
                         {selected && (
                           <span className="text-primary hidden shrink-0 items-center gap-1 text-xs font-medium sm:flex">
                             <Check size={14} />
-                            Seçildi
+                            {t('selected')}
                           </span>
                         )}
                       </button>
                     );
                   })}
 
-                  {/* Manual address */}
                   <button
                     type="button"
                     onClick={() =>
@@ -437,9 +427,11 @@ export function CheckoutWizard() {
                     </div>
 
                     <div>
-                      <p className="text-foreground text-sm font-medium">Yeni teslimat adresi</p>
+                      <p className="text-foreground text-sm font-medium">
+                        {t('newDeliveryAddress')}
+                      </p>
                       <p className="text-muted-foreground mt-0.5 text-xs">
-                        Farklı bir adrese gönder
+                        {t('differentAddress')}
                       </p>
                     </div>
                   </button>
@@ -450,19 +442,19 @@ export function CheckoutWizard() {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <label className="text-foreground mb-1.5 block text-xs font-medium">
-                          Alıcı adı
+                          {t('recipientName')}
                         </label>
 
                         <input
                           {...register('recipientName')}
-                          placeholder="Ad Soyad"
+                          placeholder={t('recipientNamePlaceholder')}
                           className="border-border bg-card placeholder:text-muted-foreground focus:border-primary h-10 w-full rounded-lg border px-3 text-sm transition-colors outline-none"
                         />
                       </div>
 
                       <div>
                         <label className="text-foreground mb-1.5 block text-xs font-medium">
-                          Telefon
+                          {t('phoneLabel')}
                         </label>
 
                         <input
@@ -475,13 +467,32 @@ export function CheckoutWizard() {
 
                     <div>
                       <label className="text-foreground mb-1.5 block text-xs font-medium">
-                        Teslimat adresi
+                        {t('deliveryAddress')}
                       </label>
 
                       <input
                         {...register('shippingAddress')}
-                        placeholder="Şehir, adres..."
+                        placeholder={t('addressPlaceholder')}
                         className="border-border bg-card placeholder:text-muted-foreground focus:border-primary h-10 w-full rounded-lg border px-3 text-sm transition-colors outline-none"
+                      />
+                    </div>
+
+                    {/* Konum: harita / adres arama / mevcut konum (spec bölüm 5) */}
+                    <div className="rounded-lg">
+                      <p className="text-muted-foreground mb-2 text-[11px]">{t('locationHint')}</p>
+
+                      <LocationInput
+                        value={shippingLocationPoint}
+                        onResolvedAddress={(addressLine) =>
+                          setValue('shippingAddress', addressLine, { shouldValidate: true })
+                        }
+                        onChange={(point) => {
+                          setValue('shippingLatitude', point?.latitude ?? undefined);
+                          setValue('shippingLongitude', point?.longitude ?? undefined);
+                          setValue('shippingLocationSource', point?.source ?? undefined);
+                        }}
+                        note={shippingDeliveryNote}
+                        onNoteChange={(note) => setValue('shippingDeliveryNote', note)}
                       />
                     </div>
                   </div>
@@ -489,7 +500,7 @@ export function CheckoutWizard() {
 
                 {errors.shippingAddress && (
                   <p className="text-destructive mt-3 text-xs font-medium">
-                    {errors.shippingAddress.message}
+                    {t('addressRequired')}
                   </p>
                 )}
               </div>
@@ -504,24 +515,24 @@ export function CheckoutWizard() {
             <SectionHeader
               number="02"
               icon={CreditCard}
-              title="Ödeme"
-              description="Ödeme yönteminizi seçin."
+              title={t('payment')}
+              description={t('paymentDescription')}
             />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <OptionCard
                 selected={paymentMethod === 'CASH'}
                 icon={Wallet}
-                title="Kapıda nakit"
-                description="Teslimatta nakit ödeme"
+                title={t('cashTitle')}
+                description={t('cashDescription')}
                 onClick={() => setValue('paymentMethod', 'CASH')}
               />
 
               <OptionCard
                 selected={paymentMethod === 'CARD'}
                 icon={CreditCard}
-                title="Kapıda kart"
-                description="Teslimatta kart ile ödeme"
+                title={t('cardTitle')}
+                description={t('cardDescription')}
                 onClick={() => setValue('paymentMethod', 'CARD')}
               />
             </div>
@@ -535,8 +546,8 @@ export function CheckoutWizard() {
             <SectionHeader
               number="03"
               icon={CheckCircle2}
-              title="Sipariş onayı"
-              description="Siparişinizi göndermeden önce bilgilerinizi kontrol edin."
+              title={t('reviewTitle')}
+              description={t('reviewDescription')}
             />
 
             {/* Delivery / Payment summary */}
@@ -546,12 +557,12 @@ export function CheckoutWizard() {
                   <MapPin size={16} className="text-muted-foreground" />
 
                   <div>
-                    <p className="text-muted-foreground text-xs">Teslimat</p>
+                    <p className="text-muted-foreground text-xs">{t('shipping')}</p>
 
                     <p className="text-foreground mt-0.5 text-sm font-medium">
                       {fulfillmentType === 'PICKUP'
-                        ? 'Mağazadan al'
-                        : (selectedAddress?.label ?? 'Teslimat adresi')}
+                        ? t('pickupTitle')
+                        : (selectedAddress?.label ?? t('deliveryAddress'))}
                     </p>
                   </div>
                 </div>
@@ -570,10 +581,10 @@ export function CheckoutWizard() {
                   )}
 
                   <div>
-                    <p className="text-muted-foreground text-xs">Ödeme</p>
+                    <p className="text-muted-foreground text-xs">{t('payment')}</p>
 
                     <p className="text-foreground mt-0.5 text-sm font-medium">
-                      {paymentMethod === 'CASH' ? 'Kapıda nakit' : 'Kapıda kart'}
+                      {paymentMethod === 'CASH' ? t('cashTitle') : t('cardTitle')}
                     </p>
                   </div>
                 </div>
@@ -588,7 +599,7 @@ export function CheckoutWizard() {
             <div className="mt-5">
               <div className="mb-2 flex items-center gap-2">
                 <Tag size={15} className="text-muted-foreground" />
-                <span className="text-foreground text-sm font-medium">Kupon kodu</span>
+                <span className="text-foreground text-sm font-medium">{t('couponTitle')}</span>
               </div>
 
               <CouponField coupon={appliedCoupon} onChange={setAppliedCoupon} />
@@ -600,13 +611,10 @@ export function CheckoutWizard() {
                 <ShieldCheck size={18} className="text-primary mt-0.5 shrink-0" />
 
                 <div>
-                  <p className="text-foreground text-xs font-medium">
-                    Siparişinizi güvenle tamamlayabilirsiniz
-                  </p>
+                  <p className="text-foreground text-xs font-medium">{t('safeOrderTitle')}</p>
 
                   <p className="text-muted-foreground mt-1 text-xs leading-5">
-                    Siparişi onayladığınızda teslimat ve ödeme bilgileriniz siparişinizle birlikte
-                    işleme alınır.
+                    {t('safeOrderDescription')}
                   </p>
                 </div>
               </div>
@@ -617,7 +625,7 @@ export function CheckoutWizard() {
               <Button asChild type="button" variant="outline" className="sm:w-auto">
                 <Link href={`/${locale}/cart`}>
                   <ArrowLeft size={15} />
-                  Sepete dön
+                  {t('backToCart')}
                 </Link>
               </Button>
 
@@ -627,11 +635,11 @@ export function CheckoutWizard() {
                 className="h-11 px-6 sm:min-w-[220px]"
               >
                 {checkout.isPending ? (
-                  'Sipariş veriliyor…'
+                  t('placingOrder')
                 ) : (
                   <>
                     <Check size={16} />
-                    Siparişi onayla
+                    {t('placeOrder')}
                   </>
                 )}
               </Button>
@@ -639,7 +647,7 @@ export function CheckoutWizard() {
 
             {hasBlockingIssue && (
               <p className="text-destructive mt-3 text-center text-xs font-medium">
-                Stokta olmayan ürünleri sepetinizden kaldırmadan sipariş veremezsiniz.
+                {t('outOfStockBlock')}
               </p>
             )}
           </section>
@@ -654,9 +662,11 @@ export function CheckoutWizard() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4">
               <div>
-                <h2 className="text-foreground text-base font-semibold">Sipariş özeti</h2>
+                <h2 className="text-foreground text-base font-semibold">{t('summaryTitle')}</h2>
 
-                <p className="text-muted-foreground mt-0.5 text-xs">{cart.items.length} ürün</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {tCart('itemCount', { count: cart.items.length })}
+                </p>
               </div>
 
               <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-full">
@@ -702,7 +712,7 @@ export function CheckoutWizard() {
                           <button
                             type="button"
                             className="text-muted-foreground hover:text-destructive shrink-0 text-xs"
-                            aria-label="Ürünü kaldır"
+                            aria-label={t('removeItem')}
                           >
                             ×
                           </button>
@@ -722,13 +732,13 @@ export function CheckoutWizard() {
 
                         {priceChanged && (
                           <p className="text-destructive mt-1 text-[10px] font-medium">
-                            Fiyat güncellendi
+                            {t('priceUpdated')}
                           </p>
                         )}
 
                         {isOutOfStock && (
                           <p className="text-destructive mt-1 text-[10px] font-medium">
-                            Stokta yok
+                            {tCommon('outOfStock')}
                           </p>
                         )}
                       </div>
@@ -743,7 +753,7 @@ export function CheckoutWizard() {
             {/* Totals */}
             <div className="space-y-3 p-5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Ara toplam</span>
+                <span className="text-muted-foreground">{tCart('subtotal')}</span>
 
                 <span className="text-foreground font-medium tabular-nums">
                   {Number(cart.subtotal).toFixed(2)}
@@ -754,7 +764,7 @@ export function CheckoutWizard() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-primary flex items-center gap-1.5">
                     <Tag size={13} />
-                    Kupon ({appliedCoupon.code})
+                    {t('coupon', { code: appliedCoupon.code ?? '' })}
                   </span>
 
                   <span className="text-primary font-medium tabular-nums">
@@ -767,9 +777,9 @@ export function CheckoutWizard() {
 
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-foreground text-sm font-semibold">Toplam</p>
+                  <p className="text-foreground text-sm font-semibold">{tCart('total')}</p>
 
-                  <p className="text-muted-foreground mt-0.5 text-[11px]">Vergiler dahil</p>
+                  <p className="text-muted-foreground mt-0.5 text-[11px]">{t('taxesIncluded')}</p>
                 </div>
 
                 <span className="text-foreground text-xl font-semibold tracking-tight tabular-nums">
@@ -784,7 +794,7 @@ export function CheckoutWizard() {
                 <ShieldCheck size={15} className="text-muted-foreground" />
 
                 <p className="text-muted-foreground text-[11px] leading-4">
-                  Sipariş bilgileriniz güvenli şekilde işlenir.
+                  {t('secureProcessing')}
                 </p>
               </div>
             </div>

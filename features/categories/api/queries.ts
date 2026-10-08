@@ -16,6 +16,15 @@ export function categoryListOptions(storeId: string, page = 1, search = '') {
   });
 }
 
+/** Admin tekil — /admin/categories/[id] edit sayfası için. */
+export function adminCategoryDetailOptions(storeId: string, categoryId: string) {
+  return queryOptions({
+    queryKey: [...queryKeys.adminCategories.all(storeId), 'detail', categoryId] as const,
+    queryFn: () => adminAuthorizedFetch<Category>(`/categories/${categoryId}`),
+    staleTime: 30_000,
+  });
+}
+
 /** Admin hiyerarşi (tree) — parent selector ve ağaç görünümü için. Sadece aktif. */
 export function adminCategoryTreeOptions(storeId: string) {
   return queryOptions({
@@ -45,7 +54,10 @@ export async function getPublicCategories(limit = 8): Promise<CategoryListRespon
 /** Public ISR — marka filtre paneli + kategori dizini için hiyerarşik ağaç. */
 export async function getPublicCategoryTree(): Promise<CategoryTreeNode[]> {
   return apiFetch<CategoryTreeNode[]>(`/categories/tree`, {
-    next: { revalidate: 300, tags: [dataCacheTags.categories()] },
+    next: {
+      revalidate: 300,
+      tags: [dataCacheTags.categories()],
+    },
   });
 }
 

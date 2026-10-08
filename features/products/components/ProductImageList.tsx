@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { ImagePlus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
+import { ImagePlus, Trash2, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useMediaUpload, type PendingMedia } from '@/features/media/hooks/useMediaUpload';
@@ -10,17 +11,18 @@ import {
   useUpdateProductMutation,
 } from '@/features/products/api/mutations';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ProductImage } from '@/features/products/types';
 
 type ProductPendingMedia = Extract<PendingMedia, { context: 'PRODUCT_IMAGE' }>;
 
-export function ProductImageList({
-  productId,
-  images,
-}: {
+interface ProductImageListProps {
   productId: string;
   images: ProductImage[];
-}) {
+}
+
+export function ProductImageList({ productId, images }: ProductImageListProps) {
   const storeId = useAuthStore((s) => s.activeStoreId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deleteImage = useDeleteProductImageMutation(storeId);
@@ -98,111 +100,138 @@ export function ProductImageList({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="border-border space-y-2 rounded-md border p-4">
-        <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 pb-4">
           <div>
-            <p className="text-foreground text-sm font-medium">Add images</p>
-            <p className="text-muted-foreground text-xs">
+            <CardTitle className="text-base font-semibold">Add images</CardTitle>
+            <CardDescription className="text-xs">
               New images are appended to the product. Existing ones stay until deleted.
-            </p>
+            </CardDescription>
           </div>
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading || updateProduct.isPending}
           >
-            <ImagePlus size={16} />
+            <ImagePlus className="size-4" />
             {isUploading ? 'Uploading…' : 'Select images'}
           </Button>
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            className="hidden"
+          />
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+          {uploadedImages.length > 0 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {uploadedImages.map((image) => {
+                  const isPrimaryCandidate = image.id === effectivePrimaryMediaId;
 
-        {uploadedImages.length > 0 && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-              {uploadedImages.map((image) => {
-                const isPrimaryCandidate = image.id === effectivePrimaryMediaId;
+                  return (
+                    <div key={image.id} className="space-y-2">
+                      <div className="group border-border bg-muted relative aspect-square overflow-hidden rounded-lg border">
+                        <Image
+                          src={image.urls.PRODUCT_CARD}
+                          alt="Pending upload preview"
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemovePending(image.id)}
+                            className="h-8 gap-1 px-3 text-xs"
+                          >
+                            <X className="size-3.5" />
+                            Remove
+                          </Button>
+                        </div>
+                        {isPrimaryCandidate && (
+                          <Badge
+                            variant="default"
+                            className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] shadow-xs"
+                          >
+                            Primary
+                          </Badge>
+                        )}
+                      </div>
 
-                return (
-                  <div key={image.id} className="space-y-2">
-                    <div className="group border-border relative overflow-hidden rounded-md border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image.urls.PRODUCT_CARD}
-                        alt=""
-                        className="aspect-square w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePending(image.id)}
-                        className="bg-ink/60 absolute inset-0 flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 hover:opacity-100"
-                      >
-                        Remove
-                      </button>
-                      {isPrimaryCandidate && (
-                        <span className="bg-ink/80 absolute top-1.5 left-1.5 rounded-sm px-1.5 py-0.5 text-[10px] text-white">
-                          Primary
-                        </span>
+                      {images.length === 0 && (
+                        <Button
+                          type="button"
+                          variant={isPrimaryCandidate ? 'default' : 'outline'}
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => setPrimaryMediaId(image.id)}
+                        >
+                          {isPrimaryCandidate ? 'Primary image' : 'Make primary'}
+                        </Button>
                       )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {images.length === 0 && (
-                      <Button
-                        type="button"
-                        variant={isPrimaryCandidate ? 'default' : 'outline'}
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setPrimaryMediaId(image.id)}
-                      >
-                        {isPrimaryCandidate ? 'Primary image' : 'Make primary'}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleAppendImages}
+                  disabled={updateProduct.isPending}
+                >
+                  {updateProduct.isPending ? 'Saving…' : 'Append images'}
+                </Button>
+              </div>
             </div>
+          )}
 
-            <div className="flex justify-end">
-              <Button type="button" onClick={handleAppendImages} disabled={updateProduct.isPending}>
-                {updateProduct.isPending ? 'Saving…' : 'Append images'}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {uploadError && <p className="text-destructive text-sm">{uploadError}</p>}
-      </div>
+          {uploadError && <p className="text-destructive text-sm font-medium">{uploadError}</p>}
+        </CardContent>
+      </Card>
 
       {images.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No images yet.</p>
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground text-sm">No images yet.</p>
+        </Card>
       ) : (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {images.map((image) => (
             <div
               key={image.id}
-              className="group border-border relative overflow-hidden rounded-md border"
+              className="group border-border bg-muted relative aspect-square overflow-hidden rounded-lg border"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image.cardUrl} alt="" className="aspect-square w-full object-cover" />
+              <Image
+                src={image.cardUrl}
+                alt="Product image"
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                unoptimized
+              />
               {image.isPrimary && (
-                <span className="bg-ink/80 absolute top-1.5 left-1.5 rounded-sm px-1.5 py-0.5 text-[10px] text-white">
+                <Badge
+                  variant="default"
+                  className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] shadow-xs"
+                >
                   Primary
-                </span>
+                </Badge>
               )}
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
+                variant="destructive"
+                size="icon-sm"
                 onClick={() =>
                   deleteImage.mutate(
                     { productId, imageId: image.id },
@@ -210,9 +239,9 @@ export function ProductImageList({
                   )
                 }
                 aria-label="Delete image"
-                className="bg-ink/70 hover:bg-ink absolute top-1.5 right-1.5 h-6 w-6 text-white opacity-0 group-hover:opacity-100"
+                className="absolute top-2 right-2 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
               >
-                <Trash2 size={12} />
+                <Trash2 className="size-3.5" />
               </Button>
             </div>
           ))}

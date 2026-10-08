@@ -6,14 +6,8 @@ import { getBrandBySlug } from '@/features/brands/api/queries';
 import { brandTranslation } from '@/features/brands/types';
 import { ProductBrowser } from '@/features/products/components/ProductBrowser';
 import type { ProductListResponse } from '@/features/products/types';
+import Image from 'next/image';
 
-/**
- * MARKA DETAYI — GET /brands/slug/:locale/:slug (public besleme) + bu markanın
- * ürünleri GET /products?brandId=<id> (İş #1: brandId filtresi curl ile
- * doğrulandı, 2026-09-17). STANDARDS.md #4: ISR, tags:['brand','brands','products'].
- * 2026-09-18: ProductBrowser filtresi — arama yalnızca BU markada arama yapar
- * (backend findAll'da brandId + search aynı where'da birleşir).
- */
 async function getBrandProducts(brandId: string, locale: string): Promise<ProductListResponse> {
   return apiFetch<ProductListResponse>(`/products?locale=${locale}&brandId=${brandId}&limit=12`, {
     next: { revalidate: 300, tags: [dataCacheTags.products()] },
@@ -54,15 +48,19 @@ export default async function BrandPage({
   }
 
   const translation = brandTranslation(brand, locale);
-  // Marka ürünleri başarısız olursa ürün bölümünü gizle, sayfayı bozma.
   const productList = await getBrandProducts(brand.id, locale).catch(() => null);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
       <div className="flex items-center gap-4">
         {brand.logoUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={brand.logoUrl} alt="" className="size-16 shrink-0 rounded-xl object-contain" />
+          <Image
+            src={brand.logoUrl}
+            alt={translation?.name ?? ''}
+            width={64}
+            height={64}
+            className="size-16 shrink-0 rounded-xl object-contain"
+          />
         ) : null}
         <div>
           <h1 className="text-foreground font-serif text-2xl italic">{translation?.name ?? '—'}</h1>

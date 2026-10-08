@@ -3,8 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-
-
 @theme inline {
   --font-sans: 'Inter Variable', sans-serif;
   --font-heading: var(--font-sans);
@@ -27,6 +25,7 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-input-background: var(--input-background);
   --color-destructive: var(--destructive);
 
   --color-accent-foreground: var(--accent-foreground);
@@ -96,8 +95,9 @@
   --destructive: #dc4c4c;
 
   /* Borders & inputs */
-  --border: #d7e2e9;
-  --input: #d7e2e9;
+  --border: #d2dfe7;
+  --input: #c9d9e2;
+  --input-background: #ffffff;
   --ring: #14b8a6;
 
   /* Charts */
@@ -159,7 +159,8 @@
 
   /* Borders & inputs */
   --border: #263d4d;
-  --input: #30495b;
+  --input: #3a5263;
+  --input-background: #102131;
   --ring: #14b8a6;
 
   /* Charts */

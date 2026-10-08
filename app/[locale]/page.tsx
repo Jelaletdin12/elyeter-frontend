@@ -42,6 +42,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <ProductGrid products={guestHome.trending} locale={locale} title={t('trending')} />
       )}
 
+      {guestHome.discounted.length > 0 && (
+        <ProductGrid products={guestHome.discounted} locale={locale} title={t('discounted')} />
+      )}
+
       {guestHome.newArrivals.length > 0 && (
         <ProductGrid products={guestHome.newArrivals} locale={locale} title={t('newArrivals')} />
       )}

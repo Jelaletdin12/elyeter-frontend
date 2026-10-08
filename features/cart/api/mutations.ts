@@ -3,20 +3,26 @@ import { authorizedFetch } from '@/lib/auth/authorized-fetch';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { ProductVariant } from '@/features/products/types';
 
+import type { CartDto } from './queries';
+
 /**
  * docs-json.json: POST /api/v1/cart/items, body: AddCartItemDto
  * { productVariantId: string; quantity: number }
+ * Backend tüm güncel sepeti (CartDto) döner — queryClient.setQueryData ile
+ * cache doğrudan güncellenir, fazladan GET /cart isteği atılmaz.
  */
 export function useAddCartItemMutation(storeId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ productVariantId, quantity }: { productVariantId: string; quantity: number }) =>
-      authorizedFetch<void>('/cart/items', {
+      authorizedFetch<CartDto>('/cart/items', {
         method: 'POST',
         body: JSON.stringify({ productVariantId, quantity }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.cart.current(storeId) }),
+    onSuccess: (updatedCart) => {
+      queryClient.setQueryData(queryKeys.cart.current(storeId), updatedCart);
+    },
   });
 }
 
@@ -26,11 +32,13 @@ export function useUpdateCartItemMutation(storeId: string) {
 
   return useMutation({
     mutationFn: ({ cartItemId, quantity }: { cartItemId: string; quantity: number }) =>
-      authorizedFetch<void>(`/cart/items/${cartItemId}`, {
+      authorizedFetch<CartDto>(`/cart/items/${cartItemId}`, {
         method: 'PATCH',
         body: JSON.stringify({ quantity }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.cart.current(storeId) }),
+    onSuccess: (updatedCart) => {
+      queryClient.setQueryData(queryKeys.cart.current(storeId), updatedCart);
+    },
   });
 }
 
@@ -39,8 +47,10 @@ export function useRemoveCartItemMutation(storeId: string) {
 
   return useMutation({
     mutationFn: (cartItemId: string) =>
-      authorizedFetch<void>(`/cart/items/${cartItemId}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.cart.current(storeId) }),
+      authorizedFetch<CartDto>(`/cart/items/${cartItemId}`, { method: 'DELETE' }),
+    onSuccess: (updatedCart) => {
+      queryClient.setQueryData(queryKeys.cart.current(storeId), updatedCart);
+    },
   });
 }
 
@@ -49,8 +59,15 @@ export function useClearCartMutation(storeId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => authorizedFetch<void>('/cart', { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.cart.current(storeId) }),
+    mutationFn: () => authorizedFetch<{ cleared: boolean }>('/cart', { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.setQueryData<CartDto>(queryKeys.cart.current(storeId), {
+        id: '',
+        items: [],
+        subtotal: '0.00',
+        itemCount: 0,
+      });
+    },
   });
 }
 
@@ -70,6 +87,13 @@ export type CheckoutInput = {
   recipientName?: string;
   recipientPhone?: string;
   shippingAddress?: string;
+  // Teslimat konumu snapshot'ı (opsiyonel). savedAddressId seçiliyken backend
+  // kayıtlı adresin koordinatını kullanır (resolveShipping: saved önceliklidir);
+  // yeni adres akışında harita/GPS'ten gelen değerler buraya dolar.
+  shippingLatitude?: number;
+  shippingLongitude?: number;
+  shippingLocationSource?: 'MANUAL' | 'MAP' | 'SEARCH' | 'CURRENT_LOCATION';
+  shippingDeliveryNote?: string;
 };
 
 export type OrderItemDto = {

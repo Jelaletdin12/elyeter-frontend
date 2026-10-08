@@ -2,15 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  TicketPercent,
-  Link2,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { Plus, TicketPercent, Link2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -23,6 +15,7 @@ import {
 import { CouponFormDialog } from '@/features/coupons/components/CouponFormDialog';
 import { CouponScopeDialog } from '@/features/coupons/components/CouponScopeDialog';
 import { DataTable } from '@/components/shared/DataTable';
+import { TableActions } from '@/components/shared/TableActions';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -114,6 +107,7 @@ export default function AdminCouponsPage() {
           emptyTitle="No coupons yet"
           emptyDescription="Create a promo code and it will show up here, ready to be applied at checkout."
           emptyIcon={TicketPercent}
+          enableRowSelection
           columns={[
             {
               header: 'Code',
@@ -186,29 +180,10 @@ export default function AdminCouponsPage() {
               header: '',
               className: 'text-right',
               cell: (row) => (
-                <div className="flex justify-end gap-1">
-                  {can('coupon.manage') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(row)}
-                      aria-label="Edit"
-                    >
-                      <Pencil size={15} />
-                    </Button>
-                  )}
-                  {can('coupon.manage') && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDeleteCoupon(row)}
-                      aria-label="Delete"
-                      className="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={15} />
-                    </Button>
-                  )}
-                </div>
+                <TableActions
+                  onEdit={can('coupon.manage') ? () => openEdit(row) : undefined}
+                  onDelete={can('coupon.manage') ? () => setPendingDeleteCoupon(row) : undefined}
+                />
               ),
             },
           ]}

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, type LucideIcon } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, type LucideIcon } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -10,26 +10,31 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { EmptyState } from './EmptyState';
 import { PagePagination } from './PagePagination';
 
 /**
- * Admin liste tabloları (products/categories/orders/coupons/users) için
- * ORTAK generic DataTable. tbbank-admin'in dataTable.tsx mantığından
- * uyarlandı (FRONTEND_AGENTS.md #16):
+ * Admin liste tabloları için ortak generic DataTable.
  *
- * - Client-side sorting: sütun tanımına `sortValue` verilirse header tıklanabilir
- *   olur (ok indikatörü). ⚠️ Sıralama YALNIZCA geçerli sayfadaki `rows` üzerinde
- *   etkilidir — backend'de admin listeler için sort query param'ı doğrulanmadı.
- * - Server-side pagination: ellipsis'li sayfa numaraları + önceki/sonraki.
- * - Loading: gerçek tablo iskeleti (thead korunur, satırlar skeleton) — boş
- *   "No data" anında boş duruma karışmaz.
- * - `columnVisibility`/`columnOrder` toolbar'dan gelir (geçilmezse hepsi görünür,
- *   tanım sırası korunur).
+ * - Client-side sorting: YALNIZCA `sortValue` verilen sütunlar sıralanabilir.
+ *   Sıralama sadece geçerli sayfadaki `rows` üzerinde etkilidir.
+ * - Server-side pagination: `onPageChange` verilirse PagePagination gösterilir.
+ *   Sayfa değişince sayfa-içi seçim temizlenir.
+ * - Loading: thead korunur, satırlar skeleton olur.
+ * - Satır seçimi: `enableRowSelection` ile başa checkbox sütunu eklenir.
  *
- * Sadece `id`'si olan sütunlar visibility/reorder'a tabidir; id'siz tanımlar
- * (opsiyonel aksiyon ters hizalı sütunlar) her zaman görünür kalır.
+ * Sadece `id`'si olan sütunlar visibility/reorder/sort'a tabidir.
  */
 
 export type SortDirection = 'asc' | 'desc';
@@ -39,13 +44,20 @@ export type Column<T> = {
   header: string;
   cell: (row: T) => React.ReactNode;
   className?: string;
-  /** true ise header tıklanabilir — `sortValue` yoksa hücreyi string olarak sıralar. */
+  /** @deprecated Sıralama için `sortValue` gerekir; tek başına etkisizdir. */
   sortable?: boolean;
   sortValue?: (row: T) => string | number;
 };
 
 /** products sayfasının beklediği eski isim — Column'ın alias'ı. */
 export type ColumnDef<T> = Column<T>;
+
+export type DataTableSelection<T> = {
+  /** Geçerli sayfada seçili satırlar. */
+  rows: T[];
+  /** Backend genelinde TÜM kayıtların seçildiğini belirtir. */
+  allRecordsSelected: boolean;
+};
 
 type DataTableProps<T> = {
   columns: Column<T>[];
@@ -62,18 +74,88 @@ type DataTableProps<T> = {
   totalCount?: number;
   onPageChange?: (page: number) => void;
 
-  // Toolbar'ın ürettiği kolon state'i (yoksa boş kabul edilir)
   columnVisibility?: Record<string, boolean>;
   columnOrder?: string[];
 
-  // İlk sıralama (varsayılan)
   defaultSort?: { id: string; dir: SortDirection } | null;
+
+  enableRowSelection?: boolean;
+  onRowSelectionChange?: (selection: DataTableSelection<T>) => void;
 };
 
 function SortIndicator({ dir }: { dir: SortDirection | null }) {
   if (dir === 'asc') return <ArrowUp size={13} className="text-sidebar-primary shrink-0" />;
   if (dir === 'desc') return <ArrowDown size={13} className="text-sidebar-primary shrink-0" />;
   return <ArrowUpDown size={13} className="shrink-0 opacity-40" />;
+}
+
+type SelectAllControlProps = {
+  isAllPageChecked: boolean;
+  isIndeterminate: boolean;
+  pageCount: number;
+  totalCount: number;
+  hasAnySelected: boolean;
+  onTogglePage: (checked: boolean) => void;
+  onSelectThisPage: () => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
+};
+
+function SelectAllControl({
+  isAllPageChecked,
+  isIndeterminate,
+  pageCount,
+  totalCount,
+  hasAnySelected,
+  onTogglePage,
+  onSelectThisPage,
+  onSelectAll,
+  onClearAll,
+}: SelectAllControlProps) {
+  return (
+    <div className="flex items-center gap-1">
+      <Checkbox
+        checked={isAllPageChecked ? true : isIndeterminate ? 'indeterminate' : false}
+        onCheckedChange={(value) => onTogglePage(value === true)}
+        aria-label="Select all on page"
+      />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground size-6"
+            aria-label="Selection options"
+          >
+            <ChevronDown size={12} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuItem onSelect={onSelectThisPage}>
+            Select this page
+            <span className="text-muted-foreground ml-auto text-xs">({pageCount})</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onSelectAll}>
+            Select all records
+            <span className="text-muted-foreground ml-auto text-xs">({totalCount})</span>
+          </DropdownMenuItem>
+          {hasAnySelected && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={onClearAll}
+                className="text-destructive focus:text-destructive"
+              >
+                Clear selection
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 }
 
 export function DataTable<T>({
@@ -91,8 +173,74 @@ export function DataTable<T>({
   columnVisibility,
   columnOrder,
   defaultSort = null,
+  enableRowSelection = false,
+  onRowSelectionChange,
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<{ id: string; dir: SortDirection } | null>(defaultSort);
+
+  // ── Satır seçimi ───────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [allRecordsSelected, setAllRecordsSelected] = useState(false);
+
+  const pageIds = useMemo(() => rows.map((r) => getRowId(r)), [rows, getRowId]);
+  const pageSelectedCount = useMemo(
+    () => pageIds.filter((id) => selectedIds.has(id)).length,
+    [pageIds, selectedIds],
+  );
+  const isAllPageSelected =
+    rows.length > 0 && !allRecordsSelected && pageSelectedCount === rows.length;
+  const isSomePageSelected = rows.length > 0 && !allRecordsSelected && pageSelectedCount > 0;
+  const selectedCount = allRecordsSelected ? (totalCount ?? rows.length) : selectedIds.size;
+
+  const emitSelection = (nextIds: Set<string>, nextAllRecords: boolean) => {
+    const selectedRows = rows.filter((r) => nextIds.has(getRowId(r)));
+    onRowSelectionChange?.({ rows: selectedRows, allRecordsSelected: nextAllRecords });
+  };
+
+  function applySelection(next: Set<string>, nextAll: boolean) {
+    setSelectedIds(next);
+    setAllRecordsSelected(nextAll);
+    emitSelection(next, nextAll);
+  }
+
+  function toggleSelectPage(checked: boolean) {
+    const next = new Set(selectedIds);
+    for (const id of pageIds) {
+      if (checked) next.add(id);
+      else next.delete(id);
+    }
+    applySelection(next, false);
+  }
+
+  function selectThisPage() {
+    const next = new Set(selectedIds);
+    for (const id of pageIds) next.add(id);
+    applySelection(next, false);
+  }
+
+  function selectAllRecords() {
+    applySelection(new Set(pageIds), true);
+  }
+
+  function clearSelection() {
+    applySelection(new Set(), false);
+  }
+
+  function toggleRow(id: string, checked: boolean) {
+    // "Tüm kayıtlar" seçiliyken tek satır kaldırılırsa toplu seçim iptal olur,
+    // sayfadaki diğer satırlar seçili kalır.
+    const base = allRecordsSelected ? new Set(pageIds) : new Set(selectedIds);
+    if (checked) base.add(id);
+    else base.delete(id);
+    applySelection(base, false);
+  }
+
+  function handlePageChange(page: number) {
+    if (!allRecordsSelected) {
+      applySelection(new Set(), false);
+    }
+    onPageChange?.(page);
+  }
 
   // ── Sıralama (client-side, geçerli sayfa) ──────────────────────────────────
   const columnById = useMemo(() => {
@@ -104,11 +252,12 @@ export function DataTable<T>({
   const sortedRows = useMemo(() => {
     if (!sort) return rows;
     const col = columnById.get(sort.id);
-    if (!col) return rows;
+    if (!col?.sortValue) return rows;
     const dir = sort.dir === 'asc' ? 1 : -1;
+    const getValue = col.sortValue;
     return [...rows].sort((a, b) => {
-      const va = col.sortValue ? col.sortValue(a) : String(a);
-      const vb = col.sortValue ? col.sortValue(b) : String(b);
+      const va = getValue(a);
+      const vb = getValue(b);
       const cmp =
         typeof va === 'number' && typeof vb === 'number'
           ? va - vb
@@ -131,6 +280,23 @@ export function DataTable<T>({
     (col) => !col.id || columnVisibility?.[col.id] !== false,
   );
 
+  const selectionColumn: Column<T> = {
+    header: '',
+    className: 'w-10',
+    cell: (row) => {
+      const id = getRowId(row);
+      return (
+        <Checkbox
+          checked={allRecordsSelected || selectedIds.has(id)}
+          onCheckedChange={(value) => toggleRow(id, value === true)}
+          aria-label="Select row"
+        />
+      );
+    },
+  };
+
+  const displayColumns = enableRowSelection ? [selectionColumn, ...visibleColumns] : visibleColumns;
+
   function toggleSort(id: string) {
     setSort((prev) => {
       if (!prev || prev.id !== id) return { id, dir: 'asc' };
@@ -139,32 +305,76 @@ export function DataTable<T>({
     });
   }
 
+  const columnKey = (col: Column<T>, index: number) =>
+    enableRowSelection && index === 0 ? 'select' : (col.id ?? `${col.header}-${index}`);
+
   const showPagination = Boolean(onPageChange) && totalPages > 1;
+  const showSelectionBanner = enableRowSelection && selectedCount > 0;
 
   return (
     <div>
-      <div className="rounded-md border-border bg-card overflow-x-auto border shadow-[0_1px_3px_rgba(23,22,20,0.05)]">
+      {showSelectionBanner && (
+        <div className="border-primary/20 bg-primary/5 text-primary flex items-center justify-between rounded-t-lg border border-b-0 px-3 py-1.5 text-sm font-medium">
+          <span>
+            {allRecordsSelected
+              ? `All ${totalCount ?? rows.length} records selected`
+              : `${selectedCount} row${selectedCount !== 1 ? 's' : ''} selected`}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={clearSelection}
+            className="text-muted-foreground hover:text-foreground h-7 text-xs font-normal"
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          'border-border bg-card overflow-x-auto border shadow-[0_1px_3px_rgba(23,22,20,0.05)]',
+          showSelectionBanner ? 'rounded-t-none rounded-b-md' : 'rounded-md',
+        )}
+      >
         <Table>
           <TableHeader className="bg-background/80">
             <TableRow>
-              {visibleColumns.map((col) => {
+              {displayColumns.map((col, index) => {
+                const isSelectionCol = enableRowSelection && index === 0;
                 const isSorted = sort?.id === col.id;
-                const sortable = Boolean(col.id && (col.sortable || col.sortValue));
+                const sortable = Boolean(col.id && col.sortValue);
+
                 return (
                   <TableHead
-                    key={col.id ?? col.header}
-                    className={`text-muted-foreground px-3 py-3 ${col.className ?? ''}`}
+                    key={columnKey(col, index)}
+                    className={cn('text-muted-foreground px-3 py-3', col.className)}
                   >
-                    {sortable ? (
-                      <button
+                    {isSelectionCol ? (
+                      <SelectAllControl
+                        isAllPageChecked={allRecordsSelected || isAllPageSelected}
+                        isIndeterminate={!allRecordsSelected && isSomePageSelected}
+                        pageCount={rows.length}
+                        totalCount={totalCount ?? rows.length}
+                        hasAnySelected={selectedCount > 0}
+                        onTogglePage={toggleSelectPage}
+                        onSelectThisPage={selectThisPage}
+                        onSelectAll={selectAllRecords}
+                        onClearAll={clearSelection}
+                      />
+                    ) : sortable ? (
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => col.id && toggleSort(col.id)}
-                        className="hover:text-foreground flex items-center gap-1 text-xs font-semibold tracking-wider uppercase transition-colors"
+                        className="hover:text-foreground -ml-2 h-8 gap-1 px-2 text-xs font-semibold tracking-wider uppercase"
                         aria-label={`Sort by ${col.header}`}
                       >
                         {col.header}
                         <SortIndicator dir={isSorted ? (sort?.dir ?? null) : null} />
-                      </button>
+                      </Button>
                     ) : (
                       col.header
                     )}
@@ -178,8 +388,8 @@ export function DataTable<T>({
             {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  {visibleColumns.map((col) => (
-                    <TableCell key={col.id ?? col.header} className="px-3 py-2.5">
+                  {displayColumns.map((col, j) => (
+                    <TableCell key={columnKey(col, j)} className="px-3 py-2.5">
                       <Skeleton className="h-4 w-full max-w-40" />
                     </TableCell>
                   ))}
@@ -187,23 +397,31 @@ export function DataTable<T>({
               ))
             ) : sortedRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={visibleColumns.length} className="py-10">
+                <TableCell colSpan={displayColumns.length} className="py-10">
                   <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
                 </TableCell>
               </TableRow>
             ) : (
-              sortedRows.map((row) => (
-                <TableRow key={getRowId(row)} className="hover:bg-sidebar-primary/[0.04] transition-colors">
-                  {visibleColumns.map((col) => (
-                    <TableCell
-                      key={col.id ?? col.header}
-                      className={`px-3 py-2.5 ${col.className ?? ''}`}
-                    >
-                      {col.cell(row)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              sortedRows.map((row) => {
+                const rowId = getRowId(row);
+                const isSelected = allRecordsSelected || selectedIds.has(rowId);
+                return (
+                  <TableRow
+                    key={rowId}
+                    data-state={isSelected ? 'selected' : undefined}
+                    className="hover:bg-sidebar-primary/[0.04] transition-colors"
+                  >
+                    {displayColumns.map((col, j) => (
+                      <TableCell
+                        key={columnKey(col, j)}
+                        className={cn('px-3 py-2.5', col.className)}
+                      >
+                        {col.cell(row)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -215,7 +433,7 @@ export function DataTable<T>({
             currentPage={currentPage}
             totalPages={totalPages}
             totalCount={totalCount}
-            onPageChange={onPageChange as (page: number) => void}
+            onPageChange={handlePageChange}
           />
         </div>
       )}

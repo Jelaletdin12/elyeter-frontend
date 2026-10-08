@@ -3,23 +3,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useTranslations } from 'next-intl';
+import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth-store';
 import { publicCategoryListOptions } from '../api/queries';
 import { categoryTranslation } from '../types';
 import type { Category, CategoryListResponse } from '../types';
 
-/**
- * Public /categories dizini — backend `search` param'ıyla (translation adında
- * case-insensitive substring) client filtreleme. `initialCategoryList` ISR
- * ilk içerik; TanStack Query filtre kombinasyonlarını Next Data Cache'e girmez.
- */
-export function CategoryBrowser({
-  initialCategoryList,
-  locale,
-}: {
+interface CategoryBrowserProps {
   initialCategoryList: CategoryListResponse;
   locale: string;
-}) {
+}
+
+export function CategoryBrowser({ initialCategoryList, locale }: CategoryBrowserProps) {
+  const t = useTranslations('categories');
   const storeId = useAuthStore((s) => s.activeStoreId);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [search, setSearch] = useState('');
@@ -33,25 +31,26 @@ export function CategoryBrowser({
   const categories = (data ?? initialCategoryList).items;
 
   return (
-    <div className="mt-6">
-      <div className="flex items-center gap-2">
-        <input
+    <div className="mt-6 space-y-6">
+      <div className="flex max-w-xs items-center gap-3">
+        <Input
           type="text"
           value={search}
           onChange={(e) => {
             setHasInteracted(true);
             setSearch(e.target.value);
           }}
-          placeholder="Search categories…"
-          className="border-border bg-card rounded-md border px-3 py-2 text-sm focus:outline-none"
+          placeholder={t('searchPlaceholder')}
         />
-        {isFetching && <span className="text-muted-foreground text-xs">…</span>}
+        {isFetching && (
+          <span className="text-muted-foreground animate-pulse text-xs">{t('searching')}</span>
+        )}
       </div>
 
       {categories.length === 0 ? (
-        <p className="text-muted-foreground mt-8 text-sm">No categories found.</p>
+        <p className="text-muted-foreground py-8 text-center text-sm">{t('noResults')}</p>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {categories.map((category: Category) => {
             const translation = categoryTranslation(category, locale);
             if (!translation) return null;
@@ -59,26 +58,32 @@ export function CategoryBrowser({
               <Link
                 key={category.id}
                 href={`/${locale}/${translation.slug}`}
-                className="border-border bg-card hover:border-ink/30 group overflow-hidden rounded-md border transition-colors"
+                className="group border-border bg-card hover:border-border/80 overflow-hidden rounded-lg border transition-all hover:shadow-sm"
               >
-                <div className="bg-background aspect-[3/2] w-full overflow-hidden">
+                <div className="bg-muted relative aspect-[3/2] w-full overflow-hidden">
                   {category.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={category.imageUrl}
                       alt={translation.name}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      unoptimized
                     />
                   ) : (
-                    <div className="bg-sidebar-primary/10 flex h-full items-center justify-center">
-                      <span className="text-muted-foreground text-xs">No image</span>
+                    <div className="bg-muted text-muted-foreground flex h-full items-center justify-center text-xs">
+                      {t('noImage')}
                     </div>
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="font-medium">{translation.name}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {category._count?.children ? `${category._count.children} categories` : '⋯'}
+                  <p className="text-foreground group-hover:text-primary text-sm font-medium transition-colors">
+                    {translation.name}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {category._count?.children
+                      ? t('subcategories', { count: category._count.children })
+                      : '—'}
                   </p>
                 </div>
               </Link>

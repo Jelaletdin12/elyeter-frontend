@@ -4,6 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Autoplay from 'embla-carousel-autoplay';
+import { useTranslations } from 'next-intl';
 import { ArrowRight } from 'lucide-react';
 
 import {
@@ -23,12 +24,13 @@ interface HeroBannerProps {
 }
 
 export function HeroBanner({ banners, locale }: HeroBannerProps) {
+  const t = useTranslations('home');
   const activeBanners = React.useMemo(
     () => banners.filter((b) => b.isActive).sort((a, b) => a.order - b.order),
     [banners],
   );
 
-  const autoplay = React.useRef(
+  const [autoplay] = React.useState(() =>
     Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true }),
   );
 
@@ -36,7 +38,7 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
 
   return (
     <section className="relative">
-      <Carousel opts={{ loop: true }} plugins={[autoplay.current]} className="group relative">
+      <Carousel opts={{ loop: true }} plugins={[autoplay]} className="group relative">
         <CarouselContent>
           {activeBanners.map((banner) => (
             <CarouselItem key={banner.id}>
@@ -46,7 +48,7 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
                   <Link
                     href={banner.linkUrl}
                     className="absolute inset-0"
-                    aria-label="Explore collection"
+                    aria-label={t('exploreCollection')}
                   >
                     <Image
                       src={banner.desktopUrl}
@@ -75,21 +77,20 @@ export function HeroBanner({ banners, locale }: HeroBannerProps) {
                 <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
                   <div className="max-w-xl text-white">
                     <p className="mb-3 text-xs font-medium tracking-[0.22em] text-white/75 uppercase">
-                      New collection
+                      {t('heroEyebrow')}
                     </p>
                     <h1 className="text-4xl leading-[1.05] font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-                      Discover something new
+                      {t('heroTitle')}
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-6 text-white/80 sm:text-base">
-                      Find pieces you&apos;ll love, from everyday essentials to something a little
-                      more special.
+                      {t('heroDescription')}
                     </p>
                     {banner.linkUrl && (
                       <Link
                         href={banner.linkUrl}
                         className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition-all hover:gap-3 hover:bg-white/90"
                       >
-                        Explore collection
+                        {t('exploreCollection')}
                         <ArrowRight className="size-4" />
                       </Link>
                     )}

@@ -19,6 +19,14 @@ export type ProductFilters = {
   maxPrice?: number;
 };
 
+/** GET /notifications/stock query flag'leri (backend normalizePagination + onlyReady/unreadOnly). */
+export type NotificationListFilters = {
+  page?: number;
+  limit?: number;
+  onlyReady?: boolean;
+  unreadOnly?: boolean;
+};
+
 export const queryKeys = {
   products: {
     all: (storeId: string) => ['products', storeId] as const,
@@ -65,12 +73,32 @@ export const queryKeys = {
     current: (storeId: string) => ['profile', storeId, 'current'] as const,
   },
 
+  // Stok bildirimi abonelikleri (private/kişisel — backend'de CLIENT'a özel).
+  // `list` filtre objesini de key'e katar ki okunmamış badge (unreadOnly) ve
+  // tam liste ayrı cache'lensin; canlı event geldiğinde `all` invalidation
+  // ikisini de temizler.
+  notifications: {
+    all: (storeId: string) => ['notifications', storeId] as const,
+    list: (storeId: string, filters: NotificationListFilters) =>
+      ['notifications', storeId, 'list', filters] as const,
+    unreadCount: (storeId: string) => ['notifications', storeId, 'unread-count'] as const,
+  },
+
   search: {
     results: (storeId: string, locale: string, term: string) =>
       ['search', storeId, locale, term] as const,
     // Görsel arama mutation key'i — cache'lenen bir sorgu değil; convention'a
     // uygun olarak key yine de bu factory'den üretilir.
     image: (storeId: string) => ['search', storeId, 'image'] as const,
+  },
+
+  // Geocoding (public /locations). Koordinat key'i sunucu cache'iyle aynı
+  // 4-ondalık hassasiyette (LocationsService GEOCODING_COORD_PRECISION) —
+  // farklı key üretmek aynı isteği tekrar tekrar atmaya götürür.
+  locations: {
+    reverse: (latitude: number, longitude: number) =>
+      ['locations', 'reverse', latitude.toFixed(4), longitude.toFixed(4)] as const,
+    search: (term: string) => ['locations', 'search', term.trim().toLowerCase()] as const,
   },
 
   recommendations: {

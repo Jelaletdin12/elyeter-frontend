@@ -301,6 +301,7 @@ export default function AdminDashboardPage() {
               isLoading={false}
               rows={operators}
               getRowId={(row) => row.operatorId}
+              enableRowSelection
               emptyTitle="No operators yet"
               columns={[
                 {

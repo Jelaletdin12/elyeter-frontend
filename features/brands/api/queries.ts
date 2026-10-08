@@ -78,6 +78,15 @@ export function publicBrandListOptions(storeId: string, search: string, category
   });
 }
 
+/** Admin tekil — /admin/brands/[id] edit sayfası için. */
+export function adminBrandDetailOptions(storeId: string, brandId: string) {
+  return queryOptions({
+    queryKey: [...queryKeys.adminBrands.all(storeId), 'detail', brandId] as const,
+    queryFn: () => adminAuthorizedFetch<Brand>(`/brands/${brandId}`),
+    staleTime: 30_000,
+  });
+}
+
 /**
  * Admin brand option'ları — ProductForm brand Select'i için tüm aktif markalar.
  * sayfalama yok (max 200-300 marka bekleniyor).
